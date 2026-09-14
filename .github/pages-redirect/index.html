@@ -1,0 +1,46 @@
+<!doctype html>
+<!--
+  The page GitHub Pages serves at duck-agency.com/kitbay/ now that Kitbay is
+  hosted on Vercel. The address below is substituted in by
+  .github/workflows/pages-redirect.yml, which reads APP_URL from
+  src/lib/brand.js — so where the app lives has exactly one definition.
+  (The placeholder is not named here: this comment would be substituted too.)
+
+  It lives here as a real file rather than inside the workflow: a heredoc nested
+  in a YAML block scalar is one indentation mistake away from being invalid on
+  both sides at once, which is exactly what happened.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kitbay has moved</title>
+    <link rel="canonical" href="__APP_URL__" />
+    <!-- A meta refresh, not a script: this has to work with JS off. -->
+    <meta http-equiv="refresh" content="0; url=__APP_URL__" />
+    <meta name="robots" content="noindex" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f8fafc;
+        color: #0f172a;
+        font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      a { color: #7c3aed; }
+      p { margin: 0 0 8px; }
+      .quiet { color: #64748b; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <p><strong>Kitbay has moved.</strong></p>
+      <p><a href="__APP_URL__">__APP_URL__</a></p>
+      <p class="quiet">Taking you there now — update your bookmark.</p>
+    </div>
+  </body>
+</html>

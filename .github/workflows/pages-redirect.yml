@@ -38,59 +38,24 @@ jobs:
           set -euo pipefail
           # ONE definition of the address: the same constant `npm run user:add`
           # prints to a new member of staff. A second copy here is how the two
-          # drift and one of them starts pointing somewhere dead.
+          # drift and one of them ends up pointing somewhere dead.
           url=$(grep -m1 "^export const APP_URL" src/lib/brand.js | cut -d"'" -f2)
           if [ -z "$url" ]; then
-            echo "::error::APP_URL not found in src/lib/brand.js — nothing to redirect to."
+            echo "::error::APP_URL not found in src/lib/brand.js - nothing to redirect to."
             exit 1
           fi
           echo "Redirecting to $url"
 
           mkdir -p site
-          # The heredoc body sits flush left on purpose: its terminator has to
-          # start at column 0, and indenting the body would put the closing word
-          # somewhere the shell never looks for it.
-          cat > site/index.html <<HTML
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Kitbay has moved</title>
-    <link rel="canonical" href="$url" />
-    <!-- A meta refresh, not a script: this has to work with JS off. -->
-    <meta http-equiv="refresh" content="0; url=$url" />
-    <meta name="robots" content="noindex" />
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: #f8fafc;
-        color: #0f172a;
-        font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-        text-align: center;
-        padding: 24px;
-      }
-      a { color: #7c3aed; }
-      p { margin: 0 0 8px; }
-      .quiet { color: #64748b; font-size: 14px; }
-    </style>
-  </head>
-  <body>
-    <div>
-      <p><strong>Kitbay has moved.</strong></p>
-      <p><a href="$url">$url</a></p>
-      <p class="quiet">Taking you there now — update your bookmark.</p>
-    </div>
-  </body>
-</html>
-HTML
-
+          sed "s|__APP_URL__|$url|g" .github/pages-redirect/index.html > site/index.html
           # Unknown paths under /kitbay/ land on 404.html, so an old deep
           # bookmark reaches the new address too rather than a GitHub error page.
           cp site/index.html site/404.html
+
+          if grep -q "__APP_URL__" site/index.html; then
+            echo "::error::A placeholder survived the substitution."
+            exit 1
+          fi
           cat site/index.html
 
       - uses: actions/upload-pages-artifact@v3
