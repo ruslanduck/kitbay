@@ -2352,6 +2352,46 @@
 > i.e. more visible than the app's usual 1.72 / 1.23.
 > Verified on the job card and on the PEEK card (the surface in the report) in both themes with
 > transitions frozen; no overflow, 0 console errors.
+> **HOSTING + RENAME — the project is Kitbay, and one repo builds for Vercel and for Pages.**
+> Asked to host on Vercel and then: "пусть название проекта будет везде Kitbay … это переходит в V1
+> проект."
+> **The only thing in the code that knew where the app lives is `base`**, which decides every asset
+> URL in `index.html`. Pages serves under the REPO NAME, Vercel serves a project at the ROOT of its
+> own domain — a Pages build put there asks for `/studio-demo/assets/…` and renders a blank page. So
+> `base` reads the environment instead of a literal: `/` when `VERCEL` is set (Vercel's own build sets
+> it), otherwise `/<GITHUB_REPOSITORY's repo half>/` (Actions supplies it), with a dev fallback.
+> ⚠️ That second half is the interesting one: **renaming the GitHub repo can no longer leave a stale
+> path here** — the thing that would otherwise blank the deployed page a week later, with a commit
+> nobody connects to the rename. Measured all four shapes from one tree: `…/studio-demo` →
+> `/studio-demo/assets/…`, `…/kitbay` → `/kitbay/…`, `VERCEL=1` → `/assets/…`, plain dev → `/kitbay/`.
+> `vercel.json` runs the same gates CI does (`audit:tdz`, `lint`, `test:lib`) before the build, so a
+> failing assertion does not deploy. Nothing else is needed on Vercel: `.env.production` is committed
+> (public URL + anon key by design), so Vite picks the supabase source up at build time.
+> ℹ️ Supabase needs NO change: sign-in is email+password with no redirect flow (checked —
+> no `resetPasswordForEmail` / `emailRedirectTo` / OAuth anywhere), so Auth's URL configuration is not
+> involved, and PostgREST answers any origin.
+> ⚠️ **A Vercel PREVIEW deployment talks to the same production database.** The app requires sign-in,
+> so nothing is public, but a preview build can WRITE to the real register. Deployment Protection or a
+> second Supabase project is the fix if that ever matters.
+> **The rename, in the scaffolding rather than the UI** (the product has said Kitbay since the
+> rebrand): package + lockfile name; the seed's internal company id (`anntaylor-rental` →
+> `kitbay-studio`, 4 refs, never shown); `src/lib/brand.js` gains `APP_URL` beside `BRAND_NAME` so
+> `npm run user:add` stops carrying its own copy of the address it hands a new user; and the README,
+> which was still the untouched Vite template.
+> ⚠️ **The browser STORAGE KEY changed** (`anntaylor-rental-demo` → `kitbay`) — the last place a
+> crew member's own machine held the old name. A new key is not read by the old one: local mode
+> reseeds (what "Reload seed" does anyway) and on prod each person's theme and "where I was" reset
+> ONCE. The old key is left in place rather than deleted: it is superseded, not garbage worth removing
+> from someone's browser behind their back. On a new host the origin is new and storage is empty
+> regardless, which is why this was the cheapest moment to do it.
+> **NOT renamed, deliberately:** the demo logins `@anntaylor.demo` are real Supabase users and
+> renaming them breaks sign-in; and the GitHub repo itself, which is an outward-facing URL and the
+> studio's call — `base` no longer depends on that decision either way.
+> Verified on prod after the deploy: the served page still points at `/studio-demo/assets/…` (the repo
+> is not renamed, so the live link is untouched), the head script reads `localStorage.getItem('kitbay')`,
+> the bundle carries `kitbay-studio`, and the old key appears **0** times. Locally the app runs at
+> `localhost:5173/kitbay/` with the seed under the new key (44 items / 14 jobs / 31 people), 0 console
+> errors, 344 assertions.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
