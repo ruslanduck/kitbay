@@ -17,7 +17,7 @@
       // of truth for the preference; anything unreadable falls back to the
       // device, whose answer is never wrong.
       try {
-        var raw = localStorage.getItem('anntaylor-rental-demo')
+        var raw = localStorage.getItem('kitbay')
         var pref = raw ? JSON.parse(raw).state.theme : 'system'
         var dark =
           pref === 'dark' ||

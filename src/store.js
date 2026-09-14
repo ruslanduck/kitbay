@@ -102,7 +102,7 @@ import {
 import { isClosedStatus } from './data/orderStatus'
 import { EVENT, diffOrderLines } from './lib/activity'
 
-const STORAGE_KEY = 'anntaylor-rental-demo'
+const STORAGE_KEY = 'kitbay'
 
 // Local demo mode has no auth, so activity is attributed to the machine's user.
 const LOCAL_ACTOR = 'Demo user'

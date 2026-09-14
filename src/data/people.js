@@ -24,7 +24,7 @@ export const COMPANY_SEED = [
   {
     // The slug stays as-is: it's an internal seed key (referenced by the people
     // below) and never shown. Only the display fields carry the brand.
-    id: 'anntaylor-rental',
+    id: 'kitbay-studio',
     name: 'Kitbay',
     companyType: 'Studio',
     kind: 'both',
@@ -118,7 +118,7 @@ export const PEOPLE_SEED = [
     name: 'Ann Taylor',
     category: 'Freelancer',
     subcategory: 'Photographer',
-    company: 'anntaylor-rental',
+    company: 'kitbay-studio',
     email: 'ann@anntaylor.demo',
     phone: '+1 212 555 0101',
     website: 'https://anntaylor.example.com',
@@ -129,7 +129,7 @@ export const PEOPLE_SEED = [
     name: 'Marcus Reed',
     category: 'Freelancer',
     subcategory: 'Photographer',
-    company: 'anntaylor-rental',
+    company: 'kitbay-studio',
     email: 'marcus@anntaylor.demo',
     phone: '+1 212 555 0102',
     instagram: '@marcusreedphoto',
@@ -138,7 +138,7 @@ export const PEOPLE_SEED = [
     name: 'Sofia Ventura',
     category: 'Freelancer',
     subcategory: 'Photographer',
-    company: 'anntaylor-rental',
+    company: 'kitbay-studio',
     email: 'sofia@anntaylor.demo',
     phone: '+1 212 555 0103',
     website: 'https://sofiaventura.example.com',

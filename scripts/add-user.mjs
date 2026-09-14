@@ -16,6 +16,7 @@
 // it does NOT reset the password (silently changing someone's credentials is
 // worse than doing nothing) — it only makes sure the profile is right.
 import { createClient } from '@supabase/supabase-js'
+import { APP_URL } from '../src/lib/brand.js'
 
 const url = process.env.VITE_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -105,7 +106,7 @@ async function main() {
   console.log(`profile  ${fullName} · ${role}`)
   console.log(
     created
-      ? '\nDone. They can sign in at duck-agency.com/studio-demo/ with the password you set.'
+      ? `\nDone. They can sign in at ${APP_URL} with the password you set.`
       : '\nDone. Profile updated; to change their password use the Supabase dashboard.',
   )
 }

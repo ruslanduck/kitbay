@@ -1,16 +1,85 @@
-# React + Vite
+# Kitbay
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Rental and scheduling for a photo/film studio: what gear exists, which physical
+unit is on which job, who is on set and when, and the paperwork that follows —
+estimate, pull sheet, activity trail.
 
-Currently, two official plugins are available:
+## Run it
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Opens on `http://localhost:5173/kitbay/`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+`.env.development.local` pins the dev server to **local mode**: seeded data in
+`localStorage`, no account, no network. That is deliberate — several flows do
+real inventory writes, and pointing dev at the live database means ordinary
+clicking around edits the studio's own register.
 
-## Expanding the Oxlint configuration
+## Two data sources, one app
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+`VITE_DATA_SOURCE` switches `src/data/repository.js`:
+
+| value      | where the data lives                   | used by                    |
+| ---------- | -------------------------------------- | -------------------------- |
+| `local`    | seeds in `src/data/*` → `localStorage`  | `npm run dev`              |
+| `supabase` | Postgres + Auth (schema in `supabase/`) | the deployed build         |
+
+The store (`src/store.js`) hydrates from whichever one is configured, so every
+screen is written once.
+
+## Checks
+
+```bash
+npm run test:lib    # assertions over the pure modules in src/lib, under plain Node
+npm run lint        # oxlint, with no-undef on
+npm run audit:tdz   # a hook initializer reading a const declared below it
+npm run audit:jsx   # a JSX prop whose value identifier its own file never declares
+```
+
+All four run in CI ahead of the build, and again in the Vercel build command —
+a failing assertion does not deploy.
+
+## Deploy
+
+Push to `main`. Two hosts are wired and both are correct from the same repo:
+
+- **Vercel** — `vercel.json` carries the build; `base` becomes `/`.
+- **GitHub Pages** — `.github/workflows/deploy.yml`; `base` becomes the repo
+  name, read from `GITHUB_REPOSITORY` so a rename cannot break it.
+
+Confirm a deploy through the CDN rather than the GitHub API, and check CONTENT:
+fetch the served `index-*.js` and grep it for a string unique to the new code.
+
+## Database
+
+Migrations live in `supabase/migrations/`. Apply with
+
+```bash
+set -a; . ./.env.local; set +a; echo y | npx supabase db push
+```
+
+Nothing is ever deleted: every table with its own identity archives
+(`archived_at`), and the app is not granted DELETE.
+
+## Accounts
+
+Sign-in only — there is no self-registration. Provision one with
+
+```bash
+NEW_USER_PASSWORD=… npm run user:add -- --email name@studio.com --name "Full Name"
+```
+
+The password is read from the environment, never hardcoded and never printed.
+
+## Secrets
+
+`.env.local` (gitignored) holds the service-role key and the database password.
+`.env.production` carries only the public URL and the anon key — the security
+boundary is Row Level Security, not that file.
+
+**This repository is public**, so the studio's own inventory export is not in
+it: `scripts/import-inventory.mjs` takes the file by `--file` and is dry-run by
+default.

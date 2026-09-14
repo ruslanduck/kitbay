@@ -1,4 +1,4 @@
-# CLAUDE.md — AnnTaylor Rental System
+# CLAUDE.md — Kitbay
 
 > ## ⚠️ Current state (V2 — 2026-07-25). This supersedes the V1 plan below.
 >
