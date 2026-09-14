@@ -16,7 +16,7 @@
 > - **Secrets:** `.env.local` (gitignored) holds Supabase keys + DB password + service_role. Public
 >   URL+anon are in committed `.env.production` for the prod build. service_role = local seeding only.
 > - **Deploy:** push to `main` → GitHub Pages (~1–2 min). Confirm via the **CDN**, not the rate-limited GitHub
->   API. Live at duck-agency.com/studio-demo/. Usually the served `index-*.js` hash equals the local `dist/`
+>   API. Live at duck-agency.com/kitbay/ (the repo was renamed — the old /studio-demo/ path is a 404). Usually the served `index-*.js` hash equals the local `dist/`
 >   one, but it CAN legitimately differ (CI runs its own `npm ci`, so the bundle isn't byte-identical) — when
 >   it does, don't assume the deploy failed: fetch the served bundle and grep it for a string unique to the new
 >   code (e.g. `curl -s .../assets/index-<hash>.js | grep -c "Coming soon"`). Content is the real check.
