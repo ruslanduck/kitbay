@@ -15,8 +15,10 @@
 >   (`TimeField` is gone — nothing in the app collects a time any more; a shoot is a range of whole days.)
 > - **Secrets:** `.env.local` (gitignored) holds Supabase keys + DB password + service_role. Public
 >   URL+anon are in committed `.env.production` for the prod build. service_role = local seeding only.
-> - **Deploy:** push to `main` → GitHub Pages (~1–2 min). Confirm via the **CDN**, not the rate-limited GitHub
->   API. Live at duck-agency.com/kitbay/ (the repo was renamed — the old /studio-demo/ path is a 404). Usually the served `index-*.js` hash equals the local `dist/`
+> - **Deploy:** push to `main` → **Vercel** (~1–2 min). Live at **kitbay.vercel.app** — that is the ONE
+>   address now. GitHub Pages served it before; `duck-agency.com/kitbay/` REDIRECTS there (and
+>   `/studio-demo/` is a 404 from the repo rename). Confirm via the **CDN**, not the rate-limited GitHub
+>   API. Usually the served `index-*.js` hash equals the local `dist/`
 >   one, but it CAN legitimately differ (CI runs its own `npm ci`, so the bundle isn't byte-identical) — when
 >   it does, don't assume the deploy failed: fetch the served bundle and grep it for a string unique to the new
 >   code (e.g. `curl -s .../assets/index-<hash>.js | grep -c "Coming soon"`). Content is the real check.
@@ -2392,6 +2394,40 @@
 > the bundle carries `kitbay-studio`, and the old key appears **0** times. Locally the app runs at
 > `localhost:5173/kitbay/` with the seed under the new key (44 items / 14 jobs / 31 people), 0 console
 > errors, 344 assertions.
+> **HOSTING — one address: `kitbay.vercel.app`.** The studio picked the Vercel address over a custom
+> subdomain, so the app now has ONE home and the old GitHub Pages path stops being a second one.
+> `APP_URL` follows it — that constant is what `npm run user:add` prints to whoever is being given an
+> account, so a stale address there is a support call rather than a cosmetic slip.
+> **The Pages deploy is not simply switched off, and the reason is the whole point of the step.** Turning
+> the workflow off leaves the LAST BUILD published at `duck-agency.com/kitbay/` permanently: a second,
+> ageing copy of the app, writing to the SAME production database, reached by every bookmark that
+> predates the move. So that path serves a REDIRECT instead — meta refresh (it has to work with JS off)
+> plus a visible link, published by `.github/workflows/pages-redirect.yml`, with `404.html` identical so
+> an old deep bookmark lands there too. It is **dispatch-only**: the page never changes, and rebuilding
+> it on every push would be an identical deploy against every commit. It reads the address out of
+> `brand.js` rather than carrying its own copy — two definitions of where the app lives is exactly how
+> one of them ends up pointing somewhere dead.
+> ⚠️ **Splitting the workflow mattered more than the redirect.** `deploy.yml` carried the four GATES
+> (`audit:tdz`, `lint`, `test:lib`, `build`) as well as the deploy, so deleting it would have quietly
+> taken CI with it. They live in `.github/workflows/ci.yml` now (push + PR), which also gained
+> `audit:jsx` — it was in the README and in `vercel.json` but had never been in the GitHub workflow.
+> Vercel runs the same commands before its own build, so a failure already blocks a deploy; CI is what
+> puts that answer on the COMMIT instead of only inside another dashboard.
+> ⚠️ **A backslash level vanished inside a nested heredoc and left a CONTROL CHARACTER in the YAML.**
+> The step first extracted the address with `sed -n "s/…'\(.*\)'$/\1/p"`; by the time it reached the
+> file the `\1` had become a literal **0x01 byte**, so the expression substituted nothing and `url` came
+> back empty — and `grep` renders 0x01 invisibly, so the line READ as correct. `cat -A` is what showed
+> it. The extraction is `grep -m1 … | cut -d"'" -f2` now: no backslashes at all, so there is no escape
+> level to lose. **Prove a workflow step by EXTRACTING it and running it**, not by reading it — the run
+> is what produced the empty variable.
+> ℹ️ Left undone deliberately, both the studio's call: no custom domain (a CNAME to Vercel is a DNS
+> change, and the plain address is what was chosen), and no Deployment Protection — pushes go straight
+> to `main`, so previews are rare, but a preview build CAN write to the real register.
+> Verified on the deployed build before the change: `kitbay.vercel.app` 200 with assets at `/assets/…`
+> (so `base: '/'` took), the sign-in screen rendered, **0 console messages**, the bundle carrying the
+> Supabase URL and the `kitbay` storage key with `studio-demo` and the old key at **0**. And from the new
+> ORIGIN — the thing a host move can actually break — Auth answered **200** with email sign-in enabled
+> and PostgREST answered **200 with `[]`** to an anonymous reader: reachable, and still closed by RLS.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

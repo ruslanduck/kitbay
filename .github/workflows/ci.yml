@@ -1,17 +1,23 @@
-name: Deploy to GitHub Pages
+# The gates, on every push. They used to live in the GitHub Pages deploy
+# workflow; Pages no longer publishes the app (Vercel does), and dropping that
+# workflow would have taken the checks with it.
+#
+# Vercel runs the same four commands in its own build command, so a failing one
+# already blocks a deploy. This keeps the answer visible on the COMMIT as well —
+# a red check in GitHub, not only inside another dashboard.
+name: CI
+
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
+
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,20 +31,11 @@ jobs:
       # crash that blanks the page. It has shipped three times.
       - run: npm run audit:tdz
       - run: npm run lint
+      # A JSX prop whose value identifier its own file never declares — the bug
+      # that white-screened the calendar and that the build happily compiles.
+      - run: npm run audit:jsx
       # Assertions over the pure modules in src/lib. They used to live in a
       # scratchpad and vanish with the session, so they protected the change
       # that prompted them and nothing after it.
       - run: npm run test:lib
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

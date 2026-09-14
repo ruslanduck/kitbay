@@ -1,0 +1,108 @@
+# The old address points at the new one.
+#
+# Kitbay is hosted on Vercel. GitHub Pages served it before, at
+# duck-agency.com/kitbay/, and simply switching that deploy off would have left
+# the last build sitting there forever: a second, ageing copy of the app writing
+# to the SAME production database, reached by anyone whose bookmark predates the
+# move. So the old path serves a redirect instead of an app.
+#
+# DISPATCH ONLY, on purpose. The page is static and never changes, so publishing
+# it once is enough — running it on every push would deploy an identical file
+# and add noise to every commit. Re-run it by hand if the address ever moves.
+#
+# This repo's Pages site occupies the /kitbay/ path of duck-agency.com (the
+# domain belongs to the user site, `cname` here is null), so nothing else served
+# from that domain is affected.
+name: Redirect the old Pages address
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the redirect page
+        run: |
+          set -euo pipefail
+          # ONE definition of the address: the same constant `npm run user:add`
+          # prints to a new member of staff. A second copy here is how the two
+          # drift and one of them starts pointing somewhere dead.
+          url=$(grep -m1 "^export const APP_URL" src/lib/brand.js | cut -d"'" -f2)
+          if [ -z "$url" ]; then
+            echo "::error::APP_URL not found in src/lib/brand.js — nothing to redirect to."
+            exit 1
+          fi
+          echo "Redirecting to $url"
+
+          mkdir -p site
+          # The heredoc body sits flush left on purpose: its terminator has to
+          # start at column 0, and indenting the body would put the closing word
+          # somewhere the shell never looks for it.
+          cat > site/index.html <<HTML
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kitbay has moved</title>
+    <link rel="canonical" href="$url" />
+    <!-- A meta refresh, not a script: this has to work with JS off. -->
+    <meta http-equiv="refresh" content="0; url=$url" />
+    <meta name="robots" content="noindex" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f8fafc;
+        color: #0f172a;
+        font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      a { color: #7c3aed; }
+      p { margin: 0 0 8px; }
+      .quiet { color: #64748b; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <p><strong>Kitbay has moved.</strong></p>
+      <p><a href="$url">$url</a></p>
+      <p class="quiet">Taking you there now — update your bookmark.</p>
+    </div>
+  </body>
+</html>
+HTML
+
+          # Unknown paths under /kitbay/ land on 404.html, so an old deep
+          # bookmark reaches the new address too rather than a GitHub error page.
+          cp site/index.html site/404.html
+          cat site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

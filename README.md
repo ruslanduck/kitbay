@@ -39,16 +39,26 @@ npm run audit:tdz   # a hook initializer reading a const declared below it
 npm run audit:jsx   # a JSX prop whose value identifier its own file never declares
 ```
 
-All four run in CI ahead of the build, and again in the Vercel build command —
-a failing assertion does not deploy.
+All four run in CI on every push. The three that can FAIL also gate the Vercel
+build, so a failing assertion does not deploy; `audit:jsx` reports its suspects
+and exits 0, because it false-positives on a renamed destructure
+(`{ loading: activityLoading }`) — read its output rather than trusting a count.
 
 ## Deploy
 
-Push to `main`. Two hosts are wired and both are correct from the same repo:
+Push to `main` → **Vercel**, live at <https://kitbay.vercel.app/>. `vercel.json`
+carries the build and runs the four checks above before it, so a failing
+assertion does not deploy. `base` becomes `/`.
 
-- **Vercel** — `vercel.json` carries the build; `base` becomes `/`.
-- **GitHub Pages** — `.github/workflows/deploy.yml`; `base` becomes the repo
-  name, read from `GITHUB_REPOSITORY` so a rename cannot break it.
+`.github/workflows/ci.yml` runs the same checks against the commit itself, so a
+failure shows on the commit in GitHub and not only inside Vercel's dashboard.
+
+GitHub Pages hosted the app until the move and now serves a **redirect** at
+`duck-agency.com/kitbay/` (`.github/workflows/pages-redirect.yml`, run by hand).
+Simply switching that deploy off would have left the last build published
+forever — a second, ageing copy of the app writing to the same production
+database, reached by every bookmark that predates the move. `base` still reads
+`GITHUB_REPOSITORY` should Pages ever publish the app again.
 
 Confirm a deploy through the CDN rather than the GitHub API, and check CONTENT:
 fetch the served `index-*.js` and grep it for a string unique to the new code.
