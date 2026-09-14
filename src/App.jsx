@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { useStore } from './store'
 import { useApplyTheme } from './lib/useApplyTheme'
+import { useRouteSync } from './lib/useRouteSync'
 import { usingSupabase } from './data/repository'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
@@ -16,6 +17,9 @@ export default function App() {
   // Keeps <html class="dark"> in step with the preference, and follows the
   // device while the preference is "system".
   useApplyTheme()
+  // The address bar names the screen, and the browser's back arrow walks both
+  // the screens and the drill-in trail.
+  useRouteSync()
   const activeView = useStore((s) => s.activeView)
   const loading = useStore((s) => s.loading)
   const hydrate = useStore((s) => s.hydrate)
@@ -32,17 +36,6 @@ export default function App() {
       hydrate() // no-op locally; keeps parity
     }
   }, [initAuth, hydrate])
-
-  // The browser's own back arrow walks the drill-in trail: every drill-in pushed
-  // a history entry, so one popstate = one step back. With an empty trail the
-  // event is ignored and the browser leaves the app, as it should.
-  useEffect(() => {
-    const onPop = () => {
-      if (useStore.getState().navStack.length) useStore.getState().goBack()
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
 
   const back = navStack[navStack.length - 1] ?? null
   // Mirror the browser when we have a real history entry to consume, so the two

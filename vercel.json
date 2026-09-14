@@ -3,5 +3,6 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "buildCommand": "npm run audit:tdz && npm run lint && npm run test:lib && npm run build",
-  "installCommand": "npm ci"
+  "installCommand": "npm ci",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

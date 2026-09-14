@@ -60,6 +60,11 @@ forever — a second, ageing copy of the app writing to the same production
 database, reached by every bookmark that predates the move. `base` still reads
 `GITHUB_REPOSITORY` should Pages ever publish the app again.
 
+`vercel.json` also rewrites every path to `index.html`: each screen has its own
+address (`/calendar`, `/jobs`, `/inventory`, `/people` — see `src/lib/routes.js`),
+and without the rewrite a reload or a pasted link would 404 on the host while
+working perfectly in dev.
+
 Confirm a deploy through the CDN rather than the GitHub API, and check CONTENT:
 fetch the served `index-*.js` and grep it for a string unique to the new code.
 

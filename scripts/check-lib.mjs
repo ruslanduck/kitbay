@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -36,6 +36,8 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/lib/ordering.js'),
     load('src/lib/patch.js'),
     load('src/lib/peopleOptions.js'),
+    load('src/lib/routes.js'),
+    load('src/data/nav.js'),
   ])
 
 let n = 0
@@ -754,6 +756,58 @@ ok(
   eq(whole.asset_type, null, "an empty string CLEARS the column")
   eq(whole.notes, null, 'and so does an explicit null')
   eq(Object.keys(patch.pickPatch({}, MAP)).length, 0, 'nothing supplied writes nothing at all')
+}
+
+// ───────────────────────────────────────── lib/routes — the address bar
+// The URL is the one piece of app state a person can type, paste and bookmark,
+// so the mapping has to be total in both directions and must not drift from the
+// tabs themselves.
+{
+  const { VIEW_PATHS, pathForView, viewForPath, viewFromLocation, normalizeBase, DEFAULT_VIEW } = routes
+
+  // EVERY tab has an address. Adding one to WORKSPACE_NAV without a path here
+  // would otherwise give it the calendar's URL and no way back to it.
+  for (const item of nav.WORKSPACE_NAV) {
+    ok(VIEW_PATHS[item.id], `the ${item.label} tab has a path of its own`)
+  }
+  const segs = Object.values(VIEW_PATHS)
+  eq(segs.length, new Set(segs).size, 'no two screens share a path')
+
+  // The segment is user-facing text, so it follows the LABEL. The store's view
+  // id and the DB table both still say `order`; the address says jobs.
+  eq(VIEW_PATHS.orders, 'jobs', 'the Jobs screen is /jobs, not /orders')
+
+  // Round trip at both bases the app is built for: Vercel serves from the root,
+  // the dev server (and a Pages build) from a sub-path.
+  for (const base of ['/', '/kitbay/']) {
+    for (const view of Object.keys(VIEW_PATHS)) {
+      const path = pathForView(view, base)
+      ok(path.startsWith(base), `${view} at base ${base} keeps the base`)
+      ok(!path.includes('//'), `${view} at base ${base} has no doubled slash`)
+      eq(viewForPath(path, base), view, `${base} round trip for ${view}`)
+    }
+  }
+
+  // A base written any of the three plausible ways behaves the same.
+  eq(normalizeBase('kitbay'), '/kitbay/', 'a bare base gains both slashes')
+  eq(normalizeBase('/kitbay'), '/kitbay/', 'a base gains its trailing slash')
+  eq(normalizeBase(''), '/', 'an empty base is the root')
+
+  // A path naming no screen answers NULL rather than guessing — the caller
+  // keeps the screen it has and rewrites the address, so a stale or mistyped
+  // link lands somewhere real. This app serves no 404 of its own.
+  eq(viewForPath('/', '/'), null, 'the root names no screen')
+  eq(viewForPath('/nope', '/'), null, 'an unknown path names no screen')
+  eq(viewForPath('/jobs', '/kitbay/'), null, 'a path outside the base names no screen')
+  eq(viewForPath('/JOBS', '/'), 'orders', 'the address is case-insensitive')
+  eq(viewForPath('/jobs/order-7', '/'), 'orders', 'a deeper path still names its screen')
+
+  // Which screen a LOAD opens on: the address wins over what was remembered,
+  // and with no address to go on the remembered screen wins over the default.
+  eq(viewFromLocation('/inventory', 'orders'), 'inventory', 'an explicit link beats the stored screen')
+  eq(viewFromLocation('/', 'orders'), 'orders', 'no screen in the address falls back to the stored one')
+  eq(viewFromLocation('/', null), DEFAULT_VIEW, 'and to the default when nothing was stored')
+  eq(viewFromLocation('/nope', 'people'), 'people', 'an unknown path falls back, it does not reset')
 }
 
 console.log(`OK — ${n} assertions passed`)

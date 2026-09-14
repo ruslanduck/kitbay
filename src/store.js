@@ -89,6 +89,7 @@ import { coversDay, endsOnFor, firstFullDay, setSpanDays } from './lib/setDays'
 import { normalizeCallTimes } from './lib/callTimes'
 import { resolveUnitCodes } from './lib/unitRows'
 import { newestFirst } from './lib/ordering'
+import { pathForView, viewFromLocation } from './lib/routes'
 import { THEME_SYSTEM, isTheme } from './lib/theme'
 import {
   categoryNameError,
@@ -847,7 +848,29 @@ export const useStore = create(
       activeView: 'calendar', // 'calendar' | 'inventory'
       // Picking a view from the sidebar is a deliberate jump, not a drill-in, so
       // it drops the back trail (nothing to return "up" to).
-      setActiveView: (view) => set({ activeView: view, navStack: [], peekStack: [] }),
+      setActiveView: (view) => {
+        if (!view || view === get().activeView) return
+        // A tab click is a NAVIGATION, so it gets a history entry carrying the
+        // new address — that is what makes the browser's back arrow return to
+        // the screen you were on. Everything else that changes the view either
+        // pushes its own entry (pushNav, for a drill-in) or is the browser
+        // moving; the reconciler in useRouteSync only ever REPLACES, so there
+        // is exactly one entry per navigation.
+        if (typeof window !== 'undefined' && window.history?.pushState) {
+          const url = pathForView(view) + window.location.search + window.location.hash
+          window.history.pushState({ view }, '', url)
+        }
+        set({ activeView: view, navStack: [], peekStack: [] })
+      },
+
+      // Landing on a screen because the BROWSER moved (back / forward, or a
+      // pasted address): the entry already exists, so this must not push one.
+      // It also leaves `navStack` alone — the caller decides whether a trail is
+      // being walked or abandoned.
+      applyRouteView: (view) => {
+        if (!view || view === get().activeView) return
+        set({ activeView: view, sidebarOpen: false, peekStack: [] })
+      },
 
       // --- cross-view drill-in + a BACK STACK -------------------------------
       //
@@ -3287,6 +3310,20 @@ export const useStore = create(
           ? { activeView: persisted?.activeView ?? 'calendar' }
           : { ...buildSeedData(), activeView: persisted?.activeView ?? 'calendar' }
       },
+      // An explicit ADDRESS beats what was remembered: opening /inventory shows
+      // Inventory even though localStorage says you were last on Jobs — which
+      // is the whole point of a link. Done in `merge` (synchronous, at store
+      // creation) rather than in an effect: an effect runs after the first
+      // paint, so the wrong screen would flash for a frame. A path that names
+      // no screen falls back to the remembered one.
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted || {}),
+        activeView: viewFromLocation(
+          typeof window === 'undefined' ? '' : window.location.pathname,
+          persisted?.activeView,
+        ),
+      }),
       // Local mode persists data to localStorage. Supabase mode persists only
       // UI state — data always comes fresh from the database.
       // What "where I was" consists of: the active screen, each screen's own

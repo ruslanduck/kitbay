@@ -2444,6 +2444,54 @@
 > navigated to the old address LANDS on `kitbay.vercel.app` with the sign-in screen and 0 console
 > messages. ℹ️ A deep old path (`/kitbay/anything`) still carries a **404 status** — GitHub Pages serves
 > `404.html` with one — but it is the same page, so the browser is forwarded anyway.
+> **FEATURE — the address bar says which screen you are on, and the back arrow walks them.** Requested:
+> "в каждом открытом разделе сверху было обозначение ссылки где я нахожусь … https://kitbay.vercel.app/calendar
+> … пройдись по всем разделам … чтобы оно всё могло сохраняться и я мог переходить просто стрелочкой назад".
+> The app has never had a router and still does not need one — `activeView` in the store stays the source of
+> truth — but the URL never changed, so a screen could not be linked to or bookmarked, a reload landed on
+> whatever localStorage remembered, and the browser's back arrow only walked the drill-in trail.
+> `src/lib/routes.js` is the one definition (PURE, 42 assertions): **/calendar · /jobs · /inventory · /people**.
+> ⚠️ The segment is USER-FACING TEXT, so it follows the LABEL: the store's view id is `orders` and the screen
+> is called Jobs, so the address says **/jobs**. Same split as the `orders` TABLE meaning Job — renaming the
+> identifier would rewrite every stored `viewState` key for nothing visible. An assertion walks
+> `WORKSPACE_NAV` and fails if a tab has no path, so adding a screen cannot silently give it the calendar's URL.
+> ⚠️ **`vercel.json` needed a rewrite, and without it the feature is worse than useless:** `/jobs` is not a
+> file, so a reload or a pasted link would have 404'd on the host while working perfectly in dev. Every path
+> now serves `index.html` (static files still win, so `/assets/…` is untouched). Both bases produce ABSOLUTE
+> asset URLs — `/assets/…` on Vercel, `/kitbay/assets/…` in dev — so a deep path still finds its bundle;
+> relative ones would not.
+> **Which screen a LOAD opens on is decided in the persist `merge`**, synchronously at store creation: an
+> explicit address beats what was remembered, and a path naming no screen falls back to the remembered one.
+> Doing it in an effect instead would paint the wrong screen for a frame.
+> ⚠️ **The whole difficulty is push vs replace**, and getting it wrong is invisible until someone presses back:
+> one way the arrow needs two presses to undo one step, the other way it SKIPS the screen you came from. Every
+> entry is now STAMPED with the screen it represents, and two OBSERVABLE facts decide — the address already
+> matching (the browser moved us, or the push carried it) and the stamp. A tab click pushes its own entry; a
+> drill-in's `pushNav` already pushed one and only needs its URL written; a navigation that pushed nothing
+> ("Open full view" on a peek card) gets an entry pushed for it.
+> ⚠️ **My first version tracked "did the browser move us" in a REF, and it leaked:** a popstate that changed
+> nothing left the flag set, so the NEXT navigation replaced instead of pushing. The symptom was the FORWARD
+> arrow dying ("no forward history") — found by testing forward, not back. A fact you can read beats a flag
+> you have to remember to clear.
+> ℹ️ **Peek cards deliberately do NOT change the address.** A peek layers a card over the screen you are on
+> and closing it puts you back exactly where you started — it is not a navigation, and giving it a URL would
+> put an entry in history for something the X already undoes. Its "Open full view" IS a navigation and does.
+> ℹ️ **The selected record is NOT in the URL** — `/jobs`, not `/jobs/order-7`. Each screen already persists
+> its own selection and filters in `viewState`, so a reload lands you back on the same job; what a URL would
+> add is SHARING one, and that is its own change (every view's selection resolver, and a per-click history
+> entry that would flood the back arrow unless selection replaced rather than pushed).
+> ⚠️ My own test read a false positive twice: the item name on an equipment line opens a PEEK, not a drill-in,
+> and "Back to jobs" in the DOM is the MOBILE master-detail button (`lg:hidden`), not the trail bar. Check
+> WHICH control you are exercising before concluding the feature is broken.
+> Verified in local mode by measurement: a load of "/" normalised to the real screen's path; all four tabs
+> wrote their own address with one history entry each; back three times walked People → Inventory → Jobs →
+> Calendar with the screen following, and forward walked the same trail back; a pasted `/kitbay/people` opened
+> People; an unknown `/kitbay/nope` fell back to the remembered screen rather than an error; "Open full view"
+> pushed exactly one entry and back returned to the screen it came from. On the PRODUCTION bundle (`npm run
+> preview`, supabase mode): `/kitbay/people` reached the sign-in screen with the address intact — so signing in
+> lands on People — and **0 console messages**. ⚠️ The dev console kept hooks-order and missing-export errors
+> from my own mid-edit rewrites of the hook (`useRef` ↔ `useEffect`); the production bundle has no HMR and was
+> clean, which is what settles it.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
