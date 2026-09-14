@@ -2288,6 +2288,58 @@
 > list and at the top; the job editor's "Give the job a name." appears pinned while the form is
 > scrolled to 0; nine windows carry the component in the same slot. Demo data untouched (14 jobs /
 > 44 items / 7 categories / 27 subcategories).
+> **PROD PASS over the whole of 11 Sep** (read-only; no browser). Asked to test the day's changes on
+> prod. ⚠️ Both browser surfaces were dead that session — the desktop app refuses an MCP server named
+> `Claude Browser` / `claude-in-chrome` ("uses a name reserved for the desktop app's built-in tools"),
+> so the clicking half could not run at all. Verified instead by (a) content-grepping the SERVED
+> bundle — 13 feature strings present, 18 cut strings absent — and (b) probing the live database with
+> the app's OWN queries and pure modules under Node, which is the documented substitute.
+> Findings worth keeping: the three OUTERMOST select layers (`orders`+notes, `inventory_items`+notes,
+> `sets`+end_date+wrap+calls) all succeed, so prod loads the rich shape rather than a degraded one;
+> the reported duplicate call sheet is FIXED ON PROD DATA — the shoot "Name" stores two identical
+> `08:15 Producer` rows and now renders ONE line plus the wrap, roles kept, rows untouched; a job note
+> written by the studio round-trips with its line break; `pickPatch` emits only `notes` for a
+> note-only save AND **prod carries 0 `item.updated` events**, so the pre-fix partial write had never
+> fired there — nothing was lost, the fix is preventive. Two categories ("Uncategorized", "A/V /
+> Events") were archived through the new screen, both empty, with 0 orphan subcategories and 0
+> stranded items — the removal guard doing its job. Estimates still total **$0.00** because
+> `day_rate` is null across the migrated register (unchanged, known). 0 multi-day jobs on prod, so the
+> range field's second half is unexercised there.
+> ⚠️ Three of my own probe bugs, all of the same family: `est.days` is not `est.billableDays`,
+> `events.type` is `event_type` (a wrong column name returns NO rows and reads as "nothing ever
+> happened"), and a packing row's name field is not `name`. **Check a probe's field names against the
+> module before believing its answer** — a silent empty result is the dangerous shape.
+> **FIX — the people pickers read the ROSTER, and the brand list is never empty.** Three reports
+> against the New-job form.
+> **(1) The brand dropdown was empty.** `brandsIn` built its options from the register alone and no
+> job carries a brand yet, so the control offered nothing and read as broken. `BRANDS`
+> (**Ann Taylor**, **Loft**) is now offered exactly the way `JOB_TYPES` already was, merged with
+> whatever the register carries — still free text, so another label needs no code. ℹ️ Consequence,
+> deliberate and already true of types: the FILTER can offer a brand that currently matches nothing.
+> **(2) A new job starts as Type `PDP`** — the studio's everyday shoot; the rare one gets changed.
+> Editing is untouched (the form seeds from the record).
+> **(3) A photographer added in People did not appear in the picker.** The real defect was that THREE
+> surfaces asked three different questions: the Jobs screen merged people whose subcategory is exactly
+> "Photographer" with a frozen seed constant, while the CALENDAR and the legacy shoot editor showed
+> that constant ALONE — so whether a new person appeared depended on which door you came in through.
+> `src/lib/peopleOptions.js` is the single rule and is built so it cannot hide anyone: the people whose
+> trade says so first, then **everyone else on the roster** (an assistant shoots sometimes, and a
+> picker that refuses to offer the person you just filed is exactly the bug), then any name already
+> written on a job that is not in the database (the field has always taken free text; dropping those
+> would make an existing job's own value unofferable). `src/lib/usePeopleNames.js` lets each window
+> read the roster ITSELF rather than taking it as a prop — a list threaded through a parent is how two
+> of the three drifted, and it is the same shape as the required prop a shared modal once lost.
+> The frozen `PHOTOGRAPHERS`/`MODELS` constants and their file are gone with their only consumer (the
+> two store fields), so there is nothing left to drift from.
+> Audited the rest of the option lists while here: roles, company types, vendors, categories,
+> subcategories, kits, lists and inventory all already read live data; `STUDIOS` is the one frozen
+> list left, and that one is real.
+> Verified in local mode with **no reload in between**: created a person in People, then the job form
+> offered them at position 7 — inside the photographers, in name order — from BOTH entry points, with
+> 32 options against the 7 the calendar used to show; Brand offers Ann Taylor / Loft on a register
+> carrying neither; Type reads PDP on a new job from both doors. Probe person removed, demo data
+> reseeded (31 people / 14 jobs / 44 items), 0 console errors. **+12 assertions (344)** — and the suite
+> caught the old `brandsIn` assertion, which is what it is for.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
