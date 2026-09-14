@@ -2340,6 +2340,18 @@
 > carrying neither; Type reads PDP on a new job from both doors. Probe person removed, demo data
 > reseeded (31 people / 14 jobs / 44 items), 0 console errors. **+12 assertions (344)** — and the suite
 > caught the old `brandsIn` assertion, which is what it is for.
+> **FIX — the note field wears the app's OWN hairline.** Asked for right after the frame came off
+> entirely ("еще рамочку для Note добавь плз, чтоб было видно что это поле, а не текст"): with no
+> border the box read as a paragraph rather than as something writable. Both reports are right and
+> they are not in conflict — what was wrong with the FIRST version was the DASHED border and the
+> filled grey panel, not the existence of an outline.
+> It is `border-slate-300` now, the same one every input in the app wears — measured against the job
+> form's own field: identical colour, 0.8px solid, 8px radius, 12px padding, so the note cannot look
+> like a different kind of control. The ground stays TRANSPARENT (the field sits on whatever card it
+> is in) and hover/focus still do the rest in CSS. Border against its card: 2.35 dark / 1.49 light,
+> i.e. more visible than the app's usual 1.72 / 1.23.
+> Verified on the job card and on the PEEK card (the surface in the report) in both themes with
+> transitions frozen; no overflow, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
