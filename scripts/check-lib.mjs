@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -35,6 +35,7 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/lib/theme.js'),
     load('src/lib/ordering.js'),
     load('src/lib/patch.js'),
+    load('src/lib/peopleOptions.js'),
   ])
 
 let n = 0
@@ -100,8 +101,11 @@ eq(ids({ brand: 'All', jobType: 'All' }), ['j1', 'j2', 'j3', 'j4'], '"All" filte
 eq(ids({ text: 'nike editorial' }), ['j1'], 'free text spans brand and type — no field picker')
 eq(ids({ brand: 'Nike', text: 'legacy' }), [], 'a job with no brand never matches a brand filter')
 ok(orderSearch.searchOrders(jobs, { text: 'legacy' }).length === 1, 'but stays findable by name')
-eq(orderSearch.brandsIn(jobs), ['H&M', 'Nike'], 'brand options: from the data, deduped, sorted')
-eq(orderSearch.brandsIn([]), [], 'no jobs, no brands')
+// The studio's own brands lead, then whatever the register carries — deduped
+// and sorted. Built from the DATA alone the list was empty until someone typed
+// a brand, which read as a broken dropdown.
+eq(orderSearch.brandsIn(jobs), ['Ann Taylor', 'Loft', 'H&M', 'Nike'], 'brand options: offered + used')
+eq(orderSearch.brandsIn([]), ['Ann Taylor', 'Loft'], 'no jobs still offers the studio brands')
 // A style-out books a studio, has a call sheet and pulls gear like a shoot, so
 // it is a TYPE rather than a second kind of record — that is what lets the day
 // view list "all shoots + style-outs" without a parallel entity.
@@ -327,6 +331,42 @@ eq(setDays.spanSummary('2026-09-09', '2026-09-09'), 'Sep 9', 'and says nothing e
     '08:15',
     'the chip still reads the first call',
   )
+}
+{
+  // Reported: a photographer added in People did not appear in the job form's
+  // picker — three surfaces asked three different questions and two of them
+  // read a frozen list.
+  const roster = [
+    { name: 'Priya Nair', category: 'Freelancer', subcategory: 'Photographer' },
+    { name: 'Ann Taylor', category: 'Freelancer', subcategory: 'Photographer' },
+    { name: 'Dana Ruiz', category: 'Freelancer', subcategory: 'Assistant' },
+    { name: 'Old Hand', category: 'Freelancer', subcategory: 'Photographer', archivedAt: '2026-01-01' },
+    { name: '   ', category: 'Freelancer' },
+  ]
+  const names = peopleOptions.peopleNames(roster, { role: 'Photographer', used: ['Guest Shooter', ''] })
+  eq(names.slice(0, 2), ['Ann Taylor', 'Priya Nair'], 'the trade comes first, in name order')
+  ok(names.includes('Dana Ruiz'), 'and nobody on the roster is hidden — that was the bug')
+  ok(names.indexOf('Dana Ruiz') > names.indexOf('Priya Nair'), 'the rest follow the photographers')
+  ok(names.includes('Guest Shooter'), 'a name already written on a job stays offerable')
+  ok(!names.includes('Old Hand'), 'a retired person is not offered')
+  eq(names.filter((n) => !n.trim()).length, 0, 'and a blank row is not a person')
+  eq(peopleOptions.peopleNames([], {}), [], 'an empty roster offers nothing')
+  eq(
+    peopleOptions.peopleNames([{ name: 'Mia Speicher', category: 'Model' }], { role: 'Model' }),
+    ['Mia Speicher'],
+    'a model is a CATEGORY, not a subcategory',
+  )
+  const twice = peopleOptions.peopleNames(roster, { role: 'Photographer', used: ['Ann Taylor'] })
+  eq(twice.filter((n) => n === 'Ann Taylor').length, 1, 'a name used on a job is not offered twice')
+}
+
+{
+  // The brand list was built from the register ALONE, so it was empty until
+  // someone typed one — reported as a broken dropdown.
+  eq(orderSearch.BRANDS, ['Ann Taylor', 'Loft'], 'the brands the studio shoots for are offered')
+  eq(orderSearch.brandsIn([]), ['Ann Taylor', 'Loft'], 'even on a register that carries none')
+  const withOwn = orderSearch.brandsIn([{ brand: 'Zara' }, { brand: 'Loft' }])
+  eq(withOwn, ['Ann Taylor', 'Loft', 'Zara'], 'and a brand already in use joins them once')
 }
 eq(callTimes.normalizeCallTimes([]), [], 'no call times is a valid shoot')
 eq(callTimes.normalizeCallTimes(), [], 'and so is nothing at all')

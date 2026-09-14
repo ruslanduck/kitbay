@@ -15,6 +15,7 @@ import {
 import { MAX_SET_DAYS, setSpanDays } from '../lib/setDays'
 import { isValidTime, normalizeCallTimes, wrapBeforeFirstCall } from '../lib/callTimes'
 import CallTimesField from './CallTimesField'
+import { usePhotographerNames } from '../lib/usePeopleNames'
 
 // Order (Estimate) creation form — epic #5, 5.1 + 5.2.
 //
@@ -43,7 +44,9 @@ const blank = {
   jobName: '',
   setLabel: '',
   brand: '',
-  jobType: '',
+  // The studio's everyday shoot, so a new job starts there and the rare one is
+  // changed. Editing never sees this — the form seeds from the record.
+  jobType: 'PDP',
   notes: '',
   studioId: '1',
   startsOn: '',
@@ -60,7 +63,6 @@ export default function OrderEditorModal({
   order,
   prefill,
   studios,
-  photographers,
   brands = [],
   jobTypes = [],
   roleOptions = [],
@@ -70,6 +72,10 @@ export default function OrderEditorModal({
   onDelete,
 }) {
   const isEdit = !!order
+  // Straight from the roster, so a person filed in People is offered here the
+  // next time this opens — no reload, and the same list whichever window you
+  // came in through.
+  const photographers = usePhotographerNames()
   const [form, setForm] = useState(blank)
   const [error, setError] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)

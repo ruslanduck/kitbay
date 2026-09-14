@@ -193,7 +193,6 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
 export default function StudioCalendar() {
   const studios = useStore((s) => s.studios)
   const bookings = useStore((s) => s.bookings)
-  const photographers = useStore((s) => s.photographers)
   const selectedDate = useStore((s) => s.selectedDate)
   const setSelectedDate = useStore((s) => s.setSelectedDate)
   const calendarMode = useStore((s) => s.calendarMode)
@@ -626,7 +625,6 @@ export default function StudioCalendar() {
         order={null}
         prefill={orderEditor.prefill}
         studios={studios}
-        photographers={photographers}
         brands={brandOptions}
         jobTypes={typeOptions}
         roleOptions={roleOptions}

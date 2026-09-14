@@ -129,13 +129,19 @@ export function studiosIn(orders) {
   return [...new Set((orders ?? []).map((o) => o.studioId).filter(Boolean))].sort()
 }
 
-// Distinct brands present, for the filter dropdown. Built from the DATA, so it
-// can only ever offer a value that matches something — the lesson from the
-// inventory filters, which used to list brands only archived stock had.
+// The brands the studio shoots for. FREE TEXT still — `brandsIn` merges these
+// with every brand the register already carries, so another label needs no code
+// and a job that says something else keeps saying it.
+export const BRANDS = ['Ann Taylor', 'Loft']
+
+// Brands, offered before a job uses one. Built from the data ALONE the list was
+// empty on a register where nobody had typed a brand yet — reported as exactly
+// that — which reads as a broken dropdown rather than as an empty column.
+// (Consequence, deliberate and shared with `jobTypesIn`: the FILTER can offer a
+// brand that currently matches nothing.)
 export function brandsIn(orders) {
-  return [...new Set((orders ?? []).map((o) => o.brand).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
-  )
+  const used = (orders ?? []).map((o) => o.brand).filter(Boolean)
+  return [...new Set([...BRANDS, ...used.sort((a, b) => a.localeCompare(b))])]
 }
 
 // Shoot types present, with the ones the studio names offered even before a job

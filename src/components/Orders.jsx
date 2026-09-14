@@ -127,8 +127,6 @@ const dateRange = (from, to) =>
 export default function Orders() {
   const orders = useStore((s) => s.orders)
   const studios = useStore((s) => s.studios)
-  const photographers = useStore((s) => s.photographers)
-  const people = useStore((s) => s.people)
   const inventory = useStore((s) => s.inventory)
   const kits = useStore((s) => s.kits)
   const scenarios = useStore((s) => s.scenarios)
@@ -197,15 +195,6 @@ export default function Orders() {
 
   // Highlight marks the first search term; matching itself is multi-term (5.7).
   const query = search.trim().toLowerCase().split(/\s+/)[0] ?? ''
-
-  // Photographer suggestions: the People database first (epic #4), falling back
-  // to the flat contact list.
-  const photographerNames = useMemo(() => {
-    const fromPeople = people
-      .filter((p) => p.subcategory === 'Photographer')
-      .map((p) => p.name)
-    return [...new Set([...fromPeople, ...photographers])]
-  }, [people, photographers])
 
   // Archived orders are still LOADED (a peek card, a back-trail or the Archive
   // screen has to be able to open one) — the list and its filters use the live
@@ -585,7 +574,6 @@ export default function Orders() {
         open={editor.open}
         order={editor.order}
         studios={studios}
-        photographers={photographerNames}
         brands={brandOptions}
         jobTypes={typeOptions}
         roleOptions={roleOptions}

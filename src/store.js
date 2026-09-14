@@ -8,7 +8,6 @@ import { generateUsage } from './data/usage'
 import { KIT_SEED } from './data/kits'
 import { SCENARIO_SEED } from './data/scenarios'
 import { BOOKING_TEMPLATES } from './data/bookings'
-import { PHOTOGRAPHERS, MODELS } from './data/contacts'
 import { PEOPLE_SEED, COMPANY_SEED, COMPANY_TYPES } from './data/people'
 import { ORDER_SEED, SUB_RENTAL_VENDORS } from './data/orders'
 import {
@@ -767,8 +766,6 @@ export const useStore = create(
     (set, get) => ({
       // --- static reference data ---
       studios: STUDIOS,
-      photographers: PHOTOGRAPHERS,
-      models: MODELS,
 
       // --- data ---
       // Local mode: seeded synchronously. Supabase mode: starts empty and is

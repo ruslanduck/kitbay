@@ -11,6 +11,7 @@ import {
   Archive as ArchiveIcon,
 } from 'lucide-react'
 import { useStore, notArchived } from '../store'
+import { usePhotographerNames, useModelNames } from '../lib/usePeopleNames'
 import { applyScenarioList } from '../lib/scenarios'
 import { availableCount, resolveUnitsForQuantities } from '../lib/availability'
 import { studioLabel } from '../data/studios'
@@ -48,8 +49,8 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
   const inventory = useStore((s) => s.inventory)
   const kits = useStore((s) => s.kits)
   const scenarios = useStore((s) => s.scenarios)
-  const photographers = useStore((s) => s.photographers)
-  const models = useStore((s) => s.models)
+  const photographers = usePhotographerNames()
+  const models = useModelNames()
   const allBookings = useStore((s) => s.bookings)
   const createBooking = useStore((s) => s.createBooking)
   const updateBooking = useStore((s) => s.updateBooking)
