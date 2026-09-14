@@ -216,13 +216,17 @@ export default function NoteField({
           }}
           placeholder={placeholder}
           rows={compact ? 1 : 2}
-          // No frame until it is being used: a card is a place to read, and a
-          // dashed box on every one of the seven records this appears on made
-          // each card look like a form — reported as exactly that. The box is
-          // left to `hover:`/`focus:` rather than to a React flag, or
-          // `bg-surface` and the base `bg-transparent` would both apply and the
-          // winner would be stylesheet order.
-          className="w-full resize-none overflow-hidden rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:bg-slate-100 focus:border-violet-400 focus:bg-surface focus:ring-2 focus:ring-violet-100"
+          // The SAME hairline every other input in the app wears
+          // (`border-slate-300`), so the box reads as a field rather than as a
+          // paragraph — asked for after the first version removed the frame
+          // entirely and it stopped looking writable. What is NOT coming back
+          // is what was wrong with the old one: a DASHED border and a filled
+          // grey panel on every one of the seven records this appears on, which
+          // made each card look like a form. Transparent ground, so the field
+          // sits on whatever card it is in; hover and focus do the rest, in CSS
+          // rather than through a React flag (`bg-surface` and a base
+          // `bg-transparent` would both apply, and stylesheet order would pick).
+          className="w-full resize-none overflow-hidden rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:bg-slate-100 focus:border-violet-400 focus:bg-surface focus:ring-2 focus:ring-violet-100"
         />
         {dirty && (
           <button
