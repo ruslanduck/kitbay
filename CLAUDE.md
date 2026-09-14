@@ -2413,13 +2413,22 @@
 > `audit:jsx` — it was in the README and in `vercel.json` but had never been in the GitHub workflow.
 > Vercel runs the same commands before its own build, so a failure already blocks a deploy; CI is what
 > puts that answer on the COMMIT instead of only inside another dashboard.
-> ⚠️ **A backslash level vanished inside a nested heredoc and left a CONTROL CHARACTER in the YAML.**
-> The step first extracted the address with `sed -n "s/…'\(.*\)'$/\1/p"`; by the time it reached the
-> file the `\1` had become a literal **0x01 byte**, so the expression substituted nothing and `url` came
-> back empty — and `grep` renders 0x01 invisibly, so the line READ as correct. `cat -A` is what showed
-> it. The extraction is `grep -m1 … | cut -d"'" -f2` now: no backslashes at all, so there is no escape
-> level to lose. **Prove a workflow step by EXTRACTING it and running it**, not by reading it — the run
-> is what produced the empty variable.
+> ⚠️ **The redirect page is a FILE (`.github/pages-redirect/index.html`), not a heredoc inside the
+> workflow — and that is the lesson.** Written inline it has to satisfy two rules that pull in opposite
+> directions: the shell wants a heredoc terminator at column 0, and YAML ends a `run: |` block at the
+> first line indented less than the block. Indenting the body satisfied YAML and put the terminator
+> where the shell never looks; flush-left satisfied the shell and made the FILE invalid — GitHub failed
+> that run in **0 seconds** with "a workflow file issue". The step is one `sed` substitution into a real
+> file now, with a guard that fails if a placeholder survives. A comment in that file must not name the
+> placeholder either: the first version explained itself with the literal token and got substituted.
+> ⚠️ **Before that, a backslash level vanished on the way to disk and left a CONTROL CHARACTER in the
+> YAML.** The address was first extracted with a capture group, `s/…'\(.*\)'$/\1/p`; by the time it
+> reached the file the `\1` was a literal **0x01 byte**, so the expression substituted nothing and `url`
+> came back empty — and `grep` renders 0x01 invisibly, so the line READ as correct. `cat -A` is what
+> showed it. The extraction is `grep -m1 … | cut` now: no backslashes, so there is no escape level to
+> lose. **Prove a workflow step by EXTRACTING it and RUNNING it**, and parse the YAML (`npx js-yaml`,
+> judged by its EXIT CODE — grepping its output for "error" flags every file whose script contains
+> `::error::`, which failed a workflow that had been running for weeks).
 > ℹ️ Left undone deliberately, both the studio's call: no custom domain (a CNAME to Vercel is a DNS
 > change, and the plain address is what was chosen), and no Deployment Protection — pushes go straight
 > to `main`, so previews are rare, but a preview build CAN write to the real register.
@@ -2428,6 +2437,13 @@
 > Supabase URL and the `kitbay` storage key with `studio-demo` and the old key at **0**. And from the new
 > ORIGIN — the thing a host move can actually break — Auth answered **200** with email sign-in enabled
 > and PostgREST answered **200 with `[]`** to an anonymous reader: reachable, and still closed by RLS.
+> Verified after: all three workflows parse; CI ran every gate on the commit (`npm ci`, `audit:tdz`,
+> `lint`, `audit:jsx`, `test:lib`, `build` — all green in 24s); the dispatched redirect deployed, and
+> `duck-agency.com/kitbay/` now answers 200 with "Kitbay has moved", the canonical link and the meta
+> refresh, and **0** occurrences of `assets/index-` — the app is gone from that path. A real browser
+> navigated to the old address LANDS on `kitbay.vercel.app` with the sign-in screen and 0 console
+> messages. ℹ️ A deep old path (`/kitbay/anything`) still carries a **404 status** — GitHub Pages serves
+> `404.html` with one — but it is the same page, so the browser is forwarded anyway.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
