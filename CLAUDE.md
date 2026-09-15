@@ -2460,6 +2460,12 @@
 > now serves `index.html` (static files still win, so `/assets/…` is untouched). Both bases produce ABSOLUTE
 > asset URLs — `/assets/…` on Vercel, `/kitbay/assets/…` in dev — so a deep path still finds its bundle;
 > relative ones would not.
+> ℹ️ **Side effect of a catch-all rewrite, found the next day while verifying a deploy:** a MISSING asset
+> now answers **200 with index.html** instead of 404 — `curl`-ing the previous build's
+> `/assets/index-<old hash>.js` returned 1,432 bytes of HTML. It costs nothing today (one bundle, and a
+> stale chunk would have failed either way — with a MIME error rather than a 404), but it makes a
+> content-grep against an old asset look like a pass, and it would hide a genuinely missing file.
+> `"source": "/((?!assets/).*)"` restores the honest 404 if that ever matters.
 > **Which screen a LOAD opens on is decided in the persist `merge`**, synchronously at store creation: an
 > explicit address beats what was remembered, and a path naming no screen falls back to the remembered one.
 > Doing it in an effect instead would paint the wrong screen for a frame.
