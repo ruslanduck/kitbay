@@ -27,6 +27,7 @@ import { CAP } from '../lib/permissions'
 import { studioLabel } from '../data/studios'
 import { newestFirst } from '../lib/ordering'
 import { PEOPLE_CATEGORIES } from '../data/people'
+import { subcategoriesIn } from '../lib/peopleOptions'
 import { orderStatusMeta } from '../data/orderStatus'
 import PersonEditorModal from './PersonEditorModal'
 import CompanyEditorModal from './CompanyEditorModal'
@@ -94,6 +95,7 @@ export default function People() {
   const [tab, setTab] = usePersisted('people', 'tab', 'people') // 'people' | 'companies'
   const [search, setSearch] = usePersisted('people', 'search', '')
   const [category, setCategory] = usePersisted('people', 'category', 'All')
+  const [subcategory, setSubcategory] = usePersisted('people', 'subcategory', 'All')
   const [selectedPersonId, setSelectedPersonId] = usePersisted('people', 'personId', null)
   const [selectedCompanyId, setSelectedCompanyId] = usePersisted('people', 'companyId', null)
   const [editor, setEditor] = useState({ open: false, person: null })
@@ -109,18 +111,19 @@ export default function People() {
   const liveCompanies = useMemo(() => companies.filter(notArchived), [companies])
   const liveCompanyTypes = useMemo(() => companyTypes.filter(notArchived), [companyTypes])
 
-  // Search matches name, company, email, phone or subcategory; the category
-  // dropdown narrows independently.
+  // Search matches name, company, email, phone or subcategory; the two dropdowns
+  // narrow independently of it and of each other.
   const filteredPeople = useMemo(
     () =>
       livePeople.filter((p) => {
         if (category !== 'All' && p.category !== category) return false
+        if (subcategory !== 'All' && p.subcategory !== subcategory) return false
         if (query === '') return true
         return [p.name, p.companyName, p.email, p.phone, p.subcategory]
           .filter(Boolean)
           .some((v) => v.toLowerCase().includes(query))
       }),
-    [livePeople, category, query],
+    [livePeople, category, subcategory, query],
   )
 
   const filteredCompanies = useMemo(
@@ -141,9 +144,34 @@ export default function People() {
 
   // Categories actually present, so the filter never offers an empty option.
   const categories = useMemo(() => {
-    const present = new Set(people.map((p) => p.category).filter(Boolean))
+    const present = new Set(livePeople.map((p) => p.category).filter(Boolean))
     return Object.keys(PEOPLE_CATEGORIES).filter((c) => present.has(c))
-  }, [people])
+  }, [livePeople])
+
+  // The TRADE — which is what a person is actually looked up by. Nobody asks for
+  // "a freelancer"; they ask for a photographer, and that lives one level down,
+  // so the category dropdown alone could not answer the question at all.
+  // Offered from the ROSTER and narrowed by the chosen category, so every option
+  // matches somebody. `PEOPLE_CATEGORIES` supplies the ORDER; a value the
+  // register carries but the constant doesn't is appended rather than dropped —
+  // the editor takes free text wherever a category has no list of its own.
+  const subcategories = useMemo(
+    () => subcategoriesIn(livePeople, category, PEOPLE_CATEGORIES),
+    [livePeople, category],
+  )
+
+  // Narrowing the category must not leave a trade that category has nobody in:
+  // the list would empty with nothing on screen saying why.
+  function pickCategory(next) {
+    setCategory(next)
+    if (subcategory === 'All') return
+    const survives = livePeople.some(
+      (p) => p.subcategory === subcategory && (next === 'All' || p.category === next),
+    )
+    if (!survives) setSubcategory('All')
+  }
+
+  const peopleFiltered = category !== 'All' || subcategory !== 'All' || query !== ''
 
   function openPerson(id) {
     setTab('people')
@@ -240,7 +268,7 @@ export default function People() {
                       : 'text-slate-600 hover:bg-slate-100',
                   ].join(' ')}
                 >
-                  {lbl} ({val === 'people' ? people.length : companies.length})
+                  {lbl} ({val === 'people' ? livePeople.length : liveCompanies.length})
                 </button>
               ))}
             </div>
@@ -270,12 +298,40 @@ export default function People() {
             </div>
 
             {tab === 'people' && (
-              <SelectField
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                options={[{ value: 'All', label: 'All categories' }, ...categories]}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-              />
+              <>
+                <SelectField
+                  value={category}
+                  onChange={(e) => pickCategory(e.target.value)}
+                  options={[{ value: 'All', label: 'All categories' }, ...categories]}
+                  className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                />
+                {subcategories.length > 0 && (
+                  <SelectField
+                    value={subcategory}
+                    onChange={(e) => setSubcategory(e.target.value)}
+                    options={[{ value: 'All', label: 'All subcategories' }, ...subcategories]}
+                    className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                  />
+                )}
+                {peopleFiltered && (
+                  <div className="flex items-center justify-between px-0.5 text-xs text-slate-400">
+                    <span>
+                      {filteredPeople.length} of {livePeople.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('')
+                        setCategory('All')
+                        setSubcategory('All')
+                      }}
+                      className="font-medium text-violet-600 transition hover:underline"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

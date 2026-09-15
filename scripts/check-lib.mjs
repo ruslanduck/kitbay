@@ -810,4 +810,40 @@ ok(
   eq(viewFromLocation('/nope', 'people'), 'people', 'an unknown path falls back, it does not reset')
 }
 
+// ──────────────────────────── peopleOptions — the TRADE filter on the roster
+// The People screen's category (Freelancer / Model / Agency) is not what anyone
+// looks a person up by. The trade is, and it lives one level down.
+{
+  const CATS = {
+    Freelancer: ['Photographer', 'Art director', 'Stylist'],
+    Model: [],
+    Agency: ['Booker'],
+  }
+  const roster = [
+    { name: 'Ann', category: 'Freelancer', subcategory: 'Photographer' },
+    { name: 'Marcus', category: 'Freelancer', subcategory: 'Photographer' },
+    { name: 'Iris', category: 'Freelancer', subcategory: 'Stylist' },
+    { name: 'Ava', category: 'Model', subcategory: '' },
+    { name: 'Bea', category: 'Agency', subcategory: 'Booker' },
+    { name: 'Zed', category: 'Freelancer', subcategory: 'Drone pilot' }, // typed, not in CATS
+  ]
+
+  const all = peopleOptions.subcategoriesIn(roster, 'All', CATS)
+  eq(all, ['Photographer', 'Stylist', 'Booker', 'Drone pilot'], 'every trade on the roster, taxonomy order first')
+  ok(!all.includes('Art director'), 'a trade nobody has is NOT offered — the empty-option lesson')
+  eq(all.filter((s) => s === 'Photographer').length, 1, 'a trade two people share is offered once')
+
+  eq(
+    peopleOptions.subcategoriesIn(roster, 'Freelancer', CATS),
+    ['Photographer', 'Stylist', 'Drone pilot'],
+    'narrowed to the chosen category',
+  )
+  eq(peopleOptions.subcategoriesIn(roster, 'Agency', CATS), ['Booker'], 'and to a category with one')
+  // Models carry no trade at all (Model IS the trade), so the dropdown has
+  // nothing to offer and the component hides it rather than showing an empty one.
+  eq(peopleOptions.subcategoriesIn(roster, 'Model', CATS), [], 'a category whose people have no trade offers none')
+  eq(peopleOptions.subcategoriesIn([], 'All', CATS), [], 'an empty roster offers nothing')
+  eq(peopleOptions.subcategoriesIn(undefined, undefined, undefined), [], 'and nothing at all is survivable')
+}
+
 console.log(`OK — ${n} assertions passed`)

@@ -37,3 +37,27 @@ export function peopleNames(people = [], { role = null, used = [] } = {}) {
     .sort(byName)
   return [...new Set([...first, ...rest, ...typed])]
 }
+// Which TRADES the People filter offers, given the category it is narrowed to.
+//
+// A person's category is Freelancer / Model / Rental company / Agency and their
+// SUBCATEGORY is the trade — Photographer, Stylist, Booker. Nobody looks someone
+// up by the first one: the question is always "who are the photographers", which
+// is why a filter offering only categories could not answer it at all.
+//
+// Built from the ROSTER, so every option matches somebody (the empty-dropdown
+// lesson from `brandsIn`). `categories` supplies the ORDER — the taxonomy's own,
+// not alphabetical — and a trade the register carries but the taxonomy does not
+// is appended rather than dropped: the person editor takes free text wherever a
+// category has no list of its own.
+export function subcategoriesIn(people = [], category = 'All', categories = {}) {
+  const pool =
+    category && category !== 'All'
+      ? people.filter((p) => p?.category === category)
+      : people
+  const present = new Set(pool.map((p) => p?.subcategory).filter(Boolean))
+  const known = [...new Set(Object.values(categories).flat())].filter((sub) => present.has(sub))
+  const extra = [...present]
+    .filter((sub) => !known.includes(sub))
+    .sort((a, b) => a.localeCompare(b))
+  return [...known, ...extra]
+}

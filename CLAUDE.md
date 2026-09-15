@@ -2492,6 +2492,39 @@
 > lands on People — and **0 console messages**. ⚠️ The dev console kept hooks-order and missing-export errors
 > from my own mid-edit rewrites of the hook (`useRef` ↔ `useEffect`); the production bundle has no HMR and was
 > clean, which is what settles it.
+> **FIX — People filters by TRADE, which is the only level anyone looks a person up by.** Reported
+> against the open filter with a screenshot: "не вижу теперь а как тут фотографов отфильтровать" — the
+> dropdown offered All categories / Freelancer / Model / Rental company / Agency and no way to reach a
+> photographer.
+> The model is two levels: `contacts.category` is Freelancer / Model / Rental company / Agency, and
+> `subcategory` is the TRADE (Photographer, Stylist, Hair & makeup, Booker, Driver). The filter only ever
+> read the first one — and nobody asks for "a freelancer". Measured on prod: 33 live contacts, categories
+> 14/14/4/1, and **8 photographers** sitting under Freelancer with no way to select them.
+> A second dropdown now offers the trades, `src/lib/peopleOptions.js` `subcategoriesIn(people, category,
+> categories)` decides which (PURE, +8 assertions, **394 total**). Built from the ROSTER so every option
+> matches somebody — the `brandsIn` lesson — with `PEOPLE_CATEGORIES` supplying the ORDER rather than the
+> alphabet, and a trade the register carries but the taxonomy does not APPENDED rather than dropped (the
+> person editor takes free text wherever a category has no list of its own). Picking a trade with the
+> category left on All is the normal case: it answers "who are the photographers" without having to know
+> they are filed under Freelancer.
+> ⚠️ **The cross-filter guard is the part worth keeping.** Narrowing the category while a trade is
+> selected would otherwise empty the list with nothing on screen explaining why — so `pickCategory` clears
+> a trade the new category has nobody in. Verified: with Photographer chosen, picking **Agency** reset the
+> trade to All and showed Agency's one person, and the dropdown itself narrowed to ["Booker"].
+> A count line reads **"N of M · Clear all"** whenever any filter is on, the same footer Jobs and Inventory
+> carry — without it a filter that hides 24 of 31 people is silent.
+> ℹ️ The search box ALREADY matched `subcategory`, so typing "photographer" worked the whole time — but
+> nothing said so, which is exactly why the screen read as having no answer. A control beats a secret.
+> ⚠️ Fixed while here: the People/Companies TAB COUNTS read the raw collections, archived rows included,
+> while the heading beside them counts live ones — the two disagreed the moment anything was retired.
+> ℹ️ A Model has no trade at all (Model IS the trade — `PEOPLE_CATEGORIES.Model` is empty, and 14 of prod's
+> 33 carry none), so under that category the dropdown has nothing to offer and is HIDDEN rather than shown
+> empty. An assertion pins that case.
+> Verified in local mode by measurement: both dropdowns render; the trade list holds all ten trades present
+> in the seed in taxonomy order; **Photographer with category All gives "7 of 31"** and lists exactly the
+> seven; Agency clears the trade as above; Clear all resets both and the count line disappears; the choice
+> survives leaving the screen and is written to `viewState.people.subcategory`, so a reload keeps it.
+> 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
