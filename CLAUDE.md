@@ -2723,6 +2723,69 @@
 > compares the job with fields that live on the shoot). It is fixed with the crew block, which rewrites that diff.
 > ⚠️ Tool note: the pane cannot navigate to a `blob:` URL nor screenshot a local-file tab; a PDF is looked at by
 > putting its blob in an `<iframe>` over the app page (`#zoom=250,330,20` for the header), then removing it.
+> **FEATURE — one call sheet: every row is TIME · ROLE · PERSON** (`20260930120000_crew_call_times.sql`).
+> Items 7 + 8 of the annotated job card ("Call times + name of person", "Photographer → add all crew"), agreed as:
+> one block, each row "10:00 · Producer · Clay Rodriguez", ONE role and ONE person per row, the photographer just one
+> of the rows, people picked from People or typed — and (answered) a typed name that People doesn't have is ADDED to
+> People. Until now a shoot kept two lists describing the same people from two ends: `set_call_times` (a time + the
+> roles it applies to, no names) and `roster_entries` (a person + a role, no time) — prod's own data showed the
+> strain: a Photographer call whose NOTE read "Ann Tes", because there was nowhere else to write a name.
+> **The roster became the call sheet** — it is the table that already links people to shoots (work history reads
+> it): `contact_id` nullable (a role listed before anyone is booked), `call_time`, `note`, `position`, a non-blank
+> role check, and the old unique (set, person, role) DROPPED via a `pg_constraint` lookup (a person can be called twice;
+> the app folds exact duplicates before writing). Roles moved to the call sheet's own words (`photographer` →
+> `Photographer`). The migration CARRIES OVER every `set_call_times` row: each role of a call becomes a row, joining
+> the shoot's row of that role that has no time yet ("08:00 Photographer" meets the photographer it was always about),
+> otherwise a new person-less row — unless an identical one exists (prod had "08:15 Producer" twice). `set_call_times`
+> stays in place, unread. ⚠️ **That merge rule exists ONCE in JS too — `crewFromLegacy` in the new pure
+> `src/lib/crew.js`** — and builds the local demo seed and `seed-supabase.mjs`, so the demo and prod cannot describe
+> different shapes; `test:lib` holds it against the prod cases (the duplicate, the note that held a name, a second call
+> in the same role).
+> `lib/crew.js` is the one set of rules: `normalizeCrew` (trim, drop role-less rows, the day in order — timed rows by
+> time, untimed after — exact duplicates folded), `firstWithRole`/`crewNameFor` (the job's single photographer is the
+> first NAMED Photographer row), `earliestCrewCall`, `crewSummary` (tooltip: "08:00 Photographer (Marcus Reed)"),
+> `wrapBeforeFirstCrewCall`, `crewRowProblem` (a row with anything in it needs a role; a time must be HH:MM),
+> `crewRoles` (the offered roles + every role a sheet uses, no case twins). ⚠️ The suite caught a real bug in my own
+> first version: sorting untimed rows with `localeCompare` and a `'~'` key put them at the TOP — collation orders
+> punctuation before digits. Plain string comparison now.
+> UI: `CrewField` replaces both the Photographer field and `CallTimesField` (deleted) in the job form AND the legacy
+> shoot editor — time (compact), role (`SelectField` with the new Other… row), person (`ComboField` fed by
+> `useCrewNameOptions`: people whose TRADE is the row's role first — the Stylist row offers Jonas Lind — then
+> everyone, then names already on sheets), note, ×; a changed name drops the row's `contactId`. `usePhotographerNames`
+> /`useModelNames` went with their only callers. The form lost its Photographer field (Location / Studio now pairs
+> with Shoot dates). `CallSheetList` renders rows (time chip — a dash chip when there's none yet — role, person as a
+> link when People has them, note, wrap) on the job card, the job peek and the shoot peek, whose separate Crew section
+> folded into it. The day card lists the sheet with names; the chip shows the earliest call; the tooltip the whole
+> sheet. A job with NO shoot (sub-rental history) still shows its own photographer row. The estimate's CREW section
+> prints the NAMED rows with their call time (a role nobody is booked for is not client-document material).
+> Work history now covers EVERY role: Jonas Lind's card gained the shoot "as Stylist" (only photographer/model had
+> history before), and local mode re-resolves people whenever a sheet changes (it never did — histories went stale).
+> ⚠️ **Three bugs found on the way, all fixed here:**
+> • **A photographer picked in the job form never reached the database.** The form sent a NAME, `orderColumns` only
+>   writes `photographer_contact_id` from an id, and `syncSetForOrder` "deliberately left the roster alone". Supabase
+>   only — local mode kept the name — so the UI-created jobs on prod all read "not assigned". `setCrew(setId, rows,
+>   {orderId})` now resolves every name (case-insensitively, a live person before an archived namesake) and keeps
+>   `orders.photographer_contact_id` equal to the first Photographer row, so the Jobs filter and search still work.
+> • **`isUndefinedColumn` missed PostgREST's write-side code.** An INSERT/UPDATE with an unknown column is answered
+>   from the schema cache with **PGRST204** ("Could not find the 'call_time' column…"), not 42703 — proved on prod
+>   (a select says 42703, an insert PGRST204). Every "retry without the newest column" fallback behind a write could
+>   never fire. It matches both now.
+> • **`npm run seed:supabase` could not start**: it imported `src/data/contacts.js`, deleted in e98e31d. It builds its
+>   extra contacts from the booking templates now, and writes the call sheet instead of `set_call_times`.
+> ℹ️ The feed's false "wrap time" is fixed: `updateOrder` diffs the sheet and the wrap against the SHOOT they live on
+> (it compared them with the job, which has neither). Verified: an edit that changed two people logged just
+> "call times" on a shoot with an 18:00 wrap.
+> Reads degrade by layer as always: the newest `getBookings` layer selects the roster's new columns; every older
+> layer reads the two legacy lists and merges them with `crewFromLegacy`, so a database without the migration shows
+> the same sheet. Writes on such a database put the people in the roster and the times in `set_call_times`.
+> **497 assertions.** Verified in local mode: the reseeded 3-day shoot reads 07:30 Producer · 08:00 Photographer ·
+> Marcus Reed · 08:00 Digital tech · 08:30 Hair & makeup · 08:30 Stylist · 10:00 Model · Hailey Halter + 18:00 wrap on
+> the card (names as links); the form shows those rows and no Photographer field; the Stylist row's person list starts
+> with Jonas Lind; typing "Clay Rodriguez" said it would be added on save, and saving put Clay in People (31 → 32) with
+> the job "as Producer" in his history and made his name a link on the job peek; the day card, the chip (07:30 · Day
+> 1/3) and the tooltip all read the sheet; a new job created through both steps with 08:00 Photographer Ann Taylor
+> stored the sheet and gave the job `photographer: Ann Taylor`. At 375px a row wraps to time + role / person + × /
+> note with no overflow; at 1440 it is one line. Demo data reseeded, 0 console errors on a clean load.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

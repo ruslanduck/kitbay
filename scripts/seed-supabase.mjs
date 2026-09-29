@@ -13,7 +13,7 @@ import { generateUsage } from '../src/data/usage.js'
 import { KIT_SEED } from '../src/data/kits.js'
 import { SCENARIO_SEED } from '../src/data/scenarios.js'
 import { BOOKING_TEMPLATES } from '../src/data/bookings.js'
-import { PHOTOGRAPHERS, MODELS } from '../src/data/contacts.js'
+import { crewFromLegacy } from '../src/lib/crew.js'
 import { PEOPLE_SEED, COMPANY_SEED, COMPANY_TYPES } from '../src/data/people.js'
 import { ORDER_SEED, SUB_RENTAL_VENDORS } from '../src/data/orders.js'
 import { STUDIOS, studioLabel } from '../src/data/studios.js'
@@ -89,10 +89,14 @@ async function main() {
     { onConflict: 'name' },
   ))
 
-  // People (4.1/4.2) carry category/subcategory and their profile. Any booking
-  // name missing from PEOPLE_SEED is added bare so the roster still links.
+  // People (4.1/4.2) carry category/subcategory and their profile. Any name on
+  // a seeded call sheet missing from PEOPLE_SEED is added bare so the sheet
+  // still links. (This read two frozen name lists from src/data/contacts.js; that
+  // file was deleted with them, which left this script unable to start.)
   const seeded = new Set(PEOPLE_SEED.map((p) => p.name))
-  const extras = [...new Set([...PHOTOGRAPHERS, ...MODELS])].filter((n) => !seeded.has(n))
+  const extras = [
+    ...new Set(BOOKING_TEMPLATES.flatMap((t) => [t.photographer, t.model]).filter(Boolean)),
+  ].filter((n) => !seeded.has(n))
   const { data: contactRows, error: ctErr } = await db.from('contacts')
     .insert([
       ...PEOPLE_SEED.map((p) => ({
@@ -283,7 +287,7 @@ async function main() {
 
   console.log('Sets + roster…')
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-  let sets = 0, reservations = 0, rosterCount = 0, callTimes = 0
+  let sets = 0, reservations = 0, rosterCount = 0
   const setByTitle = {} // title -> { id, date, ... }, used to link orders (4.5)
   for (const t of BOOKING_TEMPLATES) {
     const date = format(addDays(weekStart, t.dayOffset), 'yyyy-MM-dd')
@@ -302,26 +306,27 @@ async function main() {
     }).select('id').single()
     if (sErr) throw sErr
     sets++
-    if (t.calls?.length) {
-      must('set_call_times', await db.from('set_call_times').insert(
-        t.calls.map((c, i) => ({
-          set_id: set.id, roles: c.roles, call_time: c.time, note: c.note ?? null, position: i,
-        })),
-      ))
-      callTimes += t.calls.length
-    }
     setByTitle[t.title] = {
       id: set.id, date, endDate, studioId: t.studioId, photographer: t.photographer,
     }
 
     // Gear is NOT reserved here: a Set's reservations derive from its CONFIRMED
     // order's in-house lines, written in the orders pass below.
-    const roster = []
-    if (contactId[t.photographer]) roster.push({ set_id: set.id, contact_id: contactId[t.photographer], role: 'photographer' })
-    if (contactId[t.model]) roster.push({ set_id: set.id, contact_id: contactId[t.model], role: 'model' })
-    if (roster.length) {
-      must('roster', await db.from('roster_entries').insert(roster))
-      rosterCount += roster.length
+    // The call sheet (20260930120000): one roster row per time · role · person,
+    // built from the template by the same rule the migration applied to prod.
+    const sheet = crewFromLegacy({ calls: t.calls, photographer: t.photographer, model: t.model })
+    if (sheet.length) {
+      must('roster', await db.from('roster_entries').insert(
+        sheet.map((r, i) => ({
+          set_id: set.id,
+          contact_id: r.name ? contactId[r.name] ?? null : null,
+          role: r.role,
+          call_time: r.time,
+          note: r.note,
+          position: i,
+        })),
+      ))
+      rosterCount += sheet.length
     }
   }
 
@@ -432,7 +437,7 @@ async function main() {
   console.log(`  kits: ${kits}, kit_slots: ${kitSlots}`)
   console.log(`  scenario_lists: ${lists}, scenario_list_entries: ${listEntries}`)
   console.log(
-    `  sets: ${sets}, set_units: ${reservations}, roster_entries: ${rosterCount}, call times: ${callTimes}`,
+    `  sets: ${sets}, set_units: ${reservations}, call sheet rows (roster_entries): ${rosterCount}`,
   )
   console.log(`  company_types: ${COMPANY_TYPES.length}, sub-rental vendor links: ${vendorLinks}`)
   console.log(`  orders: ${orders}, order_lines: ${orderLines}`)

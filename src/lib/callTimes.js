@@ -1,12 +1,13 @@
-// Call times: who is expected on set, and when.
+// Times on a call sheet: what a valid time is, how a typed one is read, the
+// hours and minutes a picker offers, and the roles it offers.
 //
-// A shoot has no single start. The photographer is called at 08:00, hair and
-// makeup at 09:00, the models at 10:00 — and the whole thing wraps at some hour.
-// So this is a LIST of any length (including empty), each entry carrying the
-// roles it applies to and one time, plus a single wrap time for the shoot.
+// The call SHEET itself — rows of time · role · person — lives in lib/crew.js
+// since the studio asked for one block instead of two lists. What stays here is
+// the TIME, plus `normalizeCallTimes`, the legacy shape (a time + the roles it
+// applies to) that a database without 20260930120000 still returns and writes.
 //
 // PURE — no React, no store, no date library — so `npm run test:lib` can assert
-// the sorting, the validation and the summary strings under plain Node.
+// it under plain Node.
 
 // The roles offered in the picker. Drawn from the freelancer taxonomy the People
 // database already uses (PEOPLE_CATEGORIES) plus the ones a call sheet needs and
@@ -27,23 +28,6 @@ export const CALL_ROLES = [
   'Crew',
   'Client',
 ]
-
-// The offered roles plus every role already stored, so a role typed once keeps
-// being offered instead of vanishing from the list that suggested it.
-export function rolesFor(bookings = []) {
-  const seen = new Set(CALL_ROLES)
-  const extra = []
-  for (const b of bookings)
-    for (const c of b?.callTimes || [])
-      for (const r of c?.roles || []) {
-        const role = String(r).trim()
-        if (role && !seen.has(role)) {
-          seen.add(role)
-          extra.push(role)
-        }
-      }
-  return [...CALL_ROLES, ...extra.sort()]
-}
 
 // HH:MM, 24-hour. The field is a TimeField, but a stored value can come from
 // anywhere (a seed, an import, a hand-written SQL row).
@@ -166,32 +150,3 @@ export function normalizeCallTimes(rows = []) {
   return merged.map((r, i) => ({ ...r, position: i }))
 }
 
-// "Photographer, Digital tech" — the roles of one call, as a human reads them.
-export function rolesLabel(entry) {
-  return (entry?.roles || []).join(', ')
-}
-
-// The earliest call. This is what a calendar chip has room for: one number
-// answering "when do I have to be there".
-export function earliestCall(rows = []) {
-  const ok = normalizeCallTimes(rows)
-  return ok.length ? ok[0].time : null
-}
-
-// "08:00 Photographer · 09:00 Model, Stylist" — the whole schedule on one line,
-// for a tooltip or a narrow card row.
-export function callSummary(rows = []) {
-  return normalizeCallTimes(rows)
-    .map((r) => `${r.time} ${rolesLabel(r)}`)
-    .join(' · ')
-}
-
-// A wrap before the first call is a typo, not a shoot. Reported, not clamped:
-// the form can say so where the crew can see it, and clamping would invent an
-// hour nobody typed.
-export function wrapBeforeFirstCall(rows = [], wrapTime = null) {
-  const first = earliestCall(rows)
-  const wrap = toHHMM(wrapTime)
-  if (!first || !isValidTime(wrap)) return false
-  return wrap < first
-}

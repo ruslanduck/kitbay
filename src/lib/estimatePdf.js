@@ -215,6 +215,12 @@ export function buildEstimatePdf(estimateOrOrder, context) {
       doc.setFont('helvetica', 'bold')
       setInk(INK.text)
       text(r.name, M + 100, y)
+      // When they're called — the call sheet's reason to exist.
+      if (r.time) {
+        doc.setFont('helvetica', 'normal')
+        setInk(INK.muted)
+        text(r.time, M + 300, y)
+      }
       y += 15
     }
   }

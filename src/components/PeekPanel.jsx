@@ -16,7 +16,6 @@ import {
   Globe,
   MapPin,
   Clock,
-  Camera,
 } from 'lucide-react'
 import { categoryLabel } from '../lib/taxonomy'
 import { useStore } from '../store'
@@ -287,9 +286,12 @@ function OrderPeek({ id }) {
   )
   if (!order) return <div className="p-4"><Empty text="This job is gone." /></div>
 
-  const photographer = order.photographer
-    ? people.find((p) => p.name === order.photographer)
-    : null
+  // A name on the call sheet opens that person's card when People has them.
+  const personLink = (name) => {
+    const want = String(name ?? '').trim().toLowerCase()
+    const p = people.find((x) => String(x.name ?? '').trim().toLowerCase() === want)
+    return p ? () => peek({ type: 'person', id: p.id }) : null
+  }
   const company = order.companyId
 
   return (
@@ -319,23 +321,11 @@ function OrderPeek({ id }) {
           {showsSetName(order) && <Field label="Set name">{order.setLabel || '—'}</Field>}
           <Field label="Brand">{order.brand || '—'}</Field>
           <Field label="Shoot type">{order.jobType || '—'}</Field>
-          <Field label="Photographer">
-            {order.photographer ? (
-              photographer ? (
-                <button
-                  type="button"
-                  onClick={() => peek({ type: 'person', id: photographer.id })}
-                  className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
-                >
-                  {order.photographer}
-                </button>
-              ) : (
-                order.photographer
-              )
-            ) : (
-              <span className="text-slate-400">not assigned</span>
-            )}
-          </Field>
+          {/* The photographer is a row of the call sheet below; only a job with
+              no shoot of its own still carries one as a field. */}
+          {!booking && order.photographer && (
+            <Field label="Photographer">{order.photographer}</Field>
+          )}
           <Field label="Company">
             {company ? (
               <button
@@ -354,7 +344,7 @@ function OrderPeek({ id }) {
               the day is what time people are due. */}
           {booking && (
             <Field label="Call times">
-              <CallSheetList callTimes={booking.callTimes} wrapTime={booking.wrapTime} />
+              <CallSheetList crew={booking.crew} wrapTime={booking.wrapTime} onPerson={personLink} />
             </Field>
           )}
         </div>
@@ -879,13 +869,12 @@ function JobPeek({ id }) {
   if (!booking) return <div className="p-4"><Empty text="This shoot is gone." /></div>
 
   const order = orders.find((o) => o.setId === booking.id) ?? null
-  // The crew, resolved to real people where we know them (so they're clickable).
-  const crew = [
-    ['Photographer', booking.photographer],
-    ['Model', booking.model],
-  ]
-    .filter(([, name]) => !!name)
-    .map(([role, name]) => ({ role, name, person: people.find((p) => p.name === name) ?? null }))
+  // A name on the call sheet opens that person's card when People has them.
+  const personLink = (name) => {
+    const want = String(name ?? '').trim().toLowerCase()
+    const p = people.find((x) => String(x.name ?? '').trim().toLowerCase() === want)
+    return p ? () => peek({ type: 'person', id: p.id }) : null
+  }
 
   return (
     <>
@@ -904,12 +893,14 @@ function JobPeek({ id }) {
         openLabel="On calendar"
       />
 
-      {/* The call sheet: the one thing a person opening a shoot on the day
-          actually needs. Empty is a real answer, so it says so. */}
+      {/* The call sheet — everyone on the crew and when they're due: the one
+          thing a person opening a shoot on the day actually needs. It is also
+          the crew list (it used to be a second section). Empty is a real
+          answer, so it says so. */}
       <Section title="Call times">
-        {booking.callTimes?.length || booking.wrapTime ? (
+        {booking.crew?.length || booking.wrapTime ? (
           <div className="text-sm text-slate-700">
-            <CallSheetList callTimes={booking.callTimes} wrapTime={booking.wrapTime} />
+            <CallSheetList crew={booking.crew} wrapTime={booking.wrapTime} onPerson={personLink} />
           </div>
         ) : (
           <Empty text="No call times set for this shoot." />
@@ -927,24 +918,6 @@ function JobPeek({ id }) {
         onSave={(notes) => updateBooking(booking.id, { notes })}
         placeholder="Anything about the day itself — access, parking, the lift…"
       />
-
-      <Section title="Crew">
-        {crew.length === 0 ? (
-          <Empty text="Nobody crewed yet." />
-        ) : (
-          <div className="space-y-1.5">
-            {crew.map((c) => (
-              <LinkRow
-                key={`${c.role}-${c.name}`}
-                icon={c.role === 'Photographer' ? Camera : User}
-                title={c.name}
-                sub={c.role.toLowerCase()}
-                onClick={() => c.person && peek({ type: 'person', id: c.person.id })}
-              />
-            ))}
-          </div>
-        )}
-      </Section>
 
       <Section title="Job">
         {order ? (

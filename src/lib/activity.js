@@ -149,6 +149,7 @@ const JOB_FIELD_WORDS = {
   status: 'status',
   notes: 'note',
   callTimes: 'call times',
+  crew: 'call times',
   wrapTime: 'wrap time',
 }
 

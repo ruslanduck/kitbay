@@ -11,20 +11,18 @@ import {
   Archive as ArchiveIcon,
 } from 'lucide-react'
 import { useStore, notArchived } from '../store'
-import { usePhotographerNames, useModelNames } from '../lib/usePeopleNames'
 import { applyScenarioList } from '../lib/scenarios'
 import { availableCount, resolveUnitsForQuantities } from '../lib/availability'
 import { studioLabel } from '../data/studios'
 import { endsOnFor } from '../lib/setDays'
-import { isValidTime, normalizeCallTimes, rolesFor } from '../lib/callTimes'
+import { normalizeCrew, crewRowProblem, crewRoles } from '../lib/crew'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 import Modal from './Modal'
 import DateRangeField from './DateRangeField'
-import CallTimesField from './CallTimesField'
+import CrewField from './CrewField'
 import KitStagingModal from './KitStagingModal'
 import SelectField from './SelectField'
-import ComboField from './ComboField'
 
 const fieldClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
@@ -36,10 +34,8 @@ function blankForm(prefill) {
     studioId: prefill?.studioId ?? '1',
     date: prefill?.date ?? '',
     endDate: prefill?.date ?? '',
-    callTimes: [],
+    crew: [],
     wrapTime: '',
-    photographer: '',
-    model: '',
     notes: '',
   }
 }
@@ -49,8 +45,6 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
   const inventory = useStore((s) => s.inventory)
   const kits = useStore((s) => s.kits)
   const scenarios = useStore((s) => s.scenarios)
-  const photographers = usePhotographerNames()
-  const models = useModelNames()
   const allBookings = useStore((s) => s.bookings)
   const createBooking = useStore((s) => s.createBooking)
   const updateBooking = useStore((s) => s.updateBooking)
@@ -96,10 +90,8 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
         studioId: booking.studioId,
         date: booking.date,
         endDate: booking.endDate ?? booking.date,
-        callTimes: (booking.callTimes ?? []).map((c) => ({ ...c })),
+        crew: (booking.crew ?? []).map((c) => ({ ...c })),
         wrapTime: booking.wrapTime ?? '',
-        photographer: booking.photographer ?? '',
-        model: booking.model ?? '',
         notes: booking.notes ?? '',
       })
       const counts = {}
@@ -136,7 +128,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
     setApplied({ name: list.name, ...res })
   }
 
-  const roleOptions = useMemo(() => rolesFor(allBookings), [allBookings])
+  const roleOptions = useMemo(() => crewRoles(allBookings), [allBookings])
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   // Units of an item that this booking may reserve (free + its own), minus any
   // already claimed by a staged kit.
@@ -226,18 +218,14 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.title.trim()) return
-    // A half-typed call time would put the wrong hour on the call sheet; an
-    // untouched empty row is dropped by normalizeCallTimes.
-    if (
-      form.callTimes.some(
-        (c) => (c.time || (c.roles || []).length) && !(isValidTime(c.time) && (c.roles || []).length),
-      )
-    )
-      return
+    // A row with something in it but no role, or a half-typed time, would put a
+    // wrong line on the call sheet — the row itself says what's missing; an
+    // untouched empty row is dropped by normalizeCrew.
+    if (form.crew.some((r) => crewRowProblem(r))) return
     const payload = {
       ...form,
       title: form.title.trim(),
-      callTimes: normalizeCallTimes(form.callTimes),
+      crew: normalizeCrew(form.crew),
       wrapTime: form.wrapTime || null,
       unitIds: resolveUnitIds(),
     }
@@ -308,36 +296,13 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className={labelClass}>Photographer</label>
-              <ComboField
-                value={form.photographer}
-                onChange={set('photographer')}
-                options={photographers}
-                placeholder="Select or type…"
-                className={fieldClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Model</label>
-              <ComboField
-                value={form.model}
-                onChange={set('model')}
-                options={models}
-                placeholder="Select or type…"
-                className={fieldClass}
-              />
-            </div>
-          </div>
-
-          {/* The call sheet: who is expected when, plus the wrap. Replaces the
-              start/end time pair this form used to carry — a shoot has no one
-              start time, and the grid is studio x day anyway. */}
+          {/* The call sheet: every row a time · role · person — the photographer
+              and the model are two of its rows — plus the wrap. The same
+              control as the job form. */}
           <div className="rounded-lg bg-surface p-3 ring-1 ring-slate-200">
-            <CallTimesField
-              value={form.callTimes}
-              onChange={(fn) => setForm((f) => ({ ...f, callTimes: fn(f.callTimes) }))}
+            <CrewField
+              value={form.crew}
+              onChange={(fn) => setForm((f) => ({ ...f, crew: fn(f.crew) }))}
               roleOptions={roleOptions}
               wrapTime={form.wrapTime}
               onWrapChange={(wrapTime) => setForm((f) => ({ ...f, wrapTime }))}

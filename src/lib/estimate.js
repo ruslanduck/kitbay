@@ -24,15 +24,16 @@ export function billableDays(startsOn, endsOn) {
 export const money = (n) =>
   `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-// Roster for the set an order equips. Supabase and local mode both expose the
-// photographer/model on the booking; the order's own photographer wins when the
-// two disagree (it's the field the order form actually wrote).
+// The crew on the set an order equips: its call sheet's NAMED rows, in the
+// sheet's order (role, person, call time). A role nobody is booked for yet is
+// not crew to put on a client's document. A job with no shoot of its own
+// (sub-rental history) falls back to the order's photographer, the one crew fact
+// it carries.
 export function rosterFor(order, booking) {
-  const roster = []
+  const named = (booking?.crew || []).filter((r) => r?.name)
+  if (named.length) return named.map((r) => ({ role: r.role, name: r.name, time: r.time ?? null }))
   const photographer = order?.photographer || booking?.photographer
-  if (photographer) roster.push({ role: 'Photographer', name: photographer })
-  if (booking?.model) roster.push({ role: 'Model', name: booking.model })
-  return roster
+  return photographer ? [{ role: 'Photographer', name: photographer, time: null }] : []
 }
 
 // Group an order's lines: one group per kit (in first-seen order), then the

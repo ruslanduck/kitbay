@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { useStore, notArchived, capacityError } from '../store'
 import { setSpanDays } from '../lib/setDays'
-import { rolesFor } from '../lib/callTimes'
+import { crewRoles } from '../lib/crew'
 import { usePersisted } from '../lib/usePersisted'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
@@ -206,7 +206,7 @@ export default function Orders() {
   const studioOptions = useMemo(() => studiosIn(liveOrders), [liveOrders])
   const brandOptions = useMemo(() => brandsIn(liveOrders), [liveOrders])
   // Roles already used on a shoot stay offered in the call-sheet picker.
-  const roleOptions = useMemo(() => rolesFor(bookings), [bookings])
+  const roleOptions = useMemo(() => crewRoles(bookings), [bookings])
   const typeOptions = useMemo(() => jobTypesIn(liveOrders), [liveOrders])
 
   // A persisted filter whose value is no longer IN the data would hide every row
@@ -537,7 +537,7 @@ export default function Orders() {
                     open: true,
                     order: {
                       ...selected,
-                      callTimes: selectedBooking?.callTimes ?? [],
+                      crew: selectedBooking?.crew ?? [],
                       wrapTime: selectedBooking?.wrapTime ?? '',
                     },
                   })
@@ -693,11 +693,13 @@ function OrderDetail({
   // shared modal once lost a required prop and white-screened a view.
   const updateOrder = useStore((s) => s.updateOrder)
   const { events: activityEvents, loading: activityLoading } = useActivity({ orderId: order.id })
-  // Resolve the typed photographer name to a real person so it can be opened.
   const peopleList = useStore((s) => s.people)
-  const photographerPerson = order.photographer
-    ? peopleList.find((p) => p.name === order.photographer) ?? null
-    : null
+  // A name on the call sheet opens that person's card when People has them.
+  const personLink = (name) => {
+    const want = String(name ?? '').trim().toLowerCase()
+    const p = peopleList.find((x) => String(x.name ?? '').trim().toLowerCase() === want)
+    return p ? () => peek({ type: 'person', id: p.id }) : null
+  }
   const inventoryList = useStore((s) => s.inventory)
   // Count the rows the crew actually ticks (one per barcoded copy), not the order
   // lines — otherwise the card's "3/5 packed" disagrees with the checklist.
@@ -804,7 +806,7 @@ function OrderDetail({
           {/* The call sheet. Empty is a real answer — a shoot nobody has
               scheduled yet — so it says so instead of showing nothing. */}
           <Row icon={Clock3} label="Call times">
-            <CallSheetList callTimes={booking?.callTimes} wrapTime={booking?.wrapTime} />
+            <CallSheetList crew={booking?.crew} wrapTime={booking?.wrapTime} onPerson={personLink} />
           </Row>
           {showsSetName(order) && (
             <Row icon={Layers} label="Set name">
@@ -817,19 +819,13 @@ function OrderDetail({
           <Row icon={Briefcase} label="Shoot type">
             {order.jobType || <span className="text-slate-400">—</span>}
           </Row>
-          <Row icon={Camera} label="Photographer">
-            {order.photographer ? (
-              <PeekLink
-                onClick={
-                  photographerPerson ? () => peek({ type: 'person', id: photographerPerson.id }) : null
-                }
-              >
-                {order.photographer}
-              </PeekLink>
-            ) : (
-              <span className="text-slate-400">not assigned</span>
-            )}
-          </Row>
+          {/* The photographer is a row of the call sheet above. Only a job with
+              no shoot of its own (sub-rental history) still carries one here. */}
+          {!booking && order.photographer && (
+            <Row icon={Camera} label="Photographer">
+              <PeekLink onClick={personLink(order.photographer)}>{order.photographer}</PeekLink>
+            </Row>
+          )}
           {order.companyName && (
             <Row icon={Building2} label="Company">
               <PeekLink

@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -40,6 +40,7 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/data/nav.js'),
     load('src/data/studios.js'),
     load('src/lib/capacity.js'),
+    load('src/lib/crew.js'),
   ])
 
 let n = 0
@@ -299,13 +300,6 @@ eq(setDays.spanSummary('2026-09-09', '2026-09-09'), 'Sep 9', 'and says nothing e
   eq(clean[0].roles, ['Photographer', 'Digital tech'], 'roles are trimmed and de-duplicated')
   eq(clean[1].roles, ['Model', 'Stylist'], 'one call can name several roles')
   eq(clean.map((c) => c.position), [0, 1], 'positions are re-numbered after the sort')
-  eq(callTimes.earliestCall(raw), '08:00', 'the earliest call is what a chip shows')
-  eq(
-    callTimes.callSummary(raw),
-    '08:00 Photographer, Digital tech · 10:00 Model, Stylist',
-    'the summary reads as a schedule',
-  )
-  eq(callTimes.rolesLabel(clean[1]), 'Model, Stylist', 'roles read as a list')
 }
 {
   // Reported from a job card: "08:15 Producer" printed twice. Two rows saying
@@ -330,14 +324,6 @@ eq(setDays.spanSummary('2026-09-09', '2026-09-09'), 'Sep 9', 'and says nothing e
   ])
   eq(noted.length, 2, 'but two different notes at one time stay two lines')
   eq(noted.map((r) => r.position), [0, 1], 'and both keep a position')
-  eq(
-    callTimes.earliestCall([
-      { roles: ['Producer'], time: '08:15' },
-      { roles: ['Producer'], time: '08:15' },
-    ]),
-    '08:15',
-    'the chip still reads the first call',
-  )
 }
 {
   // Reported: a photographer added in People did not appear in the job form's
@@ -377,22 +363,11 @@ eq(setDays.spanSummary('2026-09-09', '2026-09-09'), 'Sep 9', 'and says nothing e
 }
 eq(callTimes.normalizeCallTimes([]), [], 'no call times is a valid shoot')
 eq(callTimes.normalizeCallTimes(), [], 'and so is nothing at all')
-eq(callTimes.earliestCall([]), null, 'nothing to show on the chip')
-eq(callTimes.callSummary([]), '', 'and nothing in the tooltip')
 eq(callTimes.toHHMM('08:00:00'), '08:00', 'a Postgres time reads back as HH:MM')
 eq(callTimes.toHHMM('8:05'), '08:05', 'and a single-digit hour is padded')
 eq(callTimes.toHHMM(null), '', 'null is not a time')
 ok(callTimes.isValidTime('00:00') && callTimes.isValidTime('23:59'), 'both ends of the clock are valid')
 ok(!callTimes.isValidTime('24:00') && !callTimes.isValidTime('7:5') && !callTimes.isValidTime(''), 'these are not')
-ok(
-  callTimes.wrapBeforeFirstCall([{ roles: ['Crew'], time: '08:00' }], '07:00'),
-  'a wrap before the first call is reported',
-)
-ok(
-  !callTimes.wrapBeforeFirstCall([{ roles: ['Crew'], time: '08:00' }], '19:00'),
-  'a normal day is not',
-)
-ok(!callTimes.wrapBeforeFirstCall([], '07:00'), 'and with no calls there is nothing to contradict')
 
 // ───────────────────────────────── typing a time, without typing the colon
 // The field offers a two-column list, but it stays typeable — and nobody should
@@ -438,15 +413,6 @@ ok(
   callTimes.minuteOptions(5).every((m) => callTimes.isValidTime(`08:${m}`)),
   'and every offered minute makes a valid time',
 )
-{
-  const opts = callTimes.rolesFor([
-    { callTimes: [{ roles: ['Photographer', 'Gaffer'], time: '08:00' }] },
-    { callTimes: [{ roles: ['Gaffer'], time: '09:00' }] },
-  ])
-  ok(opts.includes('Photographer'), 'the offered roles are always there')
-  eq(opts.filter((r) => r === 'Gaffer').length, 1, 'a typed role joins the list exactly once')
-  eq(callTimes.rolesFor([]), callTimes.CALL_ROLES, 'with no shoots, just the defaults')
-}
 
 // ---------------------------------------------------------------------------
 // lib/taxonomy — categories hold subcategories, an item belongs to a
@@ -1129,6 +1095,124 @@ ok(
   )
   ok(!capacity.hasDailyCap('L') && capacity.hasDailyCap('3') && !capacity.hasDailyCap(null), 'only the rooms have a daily cap')
   eq(capacity.MAX_SETS_PER_DAY, 5, 'and the cap is still five')
+}
+
+// ─────────────── the call sheet — every row a time · role · person
+// The studio's design: "10:00 · Producer · Clay Rodriguez", one role and one
+// person per row, the photographer just one of the rows. It replaced a
+// Photographer field and a list of call times by role (two lists, one crew).
+{
+  const sheet = crew.normalizeCrew([
+    { role: 'Model', name: 'Hailey Halter', time: '10:00' },
+    { role: ' Photographer ', name: ' Marcus Reed ', time: '08:00' },
+    { role: 'Producer', time: '07:30' },
+    { role: 'Client', name: 'Loft team' }, // on the crew, no call yet
+    { role: '', name: 'Nobody', time: '09:00' }, // no role: the form refuses it
+    { role: 'Producer', time: '07:30' }, // an exact duplicate
+  ])
+  eq(
+    sheet.map(crew.crewLine),
+    ['07:30 Producer', '08:00 Photographer · Marcus Reed', '10:00 Model · Hailey Halter', 'Client · Loft team'],
+    'the day in order — timed rows by time, the rest after — with duplicates folded and names trimmed',
+  )
+  eq(sheet.map((r) => r.position), [0, 1, 2, 3], 'positions follow that order')
+  eq(crew.crewNameFor(sheet, 'photographer'), 'Marcus Reed', 'the job’s one photographer is read off the sheet, in any case')
+  eq(crew.crewNameFor(sheet, 'Stylist'), '', 'a role nobody holds reads as nobody')
+  eq(
+    crew.firstWithRole([{ role: 'Photographer' }, { role: 'Photographer', name: 'Ann Taylor' }], 'Photographer')?.name,
+    'Ann Taylor',
+    'the first NAMED row of the role — an empty slot is not the photographer',
+  )
+  eq(crew.earliestCrewCall(sheet), '07:30', 'the chip shows the earliest call')
+  eq(crew.earliestCrewCall([{ role: 'Client', name: 'X' }]), null, 'a sheet with no times has no first call')
+  eq(
+    crew.crewSummary(sheet),
+    '07:30 Producer · 08:00 Photographer (Marcus Reed) · 10:00 Model (Hailey Halter) · Client (Loft team)',
+    'the tooltip reads the sheet, a person in brackets',
+  )
+  ok(crew.wrapBeforeFirstCrewCall(sheet, '07:00'), 'a wrap before the first call is reported')
+  ok(!crew.wrapBeforeFirstCrewCall(sheet, '19:00'), 'a normal day is not')
+  ok(!crew.wrapBeforeFirstCrewCall([], '07:00'), 'and with no calls there is nothing to contradict')
+  eq(crew.crewNames(sheet), ['Marcus Reed', 'Hailey Halter', 'Loft team'], 'every named person, once')
+  eq(crew.crewRowProblem({ time: '08:00', name: 'Ann' }), 'Pick a role for this row — or remove it.', 'a row with no role says so')
+  eq(crew.crewRowProblem({ role: 'Crew', time: '8:7' }), 'The time should read as HH:MM.', 'and so does a half-typed time')
+  eq(crew.crewRowProblem({ role: 'Crew' }), null, 'a role alone is a row: nobody booked, no call yet')
+  eq(crew.crewRowProblem({}), null, 'an empty row is fine — it is dropped')
+  eq(crew.normalizeCrew([]), [], 'an empty sheet is a real state')
+  eq(crew.normalizeCrew(), [], 'and so is nothing at all')
+  const roles = crew.crewRoles([{ crew: [{ role: 'Gaffer' }, { role: 'photographer' }] }])
+  ok(roles.includes('Gaffer'), 'a typed role stays offered')
+  eq(roles.filter((r) => r.toLowerCase() === 'photographer').length, 1, 'and a case twin of an offered one is not added')
+  eq(crew.crewRoles([]), callTimes.CALL_ROLES, 'with no shoots, just the studio’s list')
+}
+{
+  // The MIGRATION's rule, written once in JS (20260930120000 applies the same
+  // to prod): the roster and the call times → one sheet.
+  const merged = crew.crewFromLegacy({
+    photographer: 'Marcus Reed',
+    model: 'Hailey Halter',
+    calls: [
+      { roles: ['Producer'], time: '07:30' },
+      { roles: ['Photographer', 'Digital tech'], time: '08:00' },
+      { roles: ['Model'], time: '10:00', note: 'Glam first' },
+    ],
+  })
+  eq(
+    merged.map(crew.crewLine),
+    ['07:30 Producer', '08:00 Photographer · Marcus Reed', '08:00 Digital tech', '10:00 Model · Hailey Halter'],
+    'a call joins the person it was always about; a role with nobody yet is its own row',
+  )
+  eq(merged.find((r) => r.role === 'Model').note, 'Glam first', 'and brings its note along')
+  // Prod carried "08:15 Producer" twice for one shoot, and a Photographer call
+  // whose note held a name — the crew had nowhere else to write it.
+  const prodLike = crew.crewFromLegacy({
+    photographer: 'Ann Taylor',
+    calls: [
+      { roles: ['Producer'], time: '08:15' },
+      { roles: ['Producer'], time: '08:15' },
+      { roles: ['Photographer'], time: '07:15', note: 'Ann Tes' },
+    ],
+  })
+  eq(prodLike.filter((r) => r.role === 'Producer').length, 1, 'the same call typed twice arrives once')
+  eq(prodLike[0].name, 'Ann Taylor', 'the photographer takes the 07:15 call')
+  eq(prodLike[0].note, 'Ann Tes', 'and what was typed in its note is kept, not guessed at')
+  eq(
+    crew
+      .crewFromLegacy({
+        photographer: 'Ann Taylor',
+        calls: [
+          { roles: ['Photographer'], time: '08:00' },
+          { roles: ['Photographer'], time: '14:00' },
+        ],
+      })
+      .map(crew.crewLine),
+    ['08:00 Photographer · Ann Taylor', '14:00 Photographer'],
+    'a second call in the same role is a second row',
+  )
+  eq(crew.crewFromLegacy({}), [], 'no roster and no calls: an empty sheet')
+}
+{
+  // The estimate lists the crew by name, with when they are called.
+  const sheetJob = estimate.buildEstimate(job, {
+    inventory,
+    booking: {
+      id: 's1',
+      unitIds: [],
+      crew: [
+        { role: 'Photographer', name: 'Marcus Reed', time: '08:00' },
+        { role: 'Producer', time: '07:30' },
+      ],
+    },
+  })
+  eq(sheetJob.roster, [{ role: 'Photographer', name: 'Marcus Reed', time: '08:00' }], 'only NAMED rows go on a client document')
+  const t = bytes(estimatePdf.buildEstimatePdf(sheetJob))
+  ok(t.includes('(Marcus Reed) Tj') && t.includes('(08:00) Tj'), 'the estimate prints the person and their call')
+  eq(
+    estimate.buildEstimate(job, { inventory }).roster,
+    [{ role: 'Photographer', name: 'Ann Taylor', time: null }],
+    'a job with no shoot falls back to its own photographer',
+  )
+  eq(activity.jobFieldWords(['crew']), ['call times'], 'the feed calls an edited sheet "call times"')
 }
 
 console.log(`OK — ${n} assertions passed`)

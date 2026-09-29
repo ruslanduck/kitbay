@@ -6,8 +6,6 @@ import {
   ChevronDown,
   Plus,
   AlertTriangle,
-  Camera,
-  UserRound,
   Package,
   Tag,
   Layers,
@@ -33,13 +31,7 @@ import {
 import { useStore } from '../store'
 import { brandsIn, jobTypesIn } from '../lib/orderSearch'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
-import {
-  earliestCall,
-  callSummary,
-  rolesFor,
-  rolesLabel,
-  normalizeCallTimes,
-} from '../lib/callTimes'
+import { earliestCrewCall, crewSummary, crewRoles, normalizeCrew } from '../lib/crew'
 import { studioLabel } from '../data/studios'
 import {
   ORDER_STATUS_CHOICES,
@@ -110,7 +102,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
     b.spanDays > 1 && `day ${b.dayIndex} of ${b.spanDays}`,
     // The whole call sheet on hover; the chip has room for one number, and
     // "when do I have to be there" is that number.
-    callSummary(b.callTimes),
+    crewSummary(b.crew),
     b.wrapTime && `wrap ${b.wrapTime}`,
     canChange ? 'right-click (or hold) to change the status' : null,
   ]
@@ -151,10 +143,10 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
       ) : (
         <>
           <div className="truncate pr-4 text-xs font-semibold leading-tight">{b.title}</div>
-          {(b.spanDays > 1 || b.setLabel || earliestCall(b.callTimes)) && (
+          {(b.spanDays > 1 || b.setLabel || earliestCrewCall(b.crew)) && (
             <div className="truncate text-[10px] font-medium opacity-80">
               {[
-                earliestCall(b.callTimes),
+                earliestCrewCall(b.crew),
                 b.spanDays > 1 && `Day ${b.dayIndex}/${b.spanDays}`,
                 b.setLabel,
               ]
@@ -211,7 +203,7 @@ export default function StudioCalendar() {
   const typeOptions = useMemo(() => jobTypesIn(orders), [orders])
   // Roles already used on any shoot stay offered, so a typed one doesn't vanish
   // from the list that suggested it.
-  const roleOptions = useMemo(() => rolesFor(bookings), [bookings])
+  const roleOptions = useMemo(() => crewRoles(bookings), [bookings])
   const openOrderDraft = useStore((s) => s.openOrderDraft)
   const updateOrder = useStore((s) => s.updateOrder)
   const peek = useStore((s) => s.peek)
@@ -676,7 +668,7 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
   const meta = b.status ? orderStatusMeta(b.status) : null
   const canChange = canManage && !!b.orderId
   const press = useLongPress((at) => canChange && onStatus(b, at))
-  const calls = normalizeCallTimes(b.callTimes)
+  const calls = normalizeCrew(b.crew)
 
   return (
     <li
@@ -761,8 +753,11 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {calls.map((c, i) => (
               <span key={c.id || i} className="inline-flex items-baseline gap-1.5 text-xs">
-                <span className="font-semibold tabular-nums text-slate-800">{c.time}</span>
-                <span className="text-slate-600">{rolesLabel(c)}</span>
+                <span className="font-semibold tabular-nums text-slate-800">{c.time ?? '—:—'}</span>
+                <span className="text-slate-600">
+                  {c.role}
+                  {c.name && <span className="font-medium text-slate-800"> · {c.name}</span>}
+                </span>
                 {c.note && <span className="text-slate-400">· {c.note}</span>}
               </span>
             ))}
@@ -777,18 +772,6 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
       </div>
 
       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-        {b.photographer && (
-          <span className="inline-flex items-center gap-1">
-            <Camera size={12} className="text-slate-400" />
-            {b.photographer}
-          </span>
-        )}
-        {b.model && (
-          <span className="inline-flex items-center gap-1">
-            <UserRound size={12} className="text-slate-400" />
-            {b.model}
-          </span>
-        )}
         {/* What the job actually HOLDS, which is not the length of the unit
             list: a closed set keeps its units as history flagged returned, and
             a hold reserves nothing at all. Saying "8 pc(s) held" for either

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useStore } from '../store'
 import { peopleNames } from './peopleOptions'
+import { crewNames } from './crew'
 
 // The pickers read the roster THEMSELVES instead of taking it as a prop.
 //
@@ -14,28 +15,28 @@ import { peopleNames } from './peopleOptions'
 // often — it is a derived list of a few dozen strings, and being always current
 // is the point: add a person in People and the next picker you open has them,
 // with no reload.
-export function usePhotographerNames() {
+//
+// The person picker on a call-sheet row: the people whose trade IS the row's
+// role first ("Stylist" offers the stylists, "Model" the models), then everyone
+// else, then any name already written on a sheet that People doesn't have. One
+// hook for every row, because a Photographer field and a Model field were two
+// copies of this rule and the sheet has as many roles as the studio types.
+// Returns `(role) => names`, cached per role for the life of the lists.
+export function useCrewNameOptions() {
   const people = useStore((s) => s.people)
   const orders = useStore((s) => s.orders)
   const bookings = useStore((s) => s.bookings)
-  return useMemo(
-    () =>
-      peopleNames(people, {
-        role: 'Photographer',
-        used: [
-          ...(orders ?? []).map((o) => o.photographer),
-          ...(bookings ?? []).map((b) => b.photographer),
-        ],
-      }),
-    [people, orders, bookings],
-  )
-}
-
-export function useModelNames() {
-  const people = useStore((s) => s.people)
-  const bookings = useStore((s) => s.bookings)
-  return useMemo(
-    () => peopleNames(people, { role: 'Model', used: (bookings ?? []).map((b) => b.model) }),
-    [people, bookings],
-  )
+  return useMemo(() => {
+    const used = [
+      ...(bookings ?? []).flatMap((b) => crewNames(b.crew)),
+      // A job with no shoot of its own still carries its photographer's name.
+      ...(orders ?? []).map((o) => o.photographer),
+    ]
+    const cache = new Map()
+    return (role) => {
+      const key = String(role ?? '').trim().toLowerCase()
+      if (!cache.has(key)) cache.set(key, peopleNames(people, { role, used }))
+      return cache.get(key)
+    }
+  }, [people, orders, bookings])
 }

@@ -14,6 +14,7 @@ import { pickPatch } from '../lib/patch'
 import { studioLabel, studioColor } from './studios'
 import { createUnits } from './inventory'
 import { normalizeCallTimes, toHHMM } from '../lib/callTimes'
+import { normalizeCrew, crewFromLegacy, crewNameFor } from '../lib/crew'
 
 export const DATA_SOURCE = (import.meta.env.VITE_DATA_SOURCE || 'local').toLowerCase()
 export const usingSupabase = DATA_SOURCE === 'supabase' && isSupabaseConfigured
@@ -388,35 +389,65 @@ export async function getInventory() {
   }))
 }
 
-// Bookings (sets) mapped to the app's booking shape. photographer/model come
-// from the roster (requires auth to read — under anon they resolve to '').
+// Bookings (sets) mapped to the app's booking shape. The CALL SHEET is the
+// roster (20260930120000): one row per time · role · person. Reading needs auth
+// — under anon the people resolve to nobody.
 export async function getBookings() {
-  const sel = (extra) =>
+  const sel = (roster, extra) =>
     `id, title, studio_id, date, start_time, end_time, status, color, notes, order_id,
        ${ARCHIVE_COLS}, created_by, creator:profiles!created_by ( full_name ),
        set_units ( unit_id ),
-       roster_entries ( role, contact:contacts ( full_name ) )${extra}`
+       ${roster}${extra}`
+  const CREW = 'roster_entries ( id, role, call_time, note, position, contact_id, contact:contacts ( full_name ) )'
+  const ROSTER = 'roster_entries ( role, contact:contacts ( full_name ) )'
   // Newest first, so a database missing a migration drops only what that
-  // migration added. Fifth time this rule has mattered (see getOrders'
-  // withBrandType): put a new column anywhere but the top and a pre-migration
-  // DB loses the roster and the reservations along with it.
+  // migration added (sixth time this rule has mattered). Every layer below the
+  // first is the LEGACY shape — two lists, a roster and call times by role —
+  // merged into one sheet by the same rule the migration applied.
   const CALLS = ', wrap_time, set_call_times ( id, roles, call_time, note, position )'
   const layers = [
-    sel(`, end_date${CALLS}`), // 20260910120000 — call times + wrap
-    sel(', end_date'), //         20260909120000 — multi-day shoots
-    sel(''), //                   before either
-    stripArchive(sel('')), //     before the archive columns
+    [sel(CREW, ', end_date, wrap_time'), 'crew'], // 20260930120000 — one call sheet
+    [sel(ROSTER, `, end_date${CALLS}`), 'legacy'], // 20260910120000 — call times + wrap
+    [sel(ROSTER, ', end_date'), 'legacy'], //         20260909120000 — multi-day shoots
+    [sel(ROSTER, ''), 'legacy'], //                   before either
+    [stripArchive(sel(ROSTER, '')), 'legacy'], //     before the archive columns
   ]
-  let data, error
-  for (const layer of layers) {
+  let data, error, shape
+  for (const [layer, kind] of layers) {
     ;({ data, error } = await supabase.from('sets').select(layer).order('date'))
+    shape = kind
     if (!error) break
   }
   if (error) throw error
 
   return data.map((s) => {
     const roster = s.roster_entries || []
-    const byRole = (role) => roster.find((r) => r.role === role)?.contact?.full_name || ''
+    // Case-insensitive: the roster spoke lowercase before the call sheet did.
+    const byRole = (role) =>
+      roster.find((r) => String(r.role).toLowerCase() === role)?.contact?.full_name || ''
+    const crew =
+      shape === 'crew'
+        ? normalizeCrew(
+            roster.map((r) => ({
+              id: r.id,
+              role: r.role,
+              name: r.contact?.full_name ?? null,
+              contactId: r.contact_id ?? null,
+              time: r.call_time,
+              note: r.note,
+              position: r.position,
+            })),
+          )
+        : crewFromLegacy({
+            calls: (s.set_call_times || []).map((c) => ({
+              roles: c.roles || [],
+              time: c.call_time,
+              note: c.note,
+              position: c.position,
+            })),
+            photographer: byRole('photographer'),
+            model: byRole('model'),
+          })
     return {
       id: s.id,
       title: s.title,
@@ -425,18 +456,9 @@ export async function getBookings() {
       // A one-day shoot stores no end (null), so it reads back as its own date —
       // every consumer can then treat a set as a window without a special case.
       endDate: s.end_date || s.date,
-      // When each role is called on, and when the shoot wraps. Absent on a
-      // pre-migration database, and legitimately empty on a shoot nobody has
-      // scheduled yet — both read as "not set", never as a made-up 09:00.
-      callTimes: normalizeCallTimes(
-        (s.set_call_times || []).map((c) => ({
-          id: c.id,
-          roles: c.roles || [],
-          time: c.call_time,
-          note: c.note,
-          position: c.position,
-        })),
-      ),
+      // Who is called when, and when the shoot wraps. Legitimately empty on a
+      // shoot nobody has scheduled yet — read as "not set", never a made-up 09:00.
+      crew,
       wrapTime: toHHMM(s.wrap_time) || null,
       status: s.status,
       color: s.color || studioColor(s.studio_id),
@@ -445,8 +467,10 @@ export async function getBookings() {
       // IS its order. Null for a legacy order-less booking.
       orderId: s.order_id || null,
       unitIds: (s.set_units || []).map((su) => su.unit_id),
-      photographer: byRole('photographer'),
-      model: byRole('model'),
+      // Read OFF the sheet — the first named row of the role — for the readers
+      // that ask for one photographer; the sheet is the only source.
+      photographer: crewNameFor(crew, 'Photographer'),
+      model: crewNameFor(crew, 'Model'),
       createdBy: s.creator?.full_name || null,
       ...archiveFields(s),
     }
@@ -478,11 +502,14 @@ export async function getUnitHistory(unitId) {
       title: su.set.title,
       date: su.set.date,
       studioId: su.set.studio_id,
-      // Roster is RLS-protected — empty for anonymous viewers, populated once signed in.
-      roster: (su.set.roster || []).map((r) => ({
-        role: r.role,
-        name: r.contact?.full_name,
-      })),
+      // Roster is RLS-protected — empty for anonymous viewers, populated once
+      // signed in. A call-sheet row with nobody booked yet has no one to list.
+      roster: (su.set.roster || [])
+        .filter((r) => r.contact?.full_name)
+        .map((r) => ({
+          role: r.role,
+          name: r.contact.full_name,
+        })),
     }))
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
 }
@@ -491,32 +518,26 @@ export async function getUnitHistory(unitId) {
 // RLS write policies are `to authenticated`, so these need a signed-in user
 // (the app requires email/password login in supabase mode).
 
-// Find a contact by name, creating it if absent (supports free-text entry).
+// Find a contact by name, creating it if absent (supports free-text entry) —
+// the studio's answer for a name typed on a call sheet: it is added to People.
+// Case-insensitive, and a live person before a retired namesake, so "marcus
+// reed" typed in a hurry is the Marcus Reed already filed, not a second one.
 async function resolveContactId(fullName) {
   const name = (fullName || '').trim()
   if (!name) return null
+  const pattern = name.replace(/[\\%_]/g, (c) => `\\${c}`)
   const { data: found, error } = await supabase
-    .from('contacts').select('id').eq('full_name', name).limit(1)
+    .from('contacts')
+    .select('id')
+    .ilike('full_name', pattern)
+    .order('archived_at', { ascending: true, nullsFirst: true })
+    .limit(1)
   if (error) throw error
   if (found && found.length) return found[0].id
   const { data: created, error: cErr } = await supabase
     .from('contacts').insert({ full_name: name }).select('id').single()
   if (cErr) throw cErr
   return created.id
-}
-
-// Replace a set's roster with the given photographer/model.
-async function replaceRoster(setId, photographer, model) {
-  await supabase.from('roster_entries').delete().eq('set_id', setId)
-  const rows = []
-  const pId = await resolveContactId(photographer)
-  if (pId) rows.push({ set_id: setId, contact_id: pId, role: 'photographer' })
-  const mId = await resolveContactId(model)
-  if (mId) rows.push({ set_id: setId, contact_id: mId, role: 'model' })
-  if (rows.length) {
-    const { error } = await supabase.from('roster_entries').insert(rows)
-    if (error) throw error
-  }
 }
 
 // Replace a set's reserved units.
@@ -557,6 +578,54 @@ export async function setCallTimes(setId, rows) {
   return { stored: true }
 }
 
+// A shoot's CALL SHEET — its contents, replaced wholesale on save like an order's
+// lines. Every named row is a person in People: a name People doesn't have yet is
+// added there (the studio's answer, and how the photographer field always
+// worked). `orderId` keeps the job's single photographer column — the Jobs
+// filter and the search read it — equal to the first Photographer row.
+export async function setCrew(setId, rows, { orderId = null } = {}) {
+  const crew = normalizeCrew(rows)
+  const ids = []
+  for (const r of crew) ids.push(r.name ? r.contactId || (await resolveContactId(r.name)) : null)
+  const del = await supabase.from('roster_entries').delete().eq('set_id', setId)
+  if (del.error) throw del.error
+  const full = crew.map((r, i) => ({
+    set_id: setId,
+    contact_id: ids[i],
+    role: r.role,
+    call_time: r.time,
+    note: r.note,
+    position: i,
+  }))
+  if (full.length) {
+    let { error } = await supabase.from('roster_entries').insert(full)
+    if (error && isUndefinedColumn(error)) {
+      // A database without 20260930120000: the people go to the roster and the
+      // times the old way, so nothing typed is lost.
+      ;({ error } = await supabase.from('roster_entries').insert(
+        full
+          .filter((r) => r.contact_id)
+          .map((r) => ({ set_id: r.set_id, contact_id: r.contact_id, role: r.role.toLowerCase() })),
+      ))
+      if (!error)
+        await setCallTimes(
+          setId,
+          crew.filter((r) => r.time).map((r) => ({ roles: [r.role], time: r.time, note: r.note })),
+        )
+    }
+    if (error) throw error
+  }
+  if (orderId) {
+    const at = crew.findIndex((r, i) => r.role.toLowerCase() === 'photographer' && ids[i])
+    const { error } = await supabase
+      .from('orders')
+      .update({ photographer_contact_id: at >= 0 ? ids[at] : null })
+      .eq('id', orderId)
+    if (error) throw error
+  }
+  return { ok: true }
+}
+
 export async function createBooking(b) {
   // A shoot is a range of whole days now, so no times are written — the columns
   // stay for the rows that already carry them (nothing in this app deletes
@@ -578,12 +647,11 @@ export async function createBooking(b) {
   }
   if (error) throw error
   await replaceUnits(set.id, b.unitIds)
-  await replaceRoster(set.id, b.photographer, b.model)
-  if (b.callTimes) await setCallTimes(set.id, b.callTimes)
+  if (b.crew?.length) await setCrew(set.id, b.crew)
   return set.id
 }
 
-export async function updateBooking(setId, changes) {
+export async function updateBooking(setId, changes, { orderId = null } = {}) {
   const patch = {}
   if ('title' in changes) patch.title = changes.title
   if ('studioId' in changes) patch.studio_id = changes.studioId
@@ -610,11 +678,8 @@ export async function updateBooking(setId, changes) {
     }
     if (error) throw error
   }
-  if ('callTimes' in changes) await setCallTimes(setId, changes.callTimes)
+  if ('crew' in changes) await setCrew(setId, changes.crew, { orderId })
   if ('unitIds' in changes) await replaceUnits(setId, changes.unitIds)
-  if ('photographer' in changes || 'model' in changes) {
-    await replaceRoster(setId, changes.photographer, changes.model)
-  }
 }
 
 // Archiving a shoot takes it off the calendar and releases its gear. The
@@ -1535,7 +1600,14 @@ const withoutNewestColumns = (row) => {
   const { brand, job_type, notes, location, ...rest } = row
   return rest
 }
-const isUndefinedColumn = (e) => e?.code === '42703' || /column .* does not exist/i.test(e?.message || '')
+// A column the database doesn't have yet. Postgres says 42703 — but on an INSERT
+// or UPDATE, PostgREST answers first, from its schema cache, with PGRST204
+// ("Could not find the 'x' column of 'y'"), which this used to miss: every
+// "retry without the newest column" fallback behind a write could never fire.
+const isUndefinedColumn = (e) =>
+  e?.code === '42703' ||
+  e?.code === 'PGRST204' ||
+  /column .* does not exist|could not find the .* column/i.test(e?.message || '')
 // A table the migration for it hasn't created yet. Every feature added after
 // launch degrades to "not available" rather than failing the user's action.
 const isMissingTable = (e) =>
@@ -1661,7 +1733,7 @@ export async function setReservationsForSet(setId, unitIds, { from = null, to = 
 // grid is studio × day, and the range is what the crew now types.
 export async function createSetForOrder(
   orderId,
-  { jobName, studioId, date, endDate, wrapTime = null, callTimes = null },
+  { jobName, studioId, date, endDate, wrapTime = null, crew = null },
 ) {
   const row = {
     title: jobName.trim(),
@@ -1682,7 +1754,7 @@ export async function createSetForOrder(
     }
   }
   if (error) throw error
-  if (callTimes?.length) await setCallTimes(data.id, callTimes)
+  if (crew?.length) await setCrew(data.id, crew, { orderId })
   return data.id
 }
 
@@ -1690,20 +1762,26 @@ export async function createSetForOrder(
 // Supabase mode did NOT, so editing a job's date moved its reservations and left
 // the shoot on the old day of the calendar. A multi-day window makes that
 // mismatch visible immediately, so the two modes are the same shape now.
-// Roster (photographer) is deliberately left alone — that needs a contact id,
-// which is the order form's photographerId, and is a separate write.
+// The call sheet travels with it, and so does the job's photographer column —
+// the old "roster is a separate write" gap is why a photographer picked in the
+// job form never reached the database at all (the form sent a NAME, the column
+// wanted an id).
 export async function syncSetForOrder(
   setId,
-  { jobName, studioId, date, endDate, wrapTime, callTimes },
+  { jobName, studioId, date, endDate, wrapTime, crew, orderId = null },
 ) {
-  return updateBooking(setId, {
-    ...(jobName != null ? { title: jobName.trim() } : {}),
-    ...(studioId ? { studioId } : {}),
-    ...(date ? { date, endDate: endDate || date } : {}),
-    // undefined = the form didn't carry them; null / [] = the crew cleared them.
-    ...(wrapTime !== undefined ? { wrapTime } : {}),
-    ...(callTimes !== undefined ? { callTimes } : {}),
-  })
+  return updateBooking(
+    setId,
+    {
+      ...(jobName != null ? { title: jobName.trim() } : {}),
+      ...(studioId ? { studioId } : {}),
+      ...(date ? { date, endDate: endDate || date } : {}),
+      // undefined = the form didn't carry them; null / [] = the crew cleared them.
+      ...(wrapTime !== undefined ? { wrapTime } : {}),
+      ...(crew !== undefined ? { crew: crew ?? [] } : {}),
+    },
+    { orderId },
+  )
 }
 
 // The active, unarchived sets a studio has anywhere in [from, to] — the input to

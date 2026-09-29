@@ -13,9 +13,9 @@ import {
   orderStatusMeta,
 } from '../data/orderStatus'
 import { MAX_SET_DAYS, setSpanDays } from '../lib/setDays'
-import { isValidTime, normalizeCallTimes, wrapBeforeFirstCall } from '../lib/callTimes'
-import CallTimesField from './CallTimesField'
-import { usePhotographerNames } from '../lib/usePeopleNames'
+import { isValidTime } from '../lib/callTimes'
+import { normalizeCrew, crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
+import CrewField from './CrewField'
 import { setNameApplies } from '../lib/orderSearch'
 
 // Order (Estimate) creation form — epic #5, 5.1 + 5.2.
@@ -53,9 +53,8 @@ const blank = {
   location: '',
   startsOn: '',
   endsOn: '',
-  callTimes: [],
+  crew: [],
   wrapTime: '',
-  photographer: '',
   poNumber: '',
   status: 'hold',
 }
@@ -74,10 +73,6 @@ export default function OrderEditorModal({
   onDelete,
 }) {
   const isEdit = !!order
-  // Straight from the roster, so a person filed in People is offered here the
-  // next time this opens — no reload, and the same list whichever window you
-  // came in through.
-  const photographers = usePhotographerNames()
   const [form, setForm] = useState(blank)
   const [error, setError] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -97,11 +92,10 @@ export default function OrderEditorModal({
             location: order.location ?? '',
             startsOn: order.startsOn ?? '',
             endsOn: order.endsOn ?? order.startsOn ?? '',
-            // The schedule lives on the SHOOT; the job form is where the crew
+            // The call sheet lives on the SHOOT; the job form is where the crew
             // edits it, so the caller hands it in alongside the order.
-            callTimes: (order.callTimes ?? []).map((c) => ({ ...c })),
+            crew: (order.crew ?? []).map((c) => ({ ...c })),
             wrapTime: order.wrapTime ?? '',
-            photographer: order.photographer ?? '',
             poNumber: order.poNumber ?? '',
             status: order.status ?? 'hold',
           }
@@ -129,17 +123,14 @@ export default function OrderEditorModal({
       return setError('The last day is before the first one — check the dates.')
     if (days > MAX_SET_DAYS)
       return setError(`${days} days is longer than a shoot gets (max ${MAX_SET_DAYS}) — check the year.`)
-    // A half-typed time is a typo, and dropping it silently would put the wrong
-    // hour on the call sheet. An empty row (no roles, no time) is fine — it is
-    // just a row the crew opened and left, and it is dropped on save.
-    const halfTyped = form.callTimes.find(
-      (c) => (c.time || (c.roles || []).length) && !(isValidTime(c.time) && (c.roles || []).length),
-    )
-    if (halfTyped)
-      return setError('Every call time needs a role and an HH:MM time — or remove the row.')
+    // A row with something in it but no role, or a half-typed time, would put a
+    // wrong line on the call sheet. An empty row is just a row the crew opened
+    // and left — it is dropped on save.
+    const rowProblem = form.crew.map(crewRowProblem).find(Boolean)
+    if (rowProblem) return setError(rowProblem)
     if (form.wrapTime && !isValidTime(form.wrapTime))
       return setError('The wrap time should read as HH:MM.')
-    if (wrapBeforeFirstCall(form.callTimes, form.wrapTime))
+    if (wrapBeforeFirstCrewCall(form.crew, form.wrapTime))
       return setError('The wrap time is before the first call.')
     setBusy(true)
     const payload = {
@@ -157,7 +148,7 @@ export default function OrderEditorModal({
       // A one-day shoot ends the day it starts; the store normalises this too,
       // so nothing downstream has to guess what an empty end means.
       endsOn: form.endsOn || form.startsOn,
-      callTimes: normalizeCallTimes(form.callTimes),
+      crew: normalizeCrew(form.crew),
       wrapTime: form.wrapTime || null,
     }
     // Creating is a two-step flow: this form settles the job, then the equipment
@@ -222,6 +213,8 @@ export default function OrderEditorModal({
             )}
           </div>
 
+          {/* The photographer is not a field of its own any more: they are one
+              row of the call sheet below, with everyone else on the crew. */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={label}>Location / Studio</label>
@@ -232,13 +225,15 @@ export default function OrderEditorModal({
                 className={field}
               />
             </div>
+            {/* A shoot books whole days, from the first to the last — no times.
+                Availability, the estimate's billable days, the packing list and
+                the job search all read this window. */}
             <div>
-              <label className={label}>Photographer</label>
-              <ComboField
-                value={form.photographer}
-                onChange={(e) => set({ photographer: e.target.value })}
-                options={photographers}
-                placeholder="Select or type…"
+              <label className={label}>Shoot dates</label>
+              <DateRangeField
+                from={form.startsOn}
+                to={form.endsOn}
+                onChange={({ from, to }) => set({ startsOn: from, endsOn: to })}
                 className={field}
               />
             </div>
@@ -257,24 +252,10 @@ export default function OrderEditorModal({
             </div>
           )}
 
-          {/* A shoot books whole days, from the first to the last — no times.
-              Availability, the estimate's billable days, the packing sheet and
-              the job search already read this window; the form is what used to
-              force it shut on the day it opened. */}
-          <div>
-            <label className={label}>Shoot dates</label>
-            <DateRangeField
-              from={form.startsOn}
-              to={form.endsOn}
-              onChange={({ from, to }) => set({ startsOn: from, endsOn: to })}
-              className={field}
-            />
-          </div>
-
           {/* The call sheet. A shoot has no single start time — the
               photographer is called at 08:00 and the models at 10:00 — so the
               generic start/end pair was replaced by this list plus a wrap.
-              ⚠️ A call sheet belongs to the SHOOT (`set_call_times` +
+              ⚠️ A call sheet belongs to the SHOOT (`roster_entries` +
               `sets.wrap_time`), so a job with no shoot row has nowhere to keep
               one. Three legacy sub-rental orders are in that state — we rented
               FROM a vendor, no studio was booked — and the form used to take a
@@ -289,11 +270,11 @@ export default function OrderEditorModal({
             </div>
           ) : (
             <div className="rounded-lg bg-surface p-3 ring-1 ring-slate-200">
-              <CallTimesField
-                value={form.callTimes}
+              <CrewField
+                value={form.crew}
                 // The field hands back an updater, applied against the CURRENT
-                // form — see the note on CallTimesField.
-                onChange={(fn) => setForm((f) => ({ ...f, callTimes: fn(f.callTimes) }))}
+                // form — see the note on CrewField.
+                onChange={(fn) => setForm((f) => ({ ...f, crew: fn(f.crew) }))}
                 roleOptions={roleOptions}
                 wrapTime={form.wrapTime}
                 onWrapChange={(wrapTime) => set({ wrapTime })}
