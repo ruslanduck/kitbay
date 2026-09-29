@@ -49,6 +49,7 @@ const blank = {
   jobType: 'PDP',
   notes: '',
   studioId: '1',
+  location: '',
   startsOn: '',
   endsOn: '',
   callTimes: [],
@@ -92,6 +93,7 @@ export default function OrderEditorModal({
             jobType: order.jobType ?? '',
             notes: order.notes ?? '',
             studioId: order.studioId ?? '1',
+            location: order.location ?? '',
             startsOn: order.startsOn ?? '',
             endsOn: order.endsOn ?? order.startsOn ?? '',
             // The schedule lives on the SHOOT; the job form is where the crew
@@ -146,6 +148,9 @@ export default function OrderEditorModal({
       brand: form.brand.trim(),
       jobType: form.jobType.trim(),
       notes: form.notes.trim(),
+      // Written only while the job is on L; any other studio sends it empty,
+      // which clears an address left over from before a move.
+      location: form.studioId === 'L' ? (form.location ?? '').trim() : '',
       // A one-day shoot ends the day it starts; the store normalises this too,
       // so nothing downstream has to guess what an empty end means.
       endsOn: form.endsOn || form.startsOn,
@@ -211,7 +216,7 @@ export default function OrderEditorModal({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className={label}>Studio</label>
+              <label className={label}>Location / Studio</label>
               <SelectField
                 value={form.studioId}
                 onChange={(e) => set({ studioId: e.target.value })}
@@ -230,6 +235,19 @@ export default function OrderEditorModal({
               />
             </div>
           </div>
+
+          {form.studioId === 'L' && (
+            <div>
+              <label className={label}>Address</label>
+              <input
+                type="text"
+                value={form.location}
+                onChange={(e) => set({ location: e.target.value })}
+                placeholder="e.g. Pier 59 / Studio 101, Chelsea Piers, New York"
+                className={field}
+              />
+            </div>
+          )}
 
           {/* A shoot books whole days, from the first to the last — no times.
               Availability, the estimate's billable days, the packing sheet and

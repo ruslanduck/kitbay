@@ -305,6 +305,7 @@ function buildSeedData() {
       // names happen to end in their set designation (…_OMSet1), so the seed
       // takes it from there instead of repeating it in every seed row.
       setLabel: setLabelFromJobName(o.setTitle),
+      location: o.location ?? null,
       status: o.status,
       kind: o.kind,
       orderedAt,
@@ -536,6 +537,9 @@ function resolveOrder(o, companies) {
     // ⚠️ This list is a WHITELIST: adding a column to `orders` means editing
     // BOTH modes, or the value is stored on prod and dropped locally.
     notes: trimmed(o.notes),
+    // Only a LOCATION job carries an address — the same rule the database
+    // write enforces, so the two modes cannot disagree.
+    location: o.studioId === 'L' ? trimmed(o.location) : null,
     status: o.status || 'hold',
     kind: o.kind || 'client',
     orderedAt: startsOn,

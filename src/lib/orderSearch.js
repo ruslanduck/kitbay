@@ -41,6 +41,8 @@ function haystack(order) {
     // date), these are words, so they can't swamp a numeric search.
     order.brand,
     order.jobType,
+    // A location shoot's address — "pier 59" should find the job.
+    order.location,
     order.number,
     order.startsOn,
     order.endsOn,

@@ -792,8 +792,13 @@ function OrderDetail({
           >
             {order.startsOn ? dateRange(order.startsOn, order.endsOn) : '—'}
           </Row>
-          <Row icon={Building2} label="Studio">
+          <Row icon={Building2} label="Location / Studio">
             {order.studioId ? studioLabel(order.studioId) : '—'}
+            {order.studioId === 'L' && (
+              <span className="block text-slate-600">
+                {order.location || <span className="text-slate-400">no address yet</span>}
+              </span>
+            )}
           </Row>
           {/* The call sheet. Empty is a real answer — a shoot nobody has
               scheduled yet — so it says so instead of showing nothing. */}

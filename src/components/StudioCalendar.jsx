@@ -11,6 +11,7 @@ import {
   Package,
   Tag,
   Layers,
+  MapPin,
 } from 'lucide-react'
 import {
   startOfWeek,
@@ -102,6 +103,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
   const tip = [
     month ? studioLabel(b.studioId) : null,
     b.title,
+    b.studioId === 'L' && b.location,
     meta ? meta.label : 'no job attached',
     b.setLabel && `Set name ${b.setLabel}`,
     spanSummary(b.date, b.endDate),
@@ -260,6 +262,7 @@ export default function StudioCalendar() {
           // The day view has room for the rest of the job's identity.
           brand: order?.brand || null,
           jobType: order?.jobType || null,
+          location: order?.location || null,
           poNumber: order?.poNumber || null,
           lineCount: (order?.lines || []).length,
           spanDays: days.length,
@@ -703,6 +706,13 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
             )}
             {b.brand && <span className="font-medium text-slate-600">{b.brand}</span>}
             {b.poNumber && <span className="font-mono text-slate-400">{b.poNumber}</span>}
+            {/* Where a location shoot actually is — the question of the day. */}
+            {b.studioId === 'L' && b.location && (
+              <span className="inline-flex items-center gap-1 font-medium text-slate-600">
+                <MapPin size={11} />
+                {b.location}
+              </span>
+            )}
             {b.spanDays > 1 && (
               <span className="text-slate-500">
                 day {b.dayIndex} of {b.spanDays} · {spanLabel(b.date, b.endDate)}
@@ -967,7 +977,10 @@ function WeekRow({ studioId, days, byDay, colTint, onOpenCreate, onOpenEdit, onS
   return (
     <>
       <div className="flex min-h-[92px] items-center justify-center border-b border-r border-slate-200 bg-slate-50">
-        <span className="grid h-7 w-7 place-items-center rounded-md bg-surface text-sm font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
+        <span
+          title={studioLabel(studioId)}
+          className="grid h-7 w-7 place-items-center rounded-md bg-surface text-sm font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200"
+        >
           {studioId}
         </span>
       </div>

@@ -2569,6 +2569,51 @@
 > Demo data reseeded, 0 console errors. Items 6–9 of the same screenshot (Studio → Location with an
 > address, a person's name on each call, "all crew" instead of one photographer, the Shoot row's "?") are
 > DATA changes, not renames, and wait on the studio's answers.
+> **FEATURE — "L" is LOCATION, and a location shoot has an ADDRESS** (`20260929120000_order_location.sql`,
+> applied and verified on prod). Settles the open question this file carried since the day view: asked
+> "is L the Location — a shoot outside your own studios?", the studio answered yes. So the sixth row was
+> never "a large studio", and V1's comment saying so is gone.
+> `studioLabel('L')` is **"Location"**, and because all 26 places that name a studio call that one
+> function, the card, the peek card, the day view's group header, the unit history, both PDFs and the
+> capacity message changed with it. L keeps its one-letter ID — it is the calendar's row key and every
+> stored job carries it — and the week grid's "L" badge now says "Location" on hover.
+> **`orders.location`** is free text (venue, room, street address, in the crew's own words) written only
+> while the job is on L. On `orders`, not `sets`, for the `set_label` reason: a job with no shoot row must
+> not silently drop what was typed. The form's studio field is **"Location / Studio"**; picking Location
+> reveals an **Address** field, and picking any studio hides it AND clears it on save — enforced at the
+> write in both modes (`orderColumns` nulls `location` whenever `studioId` is not L, `resolveOrder` does
+> the same locally), so an address can never ride along on a studio shoot and send the crew to the wrong
+> building. `placeLabel(studioId, location)` in `data/studios.js` is the one sentence for where a job
+> happens ("Location · Pier 59 / Studio 101"); it is pure, so the PDFs use it under Node.
+> Shown on the job card (a second line under "Location", or "no address yet"), the peek card, the day
+> view (with a map pin — "where is it today" is the question of the day), the calendar chip's tooltip,
+> and BOTH PDFs; the job search finds a job by its address ("pier 59" → 1 of 14).
+> ⚠️ **Two more WHITELISTS had to learn the field**: `resolveOrder` in the store (the known one) and
+> `buildEstimate`'s `order` shape, which copies named fields into what the PDFs read — without it the
+> column would have been stored, shown on screen and silently missing on paper.
+> ⚠️ **The PDF meta table assumed every value fits one line; an address does not.** Values now wrap via
+> `splitTextToSize` inside the page (measured in the value's own bold face). Proved rather than assumed:
+> a 105-character address wrapped into 391pt + 112pt against a 399pt column, where one line would have
+> run to 461pt — past the margin. The assertion checks the PDF's own text runs, so without the wrap it
+> fails (one run, too wide).
+> ℹ️ **Left for the studio, not changed:** Location still counts against `MAX_SETS_PER_DAY` like a room
+> does — six location shoots on one day, each at a different venue, would be refused with "Location
+> already has 5 sets". Whether that limit should apply to L at all is their call.
+> ℹ️ The Jobs filter keeps **"Any studio"**: "Any location / studio" clipped by 3px at 375px (107px of
+> room for 110px of text), and the placeholder was never on the studio's drawing — Location is in the
+> option list regardless. Found by measuring at 375 after the 1280 pass said "fits".
+> ⚠️ Tool lesson worth keeping: with the browser pane HIDDEN, `innerWidth` is 0 and every layout
+> measurement collapses (a trigger read 18px wide and "truncated") — `resize_window` to a real size before
+> believing any width. And the calendar's mode buttons are lowercase in the DOM ("day"); CSS capitalises them.
+> +17 assertions (**420 total**): the label, `placeLabel`'s four cases (with / without address, a studio
+> job with a stale address, no studio), the search, and both PDFs printing and wrapping the address.
+> Verified in local mode: the seeded Pier 59 shoot reads "Location / Studio · Location · Pier 59 / Studio
+> 101 · Chelsea Piers, New York, NY 10011" on the card; the form offers Studio 1–5 + Location with the
+> Address field present and filled; switching to Studio 2 hid it and saving stored `location: null`; the
+> day view on 1 Oct groups Studio 1–5 + Location with the address and its pin; the second, address-less
+> location job reads "no address yet"; no overflow at 375 or 1280. Demo data reseeded, 0 console errors.
+> On prod: the dry run listed exactly this one migration; after it, `location` answers for all 20 live
+> jobs, 2 of them on Location, **0 carrying an address** — nothing invented.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

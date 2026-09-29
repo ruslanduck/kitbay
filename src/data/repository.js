@@ -1430,13 +1430,18 @@ export async function getOrders() {
   // anywhere else and a database without 20260913120000 fails the rich layers
   // and degrades to the stub shape, losing the equipment it does have.
   const withNotes = `${withBrandType}, notes`
+  // Where a LOCATION shoot happens (20260929120000) — now the outermost layer,
+  // by the same rule: the newest column is the first thing a database without
+  // it has to drop.
+  const withLocation = `${withNotes}, location`
   const withKind = `id, order_number, status, ordered_at, kind, company_id,
      company:companies ( id, name ),
      order_lines ( quantity, item:inventory_items ( id, name ) ),
      sets ( id, title, date )`
   const withoutKind = withKind.replace('kind, ', '')
 
-  let { data, error } = await supabase.from('orders').select(withNotes).order('ordered_at')
+  let { data, error } = await supabase.from('orders').select(withLocation).order('ordered_at')
+  if (error) ({ data, error } = await supabase.from('orders').select(withNotes).order('ordered_at'))
   if (error)
     ({ data, error } = await supabase.from('orders').select(withBrandType).order('ordered_at'))
   if (error) ({ data, error } = await supabase.from('orders').select(withLineRate).order('ordered_at'))
@@ -1475,6 +1480,8 @@ export async function getOrders() {
     brand: o.brand ?? null,
     jobType: o.job_type ?? null,
     notes: o.notes ?? null,
+    // null on a database without 20260929120000, and for every studio shoot.
+    location: o.location ?? null,
     photographerId: o.photographer?.id ?? null,
     photographer: o.photographer?.full_name ?? null,
     createdBy: o.creator?.full_name ?? null,
@@ -1509,6 +1516,10 @@ function orderColumns(o) {
   if (o.startsOn !== undefined) row.ordered_at = o.startsOn || null
   // Empty means "no note", not an empty string sitting in the column.
   if (o.notes !== undefined) row.notes = o.notes?.trim() || null
+  if (o.location !== undefined) row.location = o.location?.trim() || null
+  // Moving a job off L clears its address, whoever calls: a stale address on a
+  // studio shoot would send the crew to the wrong building.
+  if (o.studioId !== undefined && o.studioId !== 'L') row.location = null
   return row
 }
 
@@ -1517,7 +1528,7 @@ function orderColumns(o) {
 // insert is a crew that cannot write the job down at all. So the newest two
 // columns are dropped and the write retried, like the reads' outermost layer.
 const withoutNewestColumns = (row) => {
-  const { brand, job_type, notes, ...rest } = row
+  const { brand, job_type, notes, location, ...rest } = row
   return rest
 }
 const isUndefinedColumn = (e) => e?.code === '42703' || /column .* does not exist/i.test(e?.message || '')

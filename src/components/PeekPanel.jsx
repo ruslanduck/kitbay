@@ -22,7 +22,7 @@ import { categoryLabel } from '../lib/taxonomy'
 import { useStore } from '../store'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
-import { studioLabel } from '../data/studios'
+import { studioLabel, placeLabel } from '../data/studios'
 import { orderStatusMeta } from '../data/orderStatus'
 import { buildEstimate, money } from '../lib/estimate'
 import { itemCount, kindLabel } from '../data/inventory'
@@ -314,7 +314,7 @@ function OrderPeek({ id }) {
               ? order.startsOn
               : `${order.startsOn} → ${order.endsOn}`}
           </Field>
-          <Field label="Studio">{order.studioId ? studioLabel(order.studioId) : '—'}</Field>
+          <Field label="Location / Studio">{placeLabel(order.studioId, order.location) ?? '—'}</Field>
           <Field label="Set name">{order.setLabel || '—'}</Field>
           <Field label="Brand">{order.brand || '—'}</Field>
           <Field label="Shoot type">{order.jobType || '—'}</Field>

@@ -44,7 +44,7 @@ export const ORDER_SEED = [
   },
   {
     number: 'CL-26056', po: 'PO-4516', company: 'atlas-models', kind: 'client',
-    status: 'confirmed', dayOffset: 3, setTitle: '20260630_AT_MAIN_SepBOM_Missy_OMSet2',
+    status: 'confirmed', dayOffset: 3, setTitle: '20260630_AT_MAIN_SepBOM_Missy_OMSet2', location: 'Pier 59 / Studio 101 · Chelsea Piers, New York, NY 10011',
     lines: [['canon-r5', 1], ['sony-2470', 1], ['aputure-600d', 1], ['kbd-magic', 2]],
   },
   {

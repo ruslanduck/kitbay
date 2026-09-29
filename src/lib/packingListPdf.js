@@ -14,7 +14,7 @@ import { jsPDF } from 'jspdf'
 import { buildEstimate } from './estimate.js'
 import { pdfSafe } from './estimatePdf.js'
 import { packingRows } from './packing.js'
-import { studioLabel } from '../data/studios.js'
+import { placeLabel } from '../data/studios.js'
 import { BRAND_NAME } from './brand.js'
 
 const PAGE = { w: 595.28, h: 841.89 } // A4 portrait, points
@@ -121,7 +121,9 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
   const meta = [
     ['PO number', est.order.poNumber || '—'],
     ['Job ref', est.order.number || '—'],
-    ['Studio', est.order.studioId ? studioLabel(est.order.studioId) : '—'],
+    // A location shoot carries its address, so the crew reading the sheet knows
+    // which building to drive to.
+    ['Location / Studio', placeLabel(est.order.studioId, est.order.location) ?? '—'],
     // The crew pulling gear needs to know WHICH set of the day it's for.
     ['Set name', est.order.setLabel || '—'],
     ['Brand', est.order.brand || '—'],
@@ -142,14 +144,19 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
   ]
   doc.setFontSize(9)
   for (const [k, v] of meta) {
-    ensure(15)
+    // A value may be long now — a location's full address — so it wraps inside
+    // the page instead of running off the right edge. Measured in the value's
+    // own (bold) face, because the width depends on the font.
+    doc.setFont('helvetica', 'bold')
+    const lines = doc.splitTextToSize(pdfSafe(String(v)), PAGE.w - M - (M + 100))
+    ensure(15 + (lines.length - 1) * 11)
     doc.setFont('helvetica', 'normal')
     setInk(INK.muted)
     text(k, M, y)
     doc.setFont('helvetica', 'bold')
     setInk(INK.text)
-    text(v, M + 100, y)
-    y += 15
+    lines.forEach((line, i) => text(line, M + 100, y + i * 11))
+    y += 15 + (lines.length - 1) * 11
   }
   y += 6
 

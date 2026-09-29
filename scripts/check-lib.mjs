@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -38,6 +38,7 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/lib/peopleOptions.js'),
     load('src/lib/routes.js'),
     load('src/data/nav.js'),
+    load('src/data/studios.js'),
   ])
 
 let n = 0
@@ -863,6 +864,53 @@ ok(
   const d = activity.describeEvent({ type: activity.EVENT.ORDER_UPDATED, data: { changed: ['setLabel', 'jobType'] } })
   eq(d.detail, 'set name, shoot type', 'and that is what the feed shows')
   ok(!/[a-z][A-Z]/.test(d.detail), 'with no camelCase in it')
+}
+
+// ──────────────────────────── studios — L is LOCATION, and it has an address
+// Settled with the studio: the sixth row was never "a large studio", it is where
+// shoots OUTSIDE the studio's own rooms go, and those need an address.
+{
+  const { studioLabel, placeLabel, STUDIOS, LOCATION_STUDIO } = studios
+  eq(studioLabel('L'), 'Location', 'L reads as Location, not "Studio L"')
+  eq(studioLabel('3'), 'Studio 3', 'a room is still a studio')
+  ok(STUDIOS.includes(LOCATION_STUDIO), 'L is still a calendar row — its id is the row key')
+  eq(placeLabel('L', 'Pier 59 / Studio 101'), 'Location · Pier 59 / Studio 101', 'a location shoot names its place')
+  eq(placeLabel('L', '   '), 'Location', 'with no address yet it just says Location')
+  eq(placeLabel('3', 'Pier 59'), 'Studio 3', 'an address never rides on a studio shoot')
+  eq(placeLabel(null, 'Pier 59'), null, 'no studio, nothing to say')
+
+  // The address is words, so the job search finds it.
+  const pool = [
+    { id: 'a', jobName: 'A', studioId: 'L', location: 'Pier 59 / Studio 101', startsOn: '2026-10-01', endsOn: '2026-10-01' },
+    { id: 'b', jobName: 'B', studioId: '2', startsOn: '2026-10-01', endsOn: '2026-10-01' },
+  ]
+  eq(orderSearch.searchOrders(pool, { text: 'pier 59' }).map((o) => o.id), ['a'], 'a job is found by its address')
+
+  // Both PDFs print it — and a long one WRAPS instead of running off the page.
+  // ASCII on purpose, so the PDF's own text strings can be measured as written.
+  const long =
+    'Pier 59 / Studio 101, Chelsea Piers, 23rd Street at the Hudson River, New York, NY 10011, use loading dock B'
+  const lEst = estimate.buildEstimate({ ...job, studioId: 'L', location: long }, { inventory })
+  const { jsPDF } = await import('jspdf')
+  const probe = new jsPDF({ unit: 'pt' })
+  probe.setFont('helvetica', 'bold')
+  probe.setFontSize(9)
+  const COLUMN = 595.28 - 48 - (48 + 100) // page width − right margin − where values start
+  for (const [label, doc] of [
+    ['estimate', estimatePdf.buildEstimatePdf(lEst)],
+    ['pull sheet', packingPdf.buildPackingListPdf(lEst, { booking, inventory })],
+  ]) {
+    const t = bytes(doc)
+    ok(t.includes('Location / Studio'), `${label}: the row is called Location / Studio`)
+    const frags = [...t.matchAll(/\(([^()]*)\) Tj/g)]
+      .map((m) => m[1])
+      .filter((f) => /Pier 59|Chelsea|Hudson|NY 10011|loading dock/.test(f))
+    ok(frags.length >= 2, `${label}: a long address wraps onto more than one line`)
+    ok(frags.every((f) => probe.getTextWidth(f) <= COLUMN), `${label}: and no line of it runs past the margin`)
+    ok(frags.join(' ').includes('loading dock B'), `${label}: nothing at the end of it is cut off`)
+  }
+  const studioJob = estimate.buildEstimate({ ...job, studioId: '2', location: 'Pier 59' }, { inventory })
+  ok(!bytes(estimatePdf.buildEstimatePdf(studioJob)).includes('Pier 59'), 'a studio job prints no stale address')
 }
 
 console.log(`OK — ${n} assertions passed`)
