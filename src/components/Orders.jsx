@@ -993,7 +993,7 @@ function OrderDetail({
             </button>
           </div>
 
-          {/* The pull sheet the same list fills. Available at EVERY status except
+          {/* The packing list the same list fills. Available at EVERY status except
               Canceled, on request: a crew pulls gear before the paperwork is
               confirmed, and refusing to print until then just moved the work off
               the system. Canceled is the one state with nothing to pull. */}
@@ -1001,14 +1001,14 @@ function OrderDetail({
             {isCanceledStatus(order.status) ? (
               <span className="inline-flex items-center gap-2 text-xs text-slate-400">
                 <Package size={14} />
-                Canceled — nothing to pull.
+                Canceled — nothing to pack.
               </span>
             ) : (
               <>
                 <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                     <Package size={14} className="text-slate-400" />
-                    Pull sheet
+                    Packing list
                   </span>
                   {estimate.lineCount === 0 ? (
                     <span className="text-xs text-slate-400">no equipment yet</span>
@@ -1036,7 +1036,7 @@ function OrderDetail({
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                   >
                     <ClipboardList size={15} />
-                    Digital checklist
+                    Checklist
                   </button>
                   <button
                     type="button"
@@ -1044,7 +1044,7 @@ function OrderDetail({
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                   >
                     <FileDown size={15} />
-                    Print PDF
+                    Packing list PDF
                   </button>
                 </span>
               </>

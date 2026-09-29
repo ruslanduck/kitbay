@@ -48,6 +48,9 @@ export default function KitStagingModal({
   dateWindow = null,
   // Gear the record being edited already holds — free to re-take here.
   ownUnitIds = [],
+  // What the kit goes INTO, in the words of the window that opened this one:
+  // a job's equipment, or a legacy shoot that has no job.
+  targetNoun = 'job',
   onMarkBroken,
   onSetBarcode,
   onConfirm,
@@ -117,7 +120,7 @@ export default function KitStagingModal({
           barcode: unit.barcode,
           state: 'conflict',
           conflictReason: used.has(unit.id)
-            ? 'already in this booking'
+            ? `already on this ${targetNoun}`
             : dateWindow?.from
               ? 'booked for those dates'
               : 'checked out',
@@ -219,7 +222,7 @@ export default function KitStagingModal({
     if (fills.some((f) => f.unitId === unit.id))
       return setScanError(`#${code} is already assigned to a slot in this kit.`)
     if (reservedUnitIds.includes(unit.id))
-      return setScanError(`#${code} is already reserved elsewhere in this booking.`)
+      return setScanError(`#${code} is already reserved elsewhere on this ${targetNoun}.`)
     if (!isUnitFree(unit, { alsoFree: ownUnitIds, window: dateWindow }))
       return setScanError(
         dateWindow?.from
@@ -251,7 +254,7 @@ export default function KitStagingModal({
     if (!slot) return setPendingScan(null)
     const unit = freeUnitsFor(slot.itemId)[0]
     if (!unit) {
-      setScanError(`No free ${slot.itemName} in stock to register #${pendingScan.code} onto.`)
+      setScanError(`No free unit of ${slot.itemName} to register #${pendingScan.code} onto.`)
       return setPendingScan(null)
     }
     const res = onSetBarcode?.(slot.itemId, unit.id, pendingScan.code)
@@ -718,7 +721,7 @@ export default function KitStagingModal({
                             setEditing({ key: f.key, value: f.barcode ?? '', error: null })
                             setReplacing(null)
                           }}
-                          title="Correct this unit's barcode in stock (a worn label) — not a way to swap units; use Replace for that"
+                          title="Correct this unit's barcode (a worn label) — to swap the unit, use Replace"
                           className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                         >
                           <Pencil size={14} />
@@ -895,7 +898,7 @@ export default function KitStagingModal({
 
         {fills.length === 0 && (
           <p className="py-6 text-center text-sm text-slate-400">
-            No slots left — add an item from stock, or cancel.
+            No slots left — add an item, or cancel.
           </p>
         )}
 
@@ -920,7 +923,7 @@ export default function KitStagingModal({
         {picker ? (
           <div className="mt-3 rounded-xl border border-slate-200 p-3">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Add from stock
+              Add item
             </div>
             <div className="relative">
               <Search
@@ -932,7 +935,7 @@ export default function KitStagingModal({
                 type="text"
                 value={pickerSearch}
                 onChange={(e) => setPickerSearch(e.target.value)}
-                placeholder="Search available stock…"
+                placeholder="Search items…"
                 className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
               />
             </div>
@@ -955,7 +958,7 @@ export default function KitStagingModal({
               </ul>
             ) : (
               <p className="px-1 py-3 text-center text-xs text-slate-400">
-                No matching stock with free units.
+                No item with free units matches.
               </p>
             )}
             <div className="mt-1 flex justify-end">
@@ -1002,7 +1005,7 @@ export default function KitStagingModal({
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Check size={15} />
-            Add {filledCount} to set
+            Add {filledCount} to {targetNoun}
           </button>
         </div>
       </div>

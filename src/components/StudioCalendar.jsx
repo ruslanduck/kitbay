@@ -796,9 +796,9 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
         <span className="inline-flex items-center gap-1">
           <Package size={12} className="text-slate-400" />
           {b.unitsReturned
-            ? `${(b.unitIds || []).length} pc(s) went out · back on the shelf`
+            ? `${(b.unitIds || []).length} pcs went out · back on the shelf`
             : (b.unitIds || []).length > 0
-              ? `${(b.unitIds || []).length} pc(s) held`
+              ? `${(b.unitIds || []).length} pcs held`
               : 'nothing held yet'}
           {b.lineCount > 0 && <span className="text-slate-400"> · {b.lineCount} line(s)</span>}
         </span>
@@ -846,7 +846,7 @@ function DayView({ iso, studios, byDay, onOpenCreate, onOpenEdit, onStatus, canM
                   {studioId}
                 </span>
                 <span className="text-sm font-medium text-slate-700">{studioLabel(studioId)}</span>
-                {sets.length > 1 && <span className="text-xs text-slate-400">{sets.length} sets</span>}
+                {sets.length > 1 && <span className="text-xs text-slate-400">{sets.length} shoots</span>}
               </span>
               {sets.length === 0 && (
                 <span className="inline-flex items-center gap-2">

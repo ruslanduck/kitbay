@@ -514,7 +514,7 @@ export function capacityError(bookings, { studioId, from, to, excludeSetId = nul
   if (!full) return null
   const span = setSpanDays(from, to)
   const n = countOn(full)
-  return `${studioLabel(studioId)} already has ${n} set${n === 1 ? '' : 's'} on ${full} (max ${MAX_SETS_PER_DAY}). Pick another studio${
+  return `${studioLabel(studioId)} already has ${n} shoot${n === 1 ? '' : 's'} on ${full} (max ${MAX_SETS_PER_DAY}). Pick another studio${
     span > 1 ? ', or shorten the range' : ' or another date'
   }.`
 }
@@ -1313,8 +1313,8 @@ export const useStore = create(
 
       // --- individual units of an existing item (the asset register) --------
       //
-      // "Add inventory" creates an item TYPE; these manage the physical copies
-      // under it. Barcodes must be unique across the whole register, so the
+      // "New item" creates the item; these manage the physical units under it.
+      // Barcodes must be unique across the whole register, so the
       // next free number is computed from every loaded unit.
       nextBarcode: () => {
         let max = 0

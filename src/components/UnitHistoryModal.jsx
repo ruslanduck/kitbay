@@ -62,7 +62,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
               </div>
             </div>
             <span className="shrink-0 text-sm text-slate-400">
-              {rows.length} set{rows.length === 1 ? '' : 's'}
+              {rows.length} shoot{rows.length === 1 ? '' : 's'}
             </span>
           </div>
         )}
@@ -74,7 +74,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
           </div>
         ) : rows.length === 0 ? (
           <p className="py-10 text-center text-sm text-slate-400">
-            This unit hasn’t been reserved for any set yet.
+            This unit hasn’t been reserved for any shoot yet.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -130,7 +130,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
                     ))
                   ) : (
                     <span className="inline-flex items-center gap-1 text-xs text-slate-400">
-                      <Lock size={11} /> Roster hidden — requires sign-in
+                      <Lock size={11} /> Crew hidden — requires sign-in
                     </span>
                   )}
                 </div>

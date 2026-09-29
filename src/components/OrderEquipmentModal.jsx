@@ -459,13 +459,13 @@ export default function OrderEquipmentModal({
       setScanNote({ bad: true, text: `#${code} was written off.` })
       return
     }
-    // Already on this order — say so rather than counting it twice.
+    // Already on this job — say so rather than counting it twice.
     if (itemLines.some((l) => (l.units ?? []).some((u) => u.unitId === unit.id))) {
-      setScanNote({ bad: true, text: `#${code} is already on this order.` })
+      setScanNote({ bad: true, text: `#${code} is already on this job.` })
       return
     }
     if (stagedUnits.some((u) => u.unitId === unit.id)) {
-      setScanNote({ bad: true, text: `#${code} is already in a kit on this order.` })
+      setScanNote({ bad: true, text: `#${code} is already in a kit on this job.` })
       return
     }
     // A copy someone else holds for these days can't be pinned: the pull sheet
@@ -514,7 +514,7 @@ export default function OrderEquipmentModal({
     setPickerSearch('')
     setBlocked(null)
     setError(null)
-    setScanNote({ bad: false, text: `${payload.name} added to the register and to this order` })
+    setScanNote({ bad: false, text: `${payload.name} added to Inventory and to this job` })
   }
 
   // A vendor nobody has filed yet, created for the line that asked for one.
@@ -722,7 +722,7 @@ export default function OrderEquipmentModal({
                 : ''}
               <span className="mt-1 block text-slate-500">
                 Nothing is saved yet — <strong>Create job</strong> writes the job and this
-                equipment together. Gear can be changed later.
+                equipment together.
               </span>
             </div>
           )}
@@ -738,7 +738,7 @@ export default function OrderEquipmentModal({
                   const list = liveScenarios.find((l) => l.id === e.target.value)
                   if (list) applyList(list)
                 }}
-                placeholder="Pick a preset…"
+                placeholder="Pick a list…"
                 options={liveScenarios.map((l) => ({
                   value: l.id,
                   label: `${l.name} (${l.entries.length} lines)`,
@@ -1109,7 +1109,7 @@ export default function OrderEquipmentModal({
                   type="text"
                   value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
-                  placeholder="Search stock…"
+                  placeholder="Search items…"
                   className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                 />
               </div>
@@ -1153,7 +1153,7 @@ export default function OrderEquipmentModal({
                   className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
                 >
                   <Plus size={12} />
-                  {pickerSearch.trim() ? `New item “${pickerSearch.trim()}”` : 'New item type'}
+                  {pickerSearch.trim() ? `New item “${pickerSearch.trim()}”` : 'New item'}
                 </button>
                 <button
                   type="button"

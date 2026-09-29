@@ -54,7 +54,7 @@ export default function PackingChecklistModal({
   open,
   order,
   estimate,
-  title = 'Packing checklist',
+  title = 'Packing list',
   onSign,
   onClear,
   onClose,

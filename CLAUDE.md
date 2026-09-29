@@ -2614,6 +2614,68 @@
 > location job reads "no address yet"; no overflow at 375 or 1280. Demo data reseeded, 0 console errors.
 > On prod: the dry run listed exactly this one migration; after it, `location` answers for all 20 live
 > jobs, 2 of them on Location, **0 carrying an address** — nothing invented.
+> **SWEEP — one name per thing, and every button names what it acts on** (frontend only, no migration).
+> Reported against the item card with "ADD ITEM" drawn at **+ Add unit**: "проверь все приложение на подобные
+> косяки… чтобы адд айтем был адд айтемом а не юнитом". The audit (every on-screen string, extracted with
+> rolldown's parser — 2254 of them) found the real pattern: every record is created by **New X** → **Create X**
+> and edited by **Edit X** → **Save X** (job, person, company, kit, list), and the ITEM was the one exception on
+> all four counts — "Add inventory" → "Add inventory item" → "Add item" / "Edit inventory item" → "Save changes".
+> That is the "add item isn't add item". ⚠️ The drawing pointed at the card's **Add unit**, which adds UNITS to that
+> item — renaming it would have undone the copy→unit decision — so this was ASKED, not guessed: the studio chose
+> **New item at the top, Add unit stays**. Item is now New item → Create item / Edit item → Save item.
+> Retired words, each replaced EVERYWHERE a person reads it:
+> • **order → job** in the leftovers the 69-string rename missed: the archive confirm, three equipment-window
+> scan messages ("already on this job", "added to Inventory and to this job"), the empty packing PDF, the item
+> peek ("Not on any job"), the company card and peek ("Job history", "N jobs"), a work-history row ("no job");
+> • **booking / set → shoot** where the day is meant: the legacy shoot editor (New shoot / Create shoot / Save
+> shoot, "Job name", "Location / Studio", "Equipment", "Search items to add…"), the unit history ("Shoots" link,
+> "N shoots", "any shoot yet"), the day view's studio group ("N shoots"), the capacity refusal ("already has 5
+> shoots"). ⚠️ `KitStagingModal` is shared, so it gained `targetNoun` ('job' default, BookingModal passes
+> 'shoot'): "Add 4 to job", "#0956 already on this job". "Set name" stays — it is the label a shoot carries;
+> • **contacts → people**: the People header ("31 people · 6 companies"), company rows/headers/peeks ("3 people"),
+> the company card's own section (it said "Contacts" right above "Jobs its people worked"), the archive note.
+> "Contact" survives only as the contact-DETAILS heading (email, phone);
+> • **pull sheet / packing checklist / digital checklist → Packing list**: one document had three names (strip,
+> modal, PDF). The strip reads Packing list · Checklist · Packing list PDF (beside Estimate PDF), the modal is
+> "Packing list", the PDF already said PACKING LIST — the client's own word from the epic-6 spec;
+> • **"stock" meaning items → items** in pickers (Search items…, the kit window's "Add item", "No item with free
+> units matches", "No free unit of X"). "Stock" keeps ONE meaning: counted, non-barcoded quantity (Add stock,
+> counted stock — "not unit-tracked" was jargon for it);
+> • **the rest**: "item type"/"Inventory item" → New item / Item, "preset" → list, "pc(s)" → pcs, "Roster" →
+> Crew (incl. the estimate PDF's crew heading, which printed **ROSTER** — found by the test, not by the audit),
+> "placement"/"shelf" → storage location, the shoot peek's "Gear on this shoot" → Equipment, and the repair log's
+> "Vendor" → **Repair shop** ("Vendor" is the company we rent from; the kit window already said repair shop).
+> Deliberately left: the Jobs filter's "Any studio" and the usage-log form's "Studio" (both measured too narrow
+> for "Location / Studio"), and every DB/identifier name, as before.
+> ⚠️ **`npm run test:lib` now carries a VOCABULARY SCAN** (420 → **424 assertions**, see the block at the end
+> of `scripts/check-lib.mjs`): it parses every component, `src/lib`, `src/*.jsx` and the user-facing `src/data`
+> modules, walks JSX text, attributes and string/template literals, and fails naming file:line and the reason
+> for any retired word. It is a list of WORDS, not screens, so tomorrow's screen is covered. Rules that matter:
+> identifiers are skipped (snake_case column lists, `order.updated`, `line-order-…` ids — a template's gaps are
+> joined with a placeholder, not a space, or an id reads as words), console lines are skipped, and **JSX text is
+> always checked however short** — a lone lowercase "set"/"contact"/"order" there is the noun of a count
+> ("{n} set{s}"), case-sensitive so the "Contact" heading stays legal. Proved to bark twice by planting the old
+> strings ("Add inventory", "2 sets"); both named the exact line.
+> ⚠️ Found by it: the first scan was blind to exactly that count shape — it treated a short JSX fragment like an
+> identifier and missed "2 sets" in the unit history, "3 contacts · 2 orders" on the company card and the day
+> view's "N sets". The browser pass is what showed "2 sets"; the scan now checks JSX text unconditionally.
+> ⚠️ The escape trap, FIFTH and SIXTH time, both caught before they wrote anything: a Python raw string ending in
+> `\"` KEEPS the backslash (so nine anchors would have matched nothing — the per-anchor assert would have
+> refused), and a `\s` pushed through bash into sed arrived as a bare `s`, which "trimmed" every s out of the
+> extracted words ("Statu", "hoot"). Scripts are files written with the Write tool; content ending in a quote
+> uses `r'''…'''`.
+> ℹ️ Browser-tool slip: finding a button by `startsWith('Edit')` clicked "Edit equipment". Match exact text.
+> Verified in local mode: Inventory header "New item" → modal "New item" / "Create item", Edit item → "Save item",
+> the card keeps Add unit, 17 unit rows link "Shoots", the unit history reads "2 shoots" and opens a shoot card
+> with "Equipment (5)"; Jobs strip "Packing list · Checklist · Packing list PDF", the checklist titled Packing
+> list, the archive confirm "Archive this job?…" (kept, not archived), the equipment window's "Search items…",
+> "Pick a list…", "New item", a double scan "#0851 is already on this job." (window cancelled — nothing saved),
+> the kit window "Add item" / "Search items…" / "Add 0 to job" / "already on this job"; People "31 people · 6
+> companies", company rows "3 people" / "1 person", sections People + Job history in the card and the peek; the
+> day view "11 pcs held"; the repair log "Repair shop". A DOM scan of every view (calendar week/month/day, all 14
+> job cards, 10 person and 6 company cards, and 14 modals) found no retired word except two seed EMAIL
+> addresses (orders@…, bookings@…), which are data. At 375px the strip's buttons sit on one line, no overflow.
+> Demo data untouched (14 jobs / 11 shoots / 44 items / 0 archived), 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

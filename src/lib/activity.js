@@ -56,7 +56,7 @@ export const EVENT = {
 export const ARCHIVE_KINDS = {
   order: 'job',
   booking: 'shoot',
-  item: 'inventory item',
+  item: 'item',
   unit: 'unit',
   person: 'person',
   company: 'company',

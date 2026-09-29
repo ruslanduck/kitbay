@@ -318,7 +318,7 @@ export default function KitEditorModal({
                     type="text"
                     value={pickerSearch}
                     onChange={(e) => setPickerSearch(e.target.value)}
-                    placeholder="Search barcoded stock…"
+                    placeholder="Search barcoded items…"
                     className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                   />
                 </div>
@@ -341,7 +341,7 @@ export default function KitEditorModal({
                   </ul>
                 ) : (
                   <p className="px-1 py-3 text-center text-xs text-slate-400">
-                    No matching barcoded stock.
+                    No barcoded item matches.
                   </p>
                 )}
                 <div className="mt-1 flex justify-end">

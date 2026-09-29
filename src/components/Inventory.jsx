@@ -559,8 +559,8 @@ export default function Inventory() {
             Categories
           </button>
         )}
-        {/* The primary action follows the active tab: add stock, author a kit
-            (3.6), or author a scenario list (3.6). */}
+        {/* The primary action follows the active tab — New item / New kit /
+            New list, the same "New X" every other record in the app uses. */}
         {entryType === 'kits'
           ? can(CAP.KIT_MANAGE) && (
               <button
@@ -590,7 +590,7 @@ export default function Inventory() {
                   className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-strong"
                 >
                   <Plus size={16} />
-                  Add inventory
+                  New item
                 </button>
               )}
         </div>
@@ -1188,9 +1188,8 @@ function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggle
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {/* Add a physical copy of THIS item — the gap people hit when looking
-              for "add a unit with its own serial" and only finding the
-              item-level "Add inventory". */}
+          {/* Add physical units to THIS item. "New item" at the top creates the
+              item itself; this adds to it. */}
           {canEdit && (
             <button
               type="button"
@@ -1307,7 +1306,7 @@ function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggle
                     </span>
                   ) : item.placement ? (
                     <span
-                      title="Inherited from the item's placement — set a per-unit one with the pencil"
+                      title="Inherited from the item's storage location — set this unit's own with the pencil"
                       className="text-slate-400"
                     >
                       {item.placement}
@@ -1335,11 +1334,11 @@ function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggle
                   <button
                     type="button"
                     onClick={() => onShowHistory(unit)}
-                    title="Show every set this unit was in"
+                    title="Every shoot this unit went out on"
                     className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
                   >
                     <History size={14} />
-                    Sets
+                    Shoots
                   </button>
                 </td>
                 <td className="px-3 py-2.5">

@@ -352,7 +352,7 @@ export default function CompanyEditorModal({
                 <span className="text-slate-500">
                   Archive this company?
                   {contactCount > 0 &&
-                    ` ${contactCount} contact${contactCount === 1 ? '' : 's'} stay, unlinked.`}
+                    ` ${contactCount} ${contactCount === 1 ? 'person stays' : 'people stay'}, unlinked.`}
                 </span>
                 <button
                   type="button"

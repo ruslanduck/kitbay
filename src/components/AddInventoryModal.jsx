@@ -190,7 +190,7 @@ export default function AddInventoryModal({
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
 
   return (
-    <Modal open={open} onClose={onClose} size="lg" title={isEdit ? 'Edit inventory item' : 'Add inventory item'}>
+    <Modal open={open} onClose={onClose} size="lg" title={isEdit ? 'Edit item' : 'New item'}>
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
           <div>
@@ -442,7 +442,7 @@ export default function AddInventoryModal({
               disabled={!canSubmit}
               className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isEdit ? 'Save changes' : 'Add item'}
+              {isEdit ? 'Save item' : 'Create item'}
             </button>
           </div>
         </div>

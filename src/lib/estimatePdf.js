@@ -171,12 +171,12 @@ export function buildEstimatePdf(estimateOrOrder, context) {
   }
   y += 8
 
-  // ---- roster ------------------------------------------------------------
+  // ---- crew --------------------------------------------------------------
   ensure(40)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
   setInk(INK.muted)
-  text('ROSTER', M, y)
+  text('CREW', M, y)
   y += 14
   doc.setFontSize(9)
   if (est.roster.length === 0) {

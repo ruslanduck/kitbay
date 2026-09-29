@@ -381,7 +381,7 @@ export default function OrderEditorModal({
             confirmDelete ? (
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-slate-500">
-                  Archive this order? Its gear is released and the shoot leaves the calendar.
+                  Archive this job? Its equipment is released and the shoot leaves the calendar.
                 </span>
                 <button
                   type="button"

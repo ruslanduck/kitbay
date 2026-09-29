@@ -268,12 +268,12 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
         onClose()
       }}
       size="lg"
-      title={isEdit ? 'Edit booking' : 'New booking'}
+      title={isEdit ? 'Edit shoot' : 'New shoot'}
     >
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
           <div>
-            <label className={labelClass}>Title</label>
+            <label className={labelClass}>Job name</label>
             <input
               autoFocus
               type="text"
@@ -286,7 +286,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Studio</label>
+              <label className={labelClass}>Location / Studio</label>
               <SelectField
                 value={form.studioId}
                 onChange={set('studioId')}
@@ -347,7 +347,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
           {/* Inventory multi-select */}
           <div>
             <label className={labelClass}>
-              Inventory{' '}
+              Equipment{' '}
               <span className="font-normal text-slate-400">
                 · {totalUnits - shortage} of {totalUnits} unit
                 {totalUnits === 1 ? '' : 's'} reserved
@@ -369,7 +369,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                 <span>
                   {shortage} piece(s) have nothing free behind them — they stay on this list but
                   won&apos;t be reserved. Free them from another job, or raise them as a sub-rental
-                  on the order.
+                  on the job.
                 </span>
               </p>
             )}
@@ -561,7 +561,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                 type="text"
                 value={invSearch}
                 onChange={(e) => setInvSearch(e.target.value)}
-                placeholder="Search inventory to add…"
+                placeholder="Search items to add…"
                 className={fieldClass + ' pl-9'}
               />
               {searchResults.length > 0 && (
@@ -667,7 +667,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
               disabled={!form.title.trim()}
               className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isEdit ? 'Save changes' : 'Create booking'}
+              {isEdit ? 'Save shoot' : 'Create shoot'}
             </button>
           </div>
         </div>
@@ -681,6 +681,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
       dateWindow={dateWindow}
       ownUnitIds={bookingUnits}
       reservedUnitIds={reservedForStaging}
+      targetNoun="shoot"
       // The staging window now asks WHAT is wrong (and optionally where it went),
       // so pass that through instead of a fixed sentence. The fallback keeps a
       // blank submission meaningful in the repair log.

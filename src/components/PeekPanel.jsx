@@ -91,7 +91,7 @@ export default function PeekPanel() {
 
 const TYPE_META = {
   order: { icon: ClipboardList, label: 'Job' },
-  item: { icon: Boxes, label: 'Inventory item' },
+  item: { icon: Boxes, label: 'Item' },
   person: { icon: User, label: 'Person' },
   company: { icon: Building2, label: 'Company' },
   // The SHOOT, not the job: the job is the record (the `orders` row), and two
@@ -566,7 +566,7 @@ function ItemPeek({ id, unitId }) {
 
       <Section title="On jobs" count={usedByOrders.length}>
         {usedByOrders.length === 0 ? (
-          <Empty text="Not on any order." />
+          <Empty text="Not on any job." />
         ) : (
           <div className="space-y-1.5">
             {usedByOrders.map((o) => (
@@ -739,7 +739,7 @@ function CompanyPeek({ id }) {
               </span>
             )}
             <span className="text-xs text-slate-500">
-              {staff.length} contact{staff.length === 1 ? '' : 's'}
+              {staff.length} {staff.length === 1 ? 'person' : 'people'}
             </span>
           </>
         }
@@ -783,9 +783,9 @@ function CompanyPeek({ id }) {
         placeholder="Terms, who to call, how they like to be booked…"
       />
 
-      <Section title="Contacts" count={staff.length}>
+      <Section title="People" count={staff.length}>
         {staff.length === 0 ? (
-          <Empty text="No contacts on file." />
+          <Empty text="No people on file." />
         ) : (
           <div className="space-y-1.5">
             {staff.map((p) => (
@@ -801,7 +801,7 @@ function CompanyPeek({ id }) {
         )}
       </Section>
 
-      <Section title="Orders" count={companyOrders.length}>
+      <Section title="Job history" count={companyOrders.length}>
         {companyOrders.length === 0 ? (
           <Empty text="No jobs yet." />
         ) : (
@@ -961,7 +961,7 @@ function JobPeek({ id }) {
         )}
       </Section>
 
-      <Section title="Gear on this shoot" count={gear.length}>
+      <Section title="Equipment" count={gear.length}>
         {gear.length === 0 ? (
           <Empty text="No units reserved." />
         ) : (

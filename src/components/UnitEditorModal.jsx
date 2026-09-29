@@ -5,9 +5,9 @@ import ErrorNote from './ErrorNote'
 import UnitRowsField, { blankUnitRow } from './UnitRowsField'
 import { duplicateTypedBarcode } from '../lib/unitRows'
 
-// Add or correct the PHYSICAL COPIES of an item — the barcoded units with their
-// own serial. "Add inventory" creates the item type; this manages what's on the
-// shelf under it.
+// Add or correct the PHYSICAL UNITS of an item — the barcoded pieces with their
+// own serial. "New item" creates the item; this manages what's on the shelf
+// under it.
 //
 // Adding shows ONE ROW PER COPY, because that's the only honest way to register
 // several: a batch of 6 identical stands can be left blank (barcode + serial

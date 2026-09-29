@@ -47,7 +47,7 @@ function resolveKit(kit, inventory, ctx) {
     if ((slot.slotType || 'generic') === 'fixed') {
       const pinned = (item?.units || []).find((u) => u.id === slot.fixedUnitId)
       if (!pinned) unresolved.push(`${name} — pinned unit missing`)
-      else if (ctx.claimed.has(pinned.id)) unresolved.push(`${name} — pinned unit already in this booking`)
+      else if (ctx.claimed.has(pinned.id)) unresolved.push(`${name} — pinned unit already taken`)
       // Judged for the requested dates, like every other availability question:
       // the pinned camera may be out today and free on the day we're pulling.
       else if (
@@ -67,7 +67,7 @@ function resolveKit(kit, inventory, ctx) {
     }
 
     const free = takeableUnits(item, ctx)[0]
-    if (!free) unresolved.push(`${name} — nothing free in stock`)
+    if (!free) unresolved.push(`${name} — no free unit`)
     else push(free)
   }
   return { units, unresolved }
@@ -142,7 +142,7 @@ export function applyScenarioList({
     // Non-barcoded stock has no unit rows to reserve; surface it
     // as a pull note so the list stays complete without faking a reservation.
     if (item.kind && item.kind !== 'barcoded') {
-      notes.push(`${wanted}× ${item.name} — not unit-tracked, take from stock`)
+      notes.push(`${wanted}× ${item.name} — counted stock, take it from the shelf`)
       continue
     }
     const already = nextSelected[item.id] ?? 0

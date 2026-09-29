@@ -214,7 +214,8 @@ export default function People() {
         <div>
           <h2 className="text-xl font-semibold tracking-tight text-slate-900">People</h2>
           <p className="text-sm text-slate-500">
-            {livePeople.length} contacts · {liveCompanies.length} companies
+            {livePeople.length} {livePeople.length === 1 ? 'person' : 'people'} ·{' '}
+            {liveCompanies.length} {liveCompanies.length === 1 ? 'company' : 'companies'}
           </p>
         </div>
         {tab === 'people'
@@ -417,7 +418,7 @@ export default function People() {
               />
             </>
           ) : (
-            <Empty icon={Building2} text="Select a company to see its contacts." />
+            <Empty icon={Building2} text="Select a company to see its card." />
           )}
         </div>
       </div>
@@ -485,7 +486,7 @@ function PersonList({ people, selectedId, query, onSelect, onOpenCompany }) {
   if (people.length === 0)
     return (
       <p className="px-3 py-10 text-center text-sm text-slate-400">
-        {query ? 'No one matches your search.' : 'No contacts yet.'}
+        {query ? 'No one matches your search.' : 'No people yet.'}
       </p>
     )
   return (
@@ -594,7 +595,7 @@ function CompanyList({ companies, people, selectedId, query, onSelect }) {
                   <Highlight text={c.name} query={query} />
                 </span>
                 <span className="block truncate text-xs text-slate-400">
-                  {[c.companyType, `${count} contact${count === 1 ? '' : 's'}`]
+                  {[c.companyType, `${count} ${count === 1 ? 'person' : 'people'}`]
                     .filter(Boolean)
                     .join(' · ')}
                 </span>
@@ -854,11 +855,11 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
               </span>
             )}
             <span>
-              {staff.length} contact{staff.length === 1 ? '' : 's'}
+              {staff.length} {staff.length === 1 ? 'person' : 'people'}
             </span>
             {companyOrders.length > 0 && (
               <span>
-                {companyOrders.length} order{companyOrders.length === 1 ? '' : 's'}
+                {companyOrders.length} job{companyOrders.length === 1 ? '' : 's'}
               </span>
             )}
           </div>
@@ -950,7 +951,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
 
         <section>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Contacts
+            People
           </h4>
           {staff.length > 0 ? (
             <ul className="space-y-1.5">
@@ -984,14 +985,14 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-400">No contacts filed for this company yet.</p>
+            <p className="text-sm text-slate-400">No people filed for this company yet.</p>
           )}
         </section>
 
-        {/* 4.5 — order history, both directions */}
+        {/* 4.5 — job history, both directions */}
         <section>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Order history{companyOrders.length > 0 && ` (${companyOrders.length})`}
+            Job history{companyOrders.length > 0 && ` (${companyOrders.length})`}
           </h4>
           <OrderList orders={companyOrders} onOpen={(o) => onOpenOrder?.(o.id)} />
         </section>
@@ -1133,7 +1134,7 @@ function JobList({ jobs, showWho = false, emptyText, orderForSet, onOpenJob }) {
                     j.studioId ? studioLabel(j.studioId) : null,
                     showWho ? j.who : null,
                     j.role ? `as ${String(j.role).toLowerCase()}` : null,
-                    order ? order.poNumber || order.number : 'no order',
+                    order ? order.poNumber || order.number : 'no job',
                   ]
                     .filter(Boolean)
                     .join(' · ')}

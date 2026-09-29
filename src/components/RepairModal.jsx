@@ -156,7 +156,7 @@ export default function RepairModal({ open, onClose, unit, itemName, canManage, 
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className={label}>Vendor</label>
+                  <label className={label}>Repair shop</label>
                   <input
                     autoFocus
                     type="text"
@@ -222,7 +222,7 @@ export default function RepairModal({ open, onClose, unit, itemName, canManage, 
                         className={done ? 'shrink-0 text-slate-400' : 'shrink-0 text-amber-500'}
                       />
                       <span className="truncate font-medium text-slate-900">
-                        {r.vendor || 'Vendor'}
+                        {r.vendor || 'Repair'}
                       </span>
                     </div>
                     <span

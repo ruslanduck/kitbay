@@ -153,7 +153,7 @@ eq(estimate.money(0), '$0.00', '$0 is a real price')
 const bytes = (doc) => Buffer.from(doc.output('arraybuffer')).toString('latin1')
 for (const [label, doc] of [
   ['estimate', estimatePdf.buildEstimatePdf(est, { booking })],
-  ['pull sheet', packingPdf.buildPackingListPdf(est, { booking, inventory })],
+  ['packing list', packingPdf.buildPackingListPdf(est, { booking, inventory })],
 ]) {
   const t = bytes(doc)
   ok(t.includes('Kitbay'), `${label}: the letterhead is Kitbay`)
@@ -168,7 +168,7 @@ for (const [label, doc] of [
   ok(!t.includes('Set date'), `${label}: no "Set date(s)" left`)
   ok(doc.getNumberOfPages() >= 1, `${label}: builds`)
 }
-ok(!bytes(packingPdf.buildPackingListPdf(est, { booking, inventory })).includes('$'), 'a pull sheet carries no money')
+ok(!bytes(packingPdf.buildPackingListPdf(est, { booking, inventory })).includes('$'), 'a packing list carries no money')
 ok(estimatePdf.estimateFileName(est).endsWith('.pdf'), 'estimate filename')
 ok(packingPdf.packingListFileName(est.order).endsWith('.pdf'), 'pull-sheet filename')
 ok(!packingPdf.packingListFileName({}).includes('order'), 'and a nameless job does not fall back to "order"')
@@ -277,7 +277,7 @@ eq(setDays.spanSummary('2026-09-09', '2026-09-09'), 'Sep 9', 'and says nothing e
   eq(e3.days, 3, 'three days on the job')
   eq(e3.total, 540, 'and the estimate bills all three')
   const t = bytes(packingPdf.buildPackingListPdf(e3, { booking, inventory }))
-  ok(t.includes('Shoot dates'), 'the pull sheet says dates, plural, for a multi-day shoot')
+  ok(t.includes('Shoot dates'), 'the packing list says dates, plural, for a multi-day shoot')
   ok(t.includes('2026-09-10') || t.includes('to  2026-09-12') || t.includes('2026-09-12'), 'and prints the window')
 }
 
@@ -898,7 +898,7 @@ ok(
   const COLUMN = 595.28 - 48 - (48 + 100) // page width − right margin − where values start
   for (const [label, doc] of [
     ['estimate', estimatePdf.buildEstimatePdf(lEst)],
-    ['pull sheet', packingPdf.buildPackingListPdf(lEst, { booking, inventory })],
+    ['packing list', packingPdf.buildPackingListPdf(lEst, { booking, inventory })],
   ]) {
     const t = bytes(doc)
     ok(t.includes('Location / Studio'), `${label}: the row is called Location / Studio`)
@@ -911,6 +911,116 @@ ok(
   }
   const studioJob = estimate.buildEstimate({ ...job, studioId: '2', location: 'Pier 59' }, { inventory })
   ok(!bytes(estimatePdf.buildEstimatePdf(studioJob)).includes('Pier 59'), 'a studio job prints no stale address')
+}
+
+// ──────────────────────────── vocabulary — one name per thing
+// The same thing kept picking up a second name, one string at a time: the item
+// was "Add inventory" beside "Edit item", a job was still an "order" in half a
+// dozen messages, the People screen counted "contacts", the packing list was
+// also a "pull sheet" and a "packing checklist". Each was a single string nobody
+// re-read. So this walks EVERY string a person can see — JSX text, attributes
+// (title, placeholder, aria-label…), string and template literals — and fails on
+// the retired words. It is a list of WORDS, not of screens: a screen written
+// tomorrow is covered the day it is written.
+// Parsed with rolldown's parser (Vite's own, already installed), so nothing is
+// added to the project. Archive.jsx is skipped: it is unrouted and never renders.
+{
+  const { parseAst } = await import('rolldown/parseAst')
+  const { readdirSync, readFileSync } = await import('node:fs')
+  const RETIRED = [
+    [/\borders?\b/i, 'the record is a Job on screen (the table keeps its name)'],
+    [/\bbookings?\b/i, 'the day is a Shoot'],
+    [/\bcontacts\b/i, 'people are People — "Contact" alone means contact details'],
+    [/\bcop(y|ies)\b/i, 'a physical piece is a unit'],
+    [/\bpresets?\b/i, 'a preset is a scenario list'],
+    [/\bpc\(s\)/, 'pieces are "pcs"'],
+    [/\b(pull sheet|packing checklist|digital checklist)\b/i, 'the document is the packing list'],
+    [/\b(inventory item|item type|add inventory)\b/i, 'an item is an item — created by "New item"'],
+    [/\bStudio L\b/, 'L is Location'],
+    [/\broster\b/i, 'the roster is the crew'],
+    [/\bplacement\b/i, 'placement is the storage location'],
+  ]
+  // Only in JSX text, where a lone LOWERCASE word is the noun of a count
+  // ("{n} sets"). Case-sensitive on purpose: "Contact" is the contact-details
+  // heading, and "set" stays legal elsewhere — "Set name", "not set".
+  const JSX_ONLY = [
+    [/^(sets?|contacts?)$/, 'a count of shoots says "shoots", of people "people"'],
+    [/^(orders?|bookings?)$/, 'a count of jobs says "jobs"'],
+  ]
+  const files = [
+    ...readdirSync('src/components')
+      .filter((f) => f.endsWith('.jsx') && f !== 'Archive.jsx')
+      .map((f) => `src/components/${f}`),
+    ...readdirSync('src/lib').filter((f) => /\.jsx?$/.test(f)).map((f) => `src/lib/${f}`),
+    ...readdirSync('src').filter((f) => /\.jsx?$/.test(f)).map((f) => `src/${f}`),
+    'src/data/orderStatus.js',
+    'src/data/nav.js',
+    'src/data/studios.js',
+    'src/data/repository.js',
+  ]
+  // Attributes that hold code, not words.
+  const CODE_ATTR = new Set(['className', 'key', 'type', 'href', 'target', 'rel', 'id', 'role', 'name', 'autoComplete', 'inputMode', 'd', 'viewBox', 'fill', 'stroke', 'strokeWidth', 'value'])
+  // Words, not identifiers: a column list ("order_id, line_key"), an event type
+  // ("order.updated"), an id ("order-7") or a store key ("orders") is code.
+  const isWords = (t) =>
+    /[A-Za-z]/.test(t) && !/[a-z]_[a-z]/.test(t) && (/\s/.test(t) ? true : !/^[a-z0-9.:{}…/#-]+$/.test(t))
+  const hits = []
+  let seen = 0
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8')
+    const ast = parseAst(src, { lang: file.endsWith('.jsx') ? 'jsx' : 'js' })
+    const lineOf = (i) => src.slice(0, i).split('\n').length
+    const check = (node, raw) => {
+      const t = String(raw).replace(/\s+/g, ' ').trim()
+      if (!t || !isWords(t)) return
+      seen++
+      for (const [re, why] of RETIRED) if (re.test(t)) hits.push(`${file}:${lineOf(node.start)} "${t}" — ${why}`)
+    }
+    const walk = (node, parent) => {
+      if (!node || typeof node.type !== 'string') return
+      if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration') return
+      if (node.type === 'JSXAttribute' && CODE_ATTR.has(node.name?.name)) return
+      // A developer's console line is not on screen.
+      if (
+        node.type === 'CallExpression' &&
+        node.callee?.type === 'MemberExpression' &&
+        node.callee.object?.name === 'console'
+      )
+        return
+      if (node.type === 'JSXText') {
+        // JSX text is ALWAYS on screen, however short: " set" beside a count is
+        // a word, not an identifier — the first version of this scan filtered
+        // it out as one and missed "2 sets" in the unit history.
+        const t = node.value.replace(/\s+/g, ' ').trim()
+        if (t && /[A-Za-z]/.test(t)) {
+          seen++
+          for (const [re, why] of [...RETIRED, ...JSX_ONLY])
+            if (re.test(t)) hits.push(`${file}:${lineOf(node.start)} "${t}" — ${why}`)
+        }
+      }
+      else if (node.type === 'Literal' && typeof node.value === 'string') {
+        const isKey = parent?.type === 'Property' && parent.key === node
+        const isCompared = parent?.type === 'BinaryExpression' && /[=!]==?/.test(parent.operator)
+        if (!isKey && !isCompared) check(node, node.value)
+      } else if (node.type === 'TemplateLiteral')
+        check(node, node.quasis.map((q) => q.value.cooked ?? q.value.raw).join('{…}'))
+      for (const k of Object.keys(node)) {
+        const v = node[k]
+        if (Array.isArray(v)) for (const c of v) walk(c, node)
+        else if (v && typeof v === 'object' && typeof v.type === 'string') walk(v, node)
+      }
+    }
+    walk(ast.program ?? ast, null)
+  }
+  ok(seen > 1500, `the vocabulary scan read the app's strings (${seen}), not an empty set`)
+  eq(hits, [], 'no retired word is left anywhere a person can read it')
+  const estText = bytes(estimatePdf.buildEstimatePdf(est))
+  ok(estText.includes('CREW') && !estText.includes('ROSTER'), 'the estimate heads its crew section CREW')
+  const emptyJob = estimate.buildEstimate({ ...job, lines: [] }, { inventory })
+  ok(
+    bytes(packingPdf.buildPackingListPdf(emptyJob, { booking, inventory })).includes('No equipment on this job.'),
+    'an empty packing list says JOB, not order',
+  )
 }
 
 console.log(`OK — ${n} assertions passed`)

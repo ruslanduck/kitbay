@@ -174,7 +174,7 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
     doc.setFont('helvetica', 'italic')
     doc.setFontSize(9)
     setInk(INK.muted)
-    text('No equipment on this order.', COL.item, y)
+    text('No equipment on this job.', COL.item, y)
     y += 18
   }
 

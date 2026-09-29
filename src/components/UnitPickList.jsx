@@ -114,7 +114,7 @@ export default function UnitPickList({
                   {u.serial || '—'}
                 </span>
                 <span className="max-w-[40%] shrink-0 truncate text-[11px] text-slate-500">
-                  {u.placement || 'no shelf set'}
+                  {u.placement || 'no storage location'}
                 </span>
                 {note(u) && <span className="shrink-0 text-[11px] text-amber-600">· {note(u)}</span>}
               </button>
