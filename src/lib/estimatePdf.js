@@ -12,6 +12,8 @@ import { jsPDF } from 'jspdf'
 // (and estimate.js) runnable under plain Node, which is how the PDF is tested.
 import { buildEstimate, money } from './estimate.js'
 import { placeLabel } from '../data/studios.js'
+import { orderStatusMeta } from '../data/orderStatus.js'
+import { showsSetName } from './orderSearch.js'
 import { BRAND_NAME } from './brand.js'
 
 const PAGE = { w: 595.28, h: 841.89 } // A4 portrait, points
@@ -24,14 +26,6 @@ const COL = {
   total: PAGE.w - M,
 }
 const INK = { text: [15, 23, 42], muted: [100, 116, 139], rule: [203, 213, 225], accent: [124, 58, 237] }
-
-const STATUS_LABEL = {
-  hold: 'HOLD',
-  confirmed: 'CONFIRMED',
-  fulfilled: 'FULFILLED',
-  draft: 'DRAFT',
-  canceled: 'CANCELED',
-}
 
 // jsPDF's built-in Helvetica is WinAnsi-encoded. A character outside it (an arrow,
 // an em dash) either vanishes or — worse — flips the whole string into a 16-bit
@@ -53,6 +47,35 @@ export function pdfSafe(value) {
   let out = String(value ?? '')
   for (const [re, to] of ASCII) out = out.replace(re, to)
   return out
+}
+
+// The job's status the way every screen draws it: a pill in the status's OWN
+// colours — fill, ring, dot and text, Confirmed green, Hold amber, Closed grey,
+// Canceled red — from orderStatus.js, the definition the app's pills read.
+// Before this the estimate printed a word of its own in grey (FULFILLED, for
+// what the app calls Closed) and the packing list said CONFIRMED whatever the
+// job was. `right` is where the pill ends; `top` is its top edge.
+export function drawStatusPill(doc, status, right, top) {
+  const meta = orderStatusMeta(status)
+  const { fill, ink, ring, dot } = meta.print
+  const label = pdfSafe(meta.label)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  const h = 14
+  const padX = 7
+  const r = 2.2
+  const gap = 4
+  const w = padX + r * 2 + gap + doc.getTextWidth(label) + padX
+  const x = right - w
+  doc.setLineWidth(0.6)
+  doc.setFillColor(fill[0], fill[1], fill[2])
+  doc.setDrawColor(ring[0], ring[1], ring[2])
+  doc.roundedRect(x, top, w, h, h / 2, h / 2, 'FD')
+  // The dot is DRAWN, not typed: "●" is outside Helvetica's WinAnsi set.
+  doc.setFillColor(dot[0], dot[1], dot[2])
+  doc.circle(x + padX + r, top + h / 2, r, 'F')
+  doc.setTextColor(ink[0], ink[1], ink[2])
+  doc.text(label, x + padX + r * 2 + gap, top + h / 2 + 2.9)
 }
 
 export function estimateFileName(estimate) {
@@ -110,9 +133,7 @@ export function buildEstimatePdf(estimateOrOrder, context) {
   doc.setFontSize(9)
   setInk(INK.accent)
   right('EQUIPMENT ESTIMATE', PAGE.w - M, y - 4)
-  doc.setFont('helvetica', 'normal')
-  setInk(INK.muted)
-  right(STATUS_LABEL[est.order.status] ?? String(est.order.status).toUpperCase(), PAGE.w - M, y + 9)
+  drawStatusPill(doc, est.order.status, PAGE.w - M, y + 1)
   y += 22
   rule(y)
   y += 22
@@ -130,7 +151,8 @@ export function buildEstimatePdf(estimateOrOrder, context) {
     // A location shoot carries its address, so the crew reading the sheet knows
     // which building to drive to.
     ['Location / Studio', placeLabel(est.order.studioId, est.order.location) ?? '—'],
-    ['Set name', est.order.setLabel || '—'],
+    // Only a PDP day has sets; an editorial job prints no empty row for one.
+    ...(showsSetName(est.order) ? [['Set name', est.order.setLabel || '—']] : []),
     ['Brand', est.order.brand || '—'],
     ['Shoot type', est.order.jobType || '—'],
     [

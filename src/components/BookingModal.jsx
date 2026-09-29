@@ -273,7 +273,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
           <div>
-            <label className={labelClass}>Job name</label>
+            <label className={labelClass}>Shoot name</label>
             <input
               autoFocus
               type="text"

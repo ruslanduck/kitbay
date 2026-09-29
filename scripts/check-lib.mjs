@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -39,6 +39,7 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/lib/routes.js'),
     load('src/data/nav.js'),
     load('src/data/studios.js'),
+    load('src/lib/capacity.js'),
   ])
 
 let n = 0
@@ -859,6 +860,7 @@ ok(
   eq(words(['setLabel', 'jobType']), ['set name', 'shoot type'], 'the renamed fields read as their new labels')
   eq(words(['startsOn', 'endsOn']), ['shoot dates'], 'both ends of the dates are ONE field on screen, named once')
   eq(words(['notes']), ['note'], 'the note is still called Note')
+  eq(words(['jobName', 'studioId']), ['shoot name', 'location / studio'], 'the name and place read as their labels now')
   eq(words(['someNewField']), ['some new field'], 'an unmapped key still reads as words, never camelCase')
   eq(words(undefined), [], 'nothing survivable')
   const d = activity.describeEvent({ type: activity.EVENT.ORDER_UPDATED, data: { changed: ['setLabel', 'jobType'] } })
@@ -939,6 +941,8 @@ ok(
     [/\bStudio L\b/, 'L is Location'],
     [/\broster\b/i, 'the roster is the crew'],
     [/\bplacement\b/i, 'placement is the storage location'],
+    [/\bjob name\b/i, 'the field is the Shoot name'],
+    [/\bFULFILLED\b/, 'the closed status reads "Closed" — on paper too'],
   ]
   // Only in JSX text, where a lone LOWERCASE word is the noun of a count
   // ("{n} sets"). Case-sensitive on purpose: "Contact" is the contact-details
@@ -1021,6 +1025,110 @@ ok(
     bytes(packingPdf.buildPackingListPdf(emptyJob, { booking, inventory })).includes('No equipment on this job.'),
     'an empty packing list says JOB, not order',
   )
+}
+
+// ─────────────────────── status colours — the PDFs wear the app's own pill
+// "Колор код привести к общему стандарту": Confirmed green, Canceled red, and
+// so on. The estimate printed a word of its own in grey (FULFILLED, for what the
+// app calls Closed) and the packing list said CONFIRMED whatever the job was.
+// Both now draw the pill every screen draws.
+{
+  const { jsPDF } = await import('jspdf')
+  const { readFileSync } = await import('node:fs')
+  // The print colours ARE the pill classes' Tailwind values. Derived here from
+  // Tailwind's own theme (oklch -> sRGB), so a class that changes without the
+  // PDF fails instead of drifting.
+  const theme = readFileSync('node_modules/tailwindcss/theme.css', 'utf8')
+  const toRgb = (L, C, H) => {
+    const h = (H * Math.PI) / 180
+    const a = C * Math.cos(h)
+    const b = C * Math.sin(h)
+    const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    const q = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
+    return [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * q,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * q,
+      -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * q,
+    ].map((v) => {
+      const c = Math.min(1, Math.max(0, v))
+      return Math.round((c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055) * 255)
+    })
+  }
+  const tw = (name) => {
+    const m = theme.match(new RegExp(`--color-${name}:\\s*oklch\\(([\\d.]+)%\\s+([\\d.]+)\\s+([\\d.]+)\\)`))
+    return m ? toRgb(Number(m[1]) / 100, Number(m[2]), Number(m[3])) : null
+  }
+  const cls = (classes, prefix) => classes.split(/\s+/).find((c) => c.startsWith(prefix))?.slice(prefix.length)
+  for (const [key, meta] of Object.entries(orderStatus.ORDER_STATUS)) {
+    const named = { fill: cls(meta.pill, 'bg-'), ink: cls(meta.pill, 'text-'), ring: cls(meta.pill, 'ring-'), dot: cls(meta.dot, 'bg-') }
+    for (const [part, name] of Object.entries(named)) {
+      const rgb = tw(name)
+      ok(
+        !!rgb && meta.print[part].every((v, i) => Math.abs(v - rgb[i]) <= 1),
+        `${key}: the printed ${part} is ${name}, the pill's own colour`,
+      )
+    }
+  }
+
+  // The fill operator jsPDF writes for a colour, from jsPDF itself — its number
+  // formatting is its own business, so the test asks it rather than guessing.
+  const fillOp = (rgb) => {
+    const d = new jsPDF({ unit: 'pt' })
+    d.setFillColor(rgb[0], rgb[1], rgb[2])
+    d.rect(0, 0, 1, 1, 'F')
+    return bytes(d).match(/[\d.]+ [\d.]+ [\d.]+ rg/)[0]
+  }
+  for (const status of ['hold', 'confirmed', 'fulfilled', 'canceled']) {
+    const meta = orderStatus.orderStatusMeta(status)
+    const e = estimate.buildEstimate({ ...job, status }, { inventory })
+    for (const [label, doc] of [
+      ['estimate', estimatePdf.buildEstimatePdf(e)],
+      ['packing list', packingPdf.buildPackingListPdf(e, { booking, inventory })],
+    ]) {
+      const t = bytes(doc)
+      ok(t.includes(`(${meta.label}) Tj`), `${label}: a ${status} job's header says ${meta.label}`)
+      ok(t.includes(fillOp(meta.print.fill)), `${label}: in the ${meta.label} pill's own fill`)
+    }
+  }
+  const closed = bytes(estimatePdf.buildEstimatePdf(estimate.buildEstimate({ ...job, status: 'fulfilled' }, { inventory })))
+  ok(!closed.includes('FULFILLED'), 'a closed job reads Closed on paper too, never FULFILLED')
+  const onHold = estimate.buildEstimate({ ...job, status: 'hold' }, { inventory })
+  ok(!bytes(packingPdf.buildPackingListPdf(onHold, { booking, inventory })).includes('CONFIRMED'), 'a packing list for a job on hold no longer says CONFIRMED')
+}
+
+// ─────────────────────── set name — a PDP day's, and nobody else's
+{
+  const { setNameApplies, showsSetName } = orderSearch
+  ok(setNameApplies('PDP') && setNameApplies('pdp') && setNameApplies(' PDP '), 'PDP has sets, however it is typed')
+  ok(setNameApplies('') && setNameApplies(null) && setNameApplies(undefined), 'a job with no type yet keeps the field (13 of the 20 on prod)')
+  ok(!setNameApplies('Editorial') && !setNameApplies('Lookbook'), 'Editorial and any other type have no set name')
+  ok(showsSetName({ jobType: 'Editorial', setLabel: 'OMSet1' }), 'a stored name is still SHOWN until the next save clears it')
+  ok(!showsSetName({ jobType: 'Editorial', setLabel: '' }), 'an editorial job shows no empty Set name row')
+  ok(showsSetName({ jobType: 'PDP', setLabel: '' }), 'a PDP job shows the row even while it is empty')
+  const editorial = estimate.buildEstimate({ ...job, jobType: 'Editorial', setLabel: null }, { inventory })
+  ok(!bytes(estimatePdf.buildEstimatePdf(editorial)).includes('Set name'), 'an editorial job prints no Set name row')
+  ok(!bytes(packingPdf.buildPackingListPdf(editorial, { booking, inventory })).includes('Set name'), 'on either document')
+  ok(bytes(estimatePdf.buildEstimatePdf(est)).includes('Set name'), 'a job that has one still prints it')
+}
+
+// ─────────────────────── capacity — five shoots a ROOM; Location is not a room
+{
+  const day = '2026-10-05'
+  const five = (studioId) =>
+    Array.from({ length: 5 }, (_, i) => ({ id: `${studioId}-${i}`, studioId, status: 'active', date: day, endDate: null }))
+  ok(
+    (capacity.capacityError(five('1'), { studioId: '1', from: day, to: day }) || '').includes('already has 5 shoots'),
+    'a sixth shoot in Studio 1 is refused',
+  )
+  eq(capacity.capacityError(five('L'), { studioId: 'L', from: day, to: day }), null, 'a sixth LOCATION shoot is not — each is its own venue')
+  eq(
+    capacity.capacityError(five('1'), { studioId: '1', from: day, to: day, excludeSetId: '1-0' }),
+    null,
+    'the shoot being edited never counts against itself',
+  )
+  ok(!capacity.hasDailyCap('L') && capacity.hasDailyCap('3') && !capacity.hasDailyCap(null), 'only the rooms have a daily cap')
+  eq(capacity.MAX_SETS_PER_DAY, 5, 'and the cap is still five')
 }
 
 console.log(`OK — ${n} assertions passed`)

@@ -135,9 +135,9 @@ const list = (rows, fmt) => rows.map(fmt).join(', ')
 // feed and the card name a field the same way. Applied when the event is READ,
 // so edits logged before the renames read right too.
 const JOB_FIELD_WORDS = {
-  jobName: 'job name',
+  jobName: 'shoot name',
   setLabel: 'set name',
-  studioId: 'studio',
+  studioId: 'location / studio',
   startsOn: 'shoot dates',
   endsOn: 'shoot dates',
   photographer: 'photographer',

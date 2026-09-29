@@ -33,6 +33,7 @@ import NoteField from './NoteField'
 import ActivityList from './ActivityList'
 import { useActivity } from '../lib/useActivity'
 import { orderFeed } from '../lib/activity'
+import { showsSetName } from '../lib/orderSearch'
 
 // Layered detail cards ("peeks").
 //
@@ -315,7 +316,7 @@ function OrderPeek({ id }) {
               : `${order.startsOn} → ${order.endsOn}`}
           </Field>
           <Field label="Location / Studio">{placeLabel(order.studioId, order.location) ?? '—'}</Field>
-          <Field label="Set name">{order.setLabel || '—'}</Field>
+          {showsSetName(order) && <Field label="Set name">{order.setLabel || '—'}</Field>}
           <Field label="Brand">{order.brand || '—'}</Field>
           <Field label="Shoot type">{order.jobType || '—'}</Field>
           <Field label="Photographer">

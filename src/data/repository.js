@@ -9,6 +9,7 @@
 // models), so switching the source is transparent to components.
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { newestFirst } from '../lib/ordering'
+import { setNameApplies } from '../lib/orderSearch'
 import { pickPatch } from '../lib/patch'
 import { studioLabel, studioColor } from './studios'
 import { createUnits } from './inventory'
@@ -1506,6 +1507,9 @@ function orderColumns(o) {
   if (o.photographerId !== undefined) row.photographer_contact_id = o.photographerId || null
   if (o.poNumber !== undefined) row.po_number = o.poNumber?.trim() || null
   if (o.setLabel !== undefined) row.set_label = o.setLabel?.trim() || null
+  // Only a PDP day has sets: a job moved to another type drops its set name,
+  // whoever calls, so "OMSet1" can't ride along on an editorial chip.
+  if (o.jobType !== undefined && !setNameApplies(o.jobType)) row.set_label = null
   if (o.brand !== undefined) row.brand = o.brand?.trim() || null
   if (o.jobType !== undefined) row.job_type = o.jobType?.trim() || null
   if (o.status !== undefined) row.status = o.status

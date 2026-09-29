@@ -16,6 +16,7 @@ import { MAX_SET_DAYS, setSpanDays } from '../lib/setDays'
 import { isValidTime, normalizeCallTimes, wrapBeforeFirstCall } from '../lib/callTimes'
 import CallTimesField from './CallTimesField'
 import { usePhotographerNames } from '../lib/usePeopleNames'
+import { setNameApplies } from '../lib/orderSearch'
 
 // Order (Estimate) creation form — epic #5, 5.1 + 5.2.
 //
@@ -121,7 +122,7 @@ export default function OrderEditorModal({
 
   async function submit(e) {
     e?.preventDefault()
-    if (!form.jobName.trim()) return setError('Give the job a name.')
+    if (!form.jobName.trim()) return setError('Give the shoot a name.')
     if (!form.startsOn) return setError('Pick the start date.')
     // Clamping a backwards range silently would book days nobody asked for.
     if (form.endsOn && form.endsOn < form.startsOn)
@@ -144,7 +145,9 @@ export default function OrderEditorModal({
     const payload = {
       ...form,
       jobName: form.jobName.trim(),
-      setLabel: form.setLabel.trim(),
+      // A set name belongs to a PDP day. Any other type sends it empty, which
+      // clears one left over from before the type changed (the Location rule).
+      setLabel: setNameApplies(form.jobType) ? form.setLabel.trim() : '',
       brand: form.brand.trim(),
       jobType: form.jobType.trim(),
       notes: form.notes.trim(),
@@ -188,8 +191,8 @@ export default function OrderEditorModal({
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="sm:col-span-2">
-              <label className={label}>Job name</label>
+            <div className={setNameApplies(form.jobType) ? 'sm:col-span-2' : 'sm:col-span-3'}>
+              <label className={label}>Shoot name</label>
               <input
                 autoFocus
                 type="text"
@@ -200,18 +203,23 @@ export default function OrderEditorModal({
               />
             </div>
             {/* The crew's own designation for the set — typed, never generated,
-                like the PO. A studio runs several sets a day and this is what
-                tells them apart on the calendar and on the pull sheet. */}
-            <div>
-              <label className={label}>Set name</label>
-              <input
-                type="text"
-                value={form.setLabel}
-                onChange={(e) => set({ setLabel: e.target.value })}
-                placeholder="e.g. OMSet1"
-                className={field}
-              />
-            </div>
+                like the PO. A PDP day runs several sets and this is what tells
+                them apart on the calendar and on the packing list; an editorial
+                shoot has none, so the field is there only for PDP — and for a
+                job with no type yet, which is where every job predating shoot
+                types sits (hiding theirs would lose it on the next save). */}
+            {setNameApplies(form.jobType) && (
+              <div>
+                <label className={label}>Set name</label>
+                <input
+                  type="text"
+                  value={form.setLabel}
+                  onChange={(e) => set({ setLabel: e.target.value })}
+                  placeholder="e.g. OMSet1"
+                  className={field}
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -293,12 +301,14 @@ export default function OrderEditorModal({
             </div>
           )}
 
-          {/* Brand + shoot type (20260908120000). Both free text with
-              suggestions, NOT closed dropdowns: a new client arrives and a third
-              kind of shoot appears, and refusing to book either is absurd. The
-              suggestion lists are built from what the register already uses (the
-              types also always offer Editorial / PDP), so the filters on the list
-              can only ever offer values that match something. */}
+          {/* Brand + shoot type (20260908120000). Neither is a closed list: a
+              new client arrives and a third kind of shoot appears, and refusing
+              to book either is absurd. Brand is free text with suggestions; the
+              shoot type is a list with an "Other…" row that opens a text box in
+              the menu (asked for — typing into the combo was never obvious). Both
+              lists are built from what the register already uses, so a typed
+              value is offered the next time, and the filters on the list can only
+              ever offer values that match something. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={label}>Brand</label>
@@ -312,11 +322,12 @@ export default function OrderEditorModal({
             </div>
             <div>
               <label className={label}>Shoot type</label>
-              <ComboField
+              <SelectField
                 value={form.jobType}
                 onChange={(e) => set({ jobType: e.target.value })}
                 options={jobTypes}
-                placeholder="Editorial, PDP…"
+                placeholder="Pick a shoot type"
+                other={{ label: 'Other…', placeholder: 'Name the shoot type', submitLabel: 'Add' }}
                 className={field}
               />
             </div>

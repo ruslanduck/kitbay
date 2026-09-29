@@ -1,6 +1,6 @@
 // Packing list PDF (epic #6, 6.1).
 //
-// Generated for a CONFIRMED order: the assigned equipment + quantity per line,
+// Printable at every status but Canceled: the assigned equipment + quantity per line,
 // grouped exactly like the estimate — but this is a physical pull sheet, not a
 // price doc. So: no money, and every row carries ONE box to tick when the piece
 // is in the case. It used to carry three (two at sign-out, one at return); the
@@ -12,7 +12,8 @@
 // documents stay visually of a piece and both run headless under Node.
 import { jsPDF } from 'jspdf'
 import { buildEstimate } from './estimate.js'
-import { pdfSafe } from './estimatePdf.js'
+import { pdfSafe, drawStatusPill } from './estimatePdf.js'
+import { showsSetName } from './orderSearch.js'
 import { packingRows } from './packing.js'
 import { placeLabel } from '../data/studios.js'
 import { BRAND_NAME } from './brand.js'
@@ -102,9 +103,10 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
   doc.setFontSize(9)
   setInk(INK.accent)
   right(opts.docTitle || 'PACKING LIST', PAGE.w - M, y - 4)
-  doc.setFont('helvetica', 'normal')
-  setInk(INK.muted)
-  right('CONFIRMED', PAGE.w - M, y + 9)
+  // The job's REAL status. This printed CONFIRMED whatever the job was — true
+  // when the sheet existed only for confirmed jobs, false since it can be
+  // printed at every status but Canceled.
+  drawStatusPill(doc, est.order.status, PAGE.w - M, y + 1)
   y += 22
   rule(y)
   y += 22
@@ -124,8 +126,9 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
     // A location shoot carries its address, so the crew reading the sheet knows
     // which building to drive to.
     ['Location / Studio', placeLabel(est.order.studioId, est.order.location) ?? '—'],
-    // The crew pulling gear needs to know WHICH set of the day it's for.
-    ['Set name', est.order.setLabel || '—'],
+    // The crew pulling gear needs to know WHICH set of the day it's for — on a
+    // PDP day. An editorial job has no sets, and prints no empty row for one.
+    ...(showsSetName(est.order) ? [['Set name', est.order.setLabel || '—']] : []),
     ['Brand', est.order.brand || '—'],
     ['Shoot type', est.order.jobType || '—'],
     [

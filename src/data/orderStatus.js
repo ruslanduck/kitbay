@@ -10,36 +10,47 @@
 // and like a hold it releases the gear (only 'confirmed' holds stock). 'draft'
 // predates this epic (4.5 history rows use it) and stays renderable even though
 // nothing sets it.
+//
+// `print` is the SAME pill for paper: the RGB of exactly the Tailwind colours the
+// `pill` and `dot` classes name (fill = bg, ink = text, ring = ring, dot = the dot's
+// bg), because jsPDF takes numbers, not classes. `npm run test:lib` derives each
+// one from Tailwind's own palette and fails on drift, so the estimate and the
+// packing list can never paint a status differently from the screen.
 export const ORDER_STATUS = {
   hold: {
     label: 'Hold',
     pill: 'bg-amber-100 text-amber-800 ring-amber-200',
     dot: 'bg-amber-400',
     calendar: '#f59e0b',
+    print: { fill: [254, 243, 198], ink: [151, 60, 0], ring: [254, 230, 133], dot: [255, 185, 0] },
   },
   confirmed: {
     label: 'Confirmed',
     pill: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
     dot: 'bg-emerald-500',
     calendar: '#10b981',
+    print: { fill: [208, 250, 229], ink: [0, 96, 69], ring: [164, 244, 207], dot: [0, 188, 125] },
   },
   fulfilled: {
     label: 'Closed',
     pill: 'bg-slate-100 text-slate-600 ring-slate-200',
     dot: 'bg-slate-400',
     calendar: '#64748b',
+    print: { fill: [241, 245, 249], ink: [69, 85, 108], ring: [226, 232, 240], dot: [144, 161, 185] },
   },
   draft: {
     label: 'Draft',
     pill: 'bg-slate-100 text-slate-500 ring-slate-200',
     dot: 'bg-slate-300',
     calendar: '#94a3b8',
+    print: { fill: [241, 245, 249], ink: [98, 116, 142], ring: [226, 232, 240], dot: [202, 213, 226] },
   },
   canceled: {
     label: 'Canceled',
     pill: 'bg-rose-100 text-rose-700 ring-rose-200',
     dot: 'bg-rose-400',
     calendar: '#f43f5e',
+    print: { fill: [255, 228, 230], ink: [199, 0, 54], ring: [255, 204, 211], dot: [255, 99, 126] },
   },
 }
 

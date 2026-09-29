@@ -17,7 +17,7 @@
 export const SORTS = {
   newest: { label: 'Newest first' },
   oldest: { label: 'Oldest first' },
-  job: { label: 'Job name (A–Z)' },
+  job: { label: 'Shoot name (A–Z)' },
 }
 
 // Everything a free-text term may match.
@@ -153,6 +153,21 @@ export function brandsIn(orders) {
 // with every type the register already carries, so a third kind needs no code
 // and a job that already says something else keeps saying it.
 export const JOB_TYPES = ['Editorial', 'PDP']
+
+// A SET name is how a PDP day tells its sets apart ("OMSet1", "OMSet2"); an
+// editorial shoot has none. So the field belongs to PDP — and to a job with no
+// type yet, which is where every job predating shoot types sits: 13 of the 20
+// on prod carry a set name and no type, and hiding theirs would erase it on the
+// next save.
+export function setNameApplies(jobType) {
+  const t = String(jobType ?? '').trim().toLowerCase()
+  return t === '' || t === 'pdp'
+}
+
+// Where a job is SHOWN — card, peek, both PDFs — a stored set name is always
+// shown (it is data, and the next save of a non-PDP job clears it); an empty row
+// only where a set name belongs.
+export const showsSetName = (order) => !!order?.setLabel || setNameApplies(order?.jobType)
 
 export function jobTypesIn(orders) {
   const used = (orders ?? []).map((o) => o.jobType).filter(Boolean)

@@ -2676,6 +2676,53 @@
 > job cards, 10 person and 6 company cards, and 14 modals) found no retired word except two seed EMAIL
 > addresses (orders@…, bookings@…), which are data. At 375px the strip's buttons sit on one line, no overflow.
 > Demo data untouched (14 jobs / 11 shoots / 44 items / 0 archived), 0 console errors.
+> **BATCH — the PDFs wear the status colours, "Other…" for the shoot type, Shoot name, Set name only for PDP,
+> and no daily cap on Location** (frontend only, no migration). From three annotated screenshots plus answers.
+> **(1) Colour code** ("привести к общему стандарту… конфермд зелёным, кенселд красным"). On screen every status
+> already came from `orderStatus.js`; the PDFs did not, and auditing them found two real bugs behind the grey
+> text: the estimate kept its OWN status vocabulary (`STATUS_LABEL`, which printed **FULFILLED** for what the app
+> calls Closed), and the packing list printed a hardcoded **CONFIRMED** whatever the job was — true when the sheet
+> existed only for confirmed jobs, false since it prints at every status but Canceled. Both headers now call
+> `drawStatusPill` (exported by `estimatePdf.js`): the app's pill on paper — rounded fill, ring, a DRAWN dot ("●"
+> is outside WinAnsi) and the label, from `orderStatusMeta`. The colours are a new `print` block per status in
+> `orderStatus.js` holding the RGB of exactly the Tailwind colours its `pill`/`dot` classes name (jsPDF takes
+> numbers, not classes), and ⚠️ `test:lib` DERIVES each one from `node_modules/tailwindcss/theme.css` (oklch →
+> sRGB) and fails on drift — proved by nudging the Confirmed fill. The PDF assertions compare against the fill
+> operator jsPDF itself writes for that colour (its number formatting — "0.82 0.98 0.9 rg" — is its own business,
+> so the test asks jsPDF rather than guessing). Also: a legacy canceled SHOOT in a person's work history wore
+> lowercase rose text; it is the standard Canceled pill now, and not twice when the job's pill already says so.
+> **(2) Shoot type "Other…"** — the combo box allowed typing but read as two fixed choices. `SelectField` gained an
+> `other` prop: a last row that turns into a text box INSIDE the menu (Enter or Add commits, Escape returns to the
+> list without closing the modal — `stopPropagation` in the portal); a typed value that matches an option in
+> another case becomes that option ("editorial" → Editorial, no twin), and a custom value is listed and ticked.
+> Brand stays a combo (asked for the shoot type only).
+> **(3) "Job name" → "Shoot name"** (drawn with a strikethrough): the form label and its message, the legacy shoot
+> editor, the sort option and the feed word; the search placeholder reads "PO, shoot, photographer…". The record
+> is still a Job. The feed's `studioId` word follows the field too ("location / studio").
+> **(4) Set name only for PDP** ("only populate if PDP"). `setNameApplies(type)` / `showsSetName(order)` in
+> `lib/orderSearch.js`: the field shows for PDP and for a job with **no type yet** — 13 of prod's 20 jobs carry a
+> set name and no type, and hiding theirs would erase it on the next save. Any other type hides the field and
+> CLEARS the set name on save (the Location-address rule), enforced at the write in both modes (`orderColumns` and
+> `resolveOrder`). The card, the peek card and both PDFs show the row only where a set name belongs — or where one
+> is still stored (1 editorial job on prod has one until it is next saved). Asked, and the answer was about the
+> Other… menu, so the recommended option was taken; flipping to "hide but keep" is one line.
+> **(5) No daily cap on Location** (answered: each location shoot is its own venue). The rule moved out of
+> store.js into a pure `src/lib/capacity.js` (`MAX_SETS_PER_DAY`, `hasDailyCap`, `setsUsedOn`, `capacityError`,
+> re-exported by the store so no caller changed) — a rule with an exception needs an assertion, and the store
+> cannot load under Node.
+> The vocabulary scan learnt "job name" and "FULFILLED". **477 assertions.**
+> Verified in local mode: the New-job form reads Shoot name + Set name with PDP preselected; the type menu lists
+> Editorial / PDP ✓ / Other…; Other… → "Lookbook" + Enter closed the menu, set the type, hid Set name and widened
+> Shoot name to the full row; reopened, Lookbook is listed and ticked; back to PDP brings Set name back; Escape in
+> the box returned to the list with the job form still open; "editorial" typed through Other… became Editorial. On
+> a seeded untyped job with OMSet1, switching to Editorial hid the field and saving stored `jobType: Editorial,
+> setLabel: null` — the card lost its Set name row. Both PDFs looked at, not only asserted: "EQUIPMENT ESTIMATE ●
+> Confirmed" in green and "PACKING LIST ● Hold" in amber for a job that used to print CONFIRMED. Demo data
+> reseeded (14 jobs / 11 shoots / 44 items / 0 activity), 0 console errors.
+> ℹ️ The feed line of that edit read "set name, shoot type, **wrap time**" — the known false positive (the diff
+> compares the job with fields that live on the shoot). It is fixed with the crew block, which rewrites that diff.
+> ⚠️ Tool note: the pane cannot navigate to a `blob:` URL nor screenshot a local-file tab; a PDF is looked at by
+> putting its blob in an `<iframe>` over the app page (`#zoom=250,330,20` for the header), then removing it.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

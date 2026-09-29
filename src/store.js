@@ -85,7 +85,9 @@ import {
 } from './data/repository'
 import { supabase } from './lib/supabase'
 import { reservedUnitsForOrder, overlaps } from './lib/availability'
-import { coversDay, endsOnFor, firstFullDay, setSpanDays } from './lib/setDays'
+import { endsOnFor, setSpanDays } from './lib/setDays'
+import { MAX_SETS_PER_DAY, setsUsedOn, capacityError } from './lib/capacity'
+import { setNameApplies } from './lib/orderSearch'
 import { normalizeCallTimes } from './lib/callTimes'
 import { resolveUnitCodes } from './lib/unitRows'
 import { newestFirst } from './lib/ordering'
@@ -483,41 +485,10 @@ function resolveScenario(list, inventory, kits) {
   }
 }
 
-// A studio runs at most this many shoots a day (epic #5 terminology: Sets).
-export const MAX_SETS_PER_DAY = 5
-
-// How many shoots a studio already holds on ONE day. A set can span days now,
-// so this asks whether its window covers the day, not whether it starts on it.
-// Archived shoots don't count — they left the calendar, and counting them
-// quietly shrank the studio's capacity.
-export function setsUsedOn(bookings, studioId, iso, excludeSetId = null) {
-  return bookings.filter(
-    (b) =>
-      b.studioId === studioId &&
-      b.status === 'active' &&
-      !b.archivedAt &&
-      b.id !== excludeSetId &&
-      coversDay(b.date, b.endDate, iso),
-  ).length
-}
-
-// Capacity is per studio per DAY, so a multi-day job has to clear every day it
-// covers. Returns a sentence naming WHICH day is full — without that the crew
-// has to guess which end of the range to move — or null when the range fits.
-//
-// `excludeSetId` is the shoot being edited: it must not count against itself, or
-// stretching a job by one day would report the studio as full of itself.
-export function capacityError(bookings, { studioId, from, to, excludeSetId = null }) {
-  if (!studioId || !from) return null
-  const countOn = (iso) => setsUsedOn(bookings, studioId, iso, excludeSetId)
-  const full = firstFullDay(from, to, countOn, MAX_SETS_PER_DAY)
-  if (!full) return null
-  const span = setSpanDays(from, to)
-  const n = countOn(full)
-  return `${studioLabel(studioId)} already has ${n} shoot${n === 1 ? '' : 's'} on ${full} (max ${MAX_SETS_PER_DAY}). Pick another studio${
-    span > 1 ? ', or shorten the range' : ' or another date'
-  }.`
-}
+// The daily cap — five shoots a ROOM, none for Location — lives in lib/capacity
+// so plain Node can check it; re-exported for every caller that imports it from
+// the store.
+export { MAX_SETS_PER_DAY, setsUsedOn, capacityError }
 
 // Normalize an authored order (5.1/5.2) into the shape the UI reads. `createdBy`
 // is set here for local mode only; in Supabase mode the DB fills created_by from
@@ -528,7 +499,9 @@ function resolveOrder(o, companies) {
     id: o.id,
     number: trimmed(o.number),
     poNumber: trimmed(o.poNumber),
-    setLabel: trimmed(o.setLabel),
+    // A set name belongs to a PDP day (and to a job with no type yet). Any other
+    // type clears it — the same rule the database write applies.
+    setLabel: setNameApplies(o.jobType) ? trimmed(o.setLabel) : null,
     // ⚠️ This shaper is a WHITELIST: a field missing here is silently dropped in
     // local mode, however correctly the DB column and the supabase path handle
     // it. Adding a column to `orders` means adding it in BOTH places.

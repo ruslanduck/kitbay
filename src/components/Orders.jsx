@@ -41,6 +41,7 @@ import {
   jobTypesIn,
   SORTS,
   rangeIsBackwards,
+  showsSetName,
 } from '../lib/orderSearch'
 import DateField from './DateField'
 import OrderEditorModal from './OrderEditorModal'
@@ -314,7 +315,7 @@ export default function Orders() {
           <FilterBar
             search={search}
             onSearch={setSearch}
-            searchPlaceholder="PO, job, photographer…"
+            searchPlaceholder="PO, shoot, photographer…"
             activeCount={activeFilters}
             onClear={clearAll}
             count={filtered.length}
@@ -805,9 +806,11 @@ function OrderDetail({
           <Row icon={Clock3} label="Call times">
             <CallSheetList callTimes={booking?.callTimes} wrapTime={booking?.wrapTime} />
           </Row>
-          <Row icon={Layers} label="Set name">
-            {order.setLabel || <span className="text-slate-400">not named</span>}
-          </Row>
+          {showsSetName(order) && (
+            <Row icon={Layers} label="Set name">
+              {order.setLabel || <span className="text-slate-400">not named</span>}
+            </Row>
+          )}
           <Row icon={Tag} label="Brand">
             {order.brand || <span className="text-slate-400">—</span>}
           </Row>

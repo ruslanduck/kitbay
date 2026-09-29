@@ -1150,8 +1150,18 @@ function JobList({ jobs, showWho = false, emptyText, orderForSet, onOpenJob }) {
                   {st.label}
                 </span>
               )}
-              {j.status === 'canceled' && (
-                <span className="shrink-0 text-[11px] font-medium text-rose-500">canceled</span>
+              {/* A shoot canceled on its own (the legacy booking status) wears
+                  the same Canceled pill as a canceled job — once, not twice when
+                  the job's own pill already says so. */}
+              {j.status === 'canceled' && order?.status !== 'canceled' && (
+                <span
+                  className={[
+                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1',
+                    orderStatusMeta('canceled').pill,
+                  ].join(' ')}
+                >
+                  {orderStatusMeta('canceled').label}
+                </span>
               )}
             </button>
           </li>
