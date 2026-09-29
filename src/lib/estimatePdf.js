@@ -166,7 +166,7 @@ export function buildEstimatePdf(estimateOrOrder, context) {
           : est.order.startsOn
         : '—',
     ],
-    ['Photographer', est.order.photographer || '—'],
+    ['Assignee', est.order.photographer || '—'],
     ['Client', est.order.companyName || '—'],
     [
       'Raised by',

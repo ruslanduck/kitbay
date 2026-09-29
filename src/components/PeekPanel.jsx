@@ -321,11 +321,23 @@ function OrderPeek({ id }) {
           {showsSetName(order) && <Field label="Set name">{order.setLabel || '—'}</Field>}
           <Field label="Brand">{order.brand || '—'}</Field>
           <Field label="Shoot type">{order.jobType || '—'}</Field>
-          {/* The photographer is a row of the call sheet below; only a job with
-              no shoot of its own still carries one as a field. */}
-          {!booking && order.photographer && (
-            <Field label="Photographer">{order.photographer}</Field>
-          )}
+          <Field label="Assignee">
+            {order.photographer ? (
+              personLink(order.photographer) ? (
+                <button
+                  type="button"
+                  onClick={personLink(order.photographer)}
+                  className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
+                >
+                  {order.photographer}
+                </button>
+              ) : (
+                order.photographer
+              )
+            ) : (
+              <span className="text-slate-400">not assigned</span>
+            )}
+          </Field>
           <Field label="Company">
             {company ? (
               <button

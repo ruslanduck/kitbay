@@ -189,6 +189,9 @@ function buildSeedData() {
         // A shoot runs for whole days and may run for several (`days`, default 1).
         endDate: format(addDays(weekStart, t.dayOffset + ((t.days || 1) - 1)), 'yyyy-MM-dd'),
         wrapTime: t.wrap || null,
+        // Whose job it is. Mirrors the job's own field (orders.photographer) so a
+        // person's work history can say "as assignee" in local mode too.
+        assignee: t.photographer || null,
         unitIds: [],
         orderId: null,
         status: 'active',
@@ -563,8 +566,10 @@ function resolvePerson(person, companies, bookings) {
   const me = String(person.name ?? '').trim().toLowerCase()
   const jobs = (bookings || [])
     .map((b) => {
+      // Their role on the call sheet — or, failing that, the job is theirs.
       const role =
-        (b.crew || []).find((r) => String(r.name ?? '').trim().toLowerCase() === me)?.role ?? null
+        (b.crew || []).find((r) => String(r.name ?? '').trim().toLowerCase() === me)?.role ??
+        (String(b.assignee ?? '').trim().toLowerCase() === me ? 'Assignee' : null)
       return me && role
         ? {
             id: b.id,
@@ -613,10 +618,12 @@ function withCrew(booking, crew) {
 // so local mode files the ones People doesn't have, as the database write does.
 // Everyone is re-resolved against `bookings`, because a sheet is what their work
 // history is made of.
-function withCrewPeople(people, crew, companies, bookings) {
+function withCrewPeople(people, crew, companies, bookings, extra = []) {
   const known = new Set(people.map((p) => String(p.name ?? '').trim().toLowerCase()))
   const next = [...people]
-  for (const name of crewNames(crew)) {
+  // `extra`: names typed outside the sheet (the job's assignee) — same rule.
+  const typed = (extra || []).map((n) => String(n ?? '').trim()).filter(Boolean)
+  for (const name of [...crewNames(crew), ...typed]) {
     if (known.has(name.toLowerCase())) continue
     known.add(name.toLowerCase())
     next.push({ id: uniqueId(slugify(name), next.map((p) => p.id)), name })
@@ -2751,6 +2758,7 @@ export const useStore = create(
             date: startsOn,
             endDate: endsOn,
             wrapTime: order.wrapTime || null,
+            assignee: trimmed(order.photographer),
             unitIds: [],
             status: 'active',
             color: BOOKING_COLORS[state.bookings.length % BOOKING_COLORS.length],
@@ -2760,11 +2768,7 @@ export const useStore = create(
         )
         const nextOrders = [
           ...state.orders,
-          resolveOrder(
-            // The job's one photographer is the sheet's first Photographer row.
-            { ...order, photographer: crewNameFor(crew, 'Photographer'), endsOn, id, setId, setTitle: jobName.trim() },
-            state.companies,
-          ),
+          resolveOrder({ ...order, endsOn, id, setId, setTitle: jobName.trim() }, state.companies),
         ].sort(newestFirst('orderedAt'))
         // A new order is a Hold (reserves nothing), but recompute anyway so the
         // one path stays correct if it ever arrives confirmed.
@@ -2778,7 +2782,7 @@ export const useStore = create(
           bookings: nextBookings,
           orders: nextOrders,
           inventory: withReservations(state.inventory, nextBookings),
-          people: withCrewPeople(state.people, crew, state.companies, nextBookings),
+          people: withCrewPeople(state.people, crew, state.companies, nextBookings, [order.photographer]),
         })
         return { ok: true, id }
       },
@@ -2881,11 +2885,9 @@ export const useStore = create(
                 date: changes.startsOn ?? before.startsOn,
                 endDate: changes.endsOn ?? before.endsOn,
                 // The call sheet belongs to the SHOOT, so the job form edits it
-                // through here — and it carries the job's photographer column
-                // with it. Left alone when the caller didn't carry it.
+                // through here. Left alone when the caller didn't carry it.
                 ...(changes.crew !== undefined ? { crew: normalizeCrew(changes.crew) } : {}),
                 ...(changes.wrapTime !== undefined ? { wrapTime: changes.wrapTime || null } : {}),
-                orderId: id,
               })
             } catch (e) {
               console.error('could not move the shoot with its job:', e)
@@ -2914,13 +2916,7 @@ export const useStore = create(
           .map((o) =>
             o.id === id
               ? resolveOrder(
-                  {
-                    ...o,
-                    ...changes,
-                    // The job's one photographer is read off the sheet.
-                    ...(nextCrew ? { photographer: crewNameFor(nextCrew, 'Photographer') } : {}),
-                    id,
-                  },
+                  { ...o, ...changes, id },
                   state.companies,
                 )
               : o,
@@ -2938,6 +2934,7 @@ export const useStore = create(
                   date: target.startsOn ?? b.date,
                   endDate: endsOnFor(target.startsOn ?? b.date, target.endsOn ?? b.endDate),
                   wrapTime: changes.wrapTime !== undefined ? changes.wrapTime || null : b.wrapTime,
+                  assignee: target.photographer ?? null,
                 },
                 nextCrew ?? b.crew,
               )
@@ -2954,7 +2951,15 @@ export const useStore = create(
           orders,
           bookings,
           inventory: withReservations(state.inventory, bookings),
-          ...(nextCrew ? { people: withCrewPeople(state.people, nextCrew, state.companies, bookings) } : {}),
+          // A sheet or an assignee that names someone new files them in People,
+          // and every history is re-read against the new shoots.
+          ...(nextCrew || changes.photographer !== undefined
+            ? {
+                people: withCrewPeople(state.people, nextCrew ?? [], state.companies, bookings, [
+                  target?.photographer,
+                ]),
+              }
+            : {}),
         })
         return { ok: true }
       },
@@ -3268,10 +3273,7 @@ export const useStore = create(
         if (changes.wrapTime !== undefined)
           changes = { ...changes, wrapTime: changes.wrapTime || null }
         if (usingSupabase) {
-          const b = get().bookings.find((x) => x.id === id)
-          // A shoot that belongs to a job keeps that job's photographer column
-          // in step with its sheet.
-          await sbUpdateBooking(id, changes, { orderId: b?.orderId ?? null })
+          await sbUpdateBooking(id, changes)
           await get().hydrate({ quiet: true })
           return
         }

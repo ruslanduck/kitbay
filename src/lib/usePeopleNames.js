@@ -16,6 +16,21 @@ import { crewNames } from './crew'
 // is the point: add a person in People and the next picker you open has them,
 // with no reload.
 //
+// The job's ASSIGNEE: anyone in People — asked for in so many words ("кого угодно
+// с People"), so no trade is put first: everyone in name order, then any name
+// already on a job that People doesn't have (so a job's own value stays
+// offerable). Read live from the store, so a person filed in People a moment ago
+// is offered the next time the form opens.
+export function useAssigneeNames() {
+  const people = useStore((s) => s.people)
+  const orders = useStore((s) => s.orders)
+  return useMemo(
+    () => peopleNames(people, { used: (orders ?? []).map((o) => o.photographer) }),
+    [people, orders],
+  )
+}
+
+//
 // The person picker on a call-sheet row: the people whose trade IS the row's
 // role first ("Stylist" offers the stylists, "Model" the models), then everyone
 // else, then any name already written on a sheet that People doesn't have. One

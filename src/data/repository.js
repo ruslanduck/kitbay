@@ -580,10 +580,9 @@ export async function setCallTimes(setId, rows) {
 
 // A shoot's CALL SHEET — its contents, replaced wholesale on save like an order's
 // lines. Every named row is a person in People: a name People doesn't have yet is
-// added there (the studio's answer, and how the photographer field always
-// worked). `orderId` keeps the job's single photographer column — the Jobs
-// filter and the search read it — equal to the first Photographer row.
-export async function setCrew(setId, rows, { orderId = null } = {}) {
+// added there (the studio's answer). It does NOT touch the job's assignee — that
+// is the job's own field now, and a sheet that rewrote it would undo the form.
+export async function setCrew(setId, rows) {
   const crew = normalizeCrew(rows)
   const ids = []
   for (const r of crew) ids.push(r.name ? r.contactId || (await resolveContactId(r.name)) : null)
@@ -615,14 +614,6 @@ export async function setCrew(setId, rows, { orderId = null } = {}) {
     }
     if (error) throw error
   }
-  if (orderId) {
-    const at = crew.findIndex((r, i) => r.role.toLowerCase() === 'photographer' && ids[i])
-    const { error } = await supabase
-      .from('orders')
-      .update({ photographer_contact_id: at >= 0 ? ids[at] : null })
-      .eq('id', orderId)
-    if (error) throw error
-  }
   return { ok: true }
 }
 
@@ -651,7 +642,7 @@ export async function createBooking(b) {
   return set.id
 }
 
-export async function updateBooking(setId, changes, { orderId = null } = {}) {
+export async function updateBooking(setId, changes) {
   const patch = {}
   if ('title' in changes) patch.title = changes.title
   if ('studioId' in changes) patch.studio_id = changes.studioId
@@ -678,7 +669,7 @@ export async function updateBooking(setId, changes, { orderId = null } = {}) {
     }
     if (error) throw error
   }
-  if ('crew' in changes) await setCrew(setId, changes.crew, { orderId })
+  if ('crew' in changes) await setCrew(setId, changes.crew)
   if ('unitIds' in changes) await replaceUnits(setId, changes.unitIds)
 }
 
@@ -1615,8 +1606,19 @@ const isMissingTable = (e) =>
   e?.code === 'PGRST205' ||
   /relation .* does not exist|could not find the table/i.test(e?.message || '')
 
+// The job's ASSIGNEE (the column is still `photographer_contact_id`: it named the
+// photographer when that was the only person a job had). The form sends a NAME;
+// the column holds a person, so the name is resolved here — and added to People
+// if it is new. ⚠️ This is the write that was MISSING: until now a photographer
+// picked in the form never reached the database at all.
+async function withAssignee(row, o) {
+  if (o.photographerId !== undefined || o.photographer === undefined) return row
+  const name = String(o.photographer ?? '').trim()
+  return { ...row, photographer_contact_id: name ? await resolveContactId(name) : null }
+}
+
 export async function createOrder(order) {
-  const row = orderColumns(order)
+  const row = await withAssignee(orderColumns(order), order)
   let { data, error } = await supabase.from('orders').insert(row).select('id').single()
   if (error && isUndefinedColumn(error))
     ({ data, error } = await supabase
@@ -1629,7 +1631,7 @@ export async function createOrder(order) {
 }
 
 export async function updateOrder(id, changes) {
-  const row = orderColumns(changes)
+  const row = await withAssignee(orderColumns(changes), changes)
   let { error } = await supabase.from('orders').update(row).eq('id', id)
   if (error && isUndefinedColumn(error))
     ({ error } = await supabase.from('orders').update(withoutNewestColumns(row)).eq('id', id))
@@ -1754,7 +1756,7 @@ export async function createSetForOrder(
     }
   }
   if (error) throw error
-  if (crew?.length) await setCrew(data.id, crew, { orderId })
+  if (crew?.length) await setCrew(data.id, crew)
   return data.id
 }
 
@@ -1762,26 +1764,17 @@ export async function createSetForOrder(
 // Supabase mode did NOT, so editing a job's date moved its reservations and left
 // the shoot on the old day of the calendar. A multi-day window makes that
 // mismatch visible immediately, so the two modes are the same shape now.
-// The call sheet travels with it, and so does the job's photographer column —
-// the old "roster is a separate write" gap is why a photographer picked in the
-// job form never reached the database at all (the form sent a NAME, the column
-// wanted an id).
-export async function syncSetForOrder(
-  setId,
-  { jobName, studioId, date, endDate, wrapTime, crew, orderId = null },
-) {
-  return updateBooking(
-    setId,
-    {
-      ...(jobName != null ? { title: jobName.trim() } : {}),
-      ...(studioId ? { studioId } : {}),
-      ...(date ? { date, endDate: endDate || date } : {}),
-      // undefined = the form didn't carry them; null / [] = the crew cleared them.
-      ...(wrapTime !== undefined ? { wrapTime } : {}),
-      ...(crew !== undefined ? { crew: crew ?? [] } : {}),
-    },
-    { orderId },
-  )
+// The call sheet travels with it. (The job's assignee is written with the job
+// itself — see `withAssignee`.)
+export async function syncSetForOrder(setId, { jobName, studioId, date, endDate, wrapTime, crew }) {
+  return updateBooking(setId, {
+    ...(jobName != null ? { title: jobName.trim() } : {}),
+    ...(studioId ? { studioId } : {}),
+    ...(date ? { date, endDate: endDate || date } : {}),
+    // undefined = the form didn't carry them; null / [] = the crew cleared them.
+    ...(wrapTime !== undefined ? { wrapTime } : {}),
+    ...(crew !== undefined ? { crew: crew ?? [] } : {}),
+  })
 }
 
 // The active, unarchived sets a studio has anywhere in [from, to] — the input to
@@ -1829,10 +1822,15 @@ export async function getPeople() {
   const withArchive = `id, full_name, email, phone, notes,
      category, subcategory, website, instagram, cv_url, cv_filename, ${ARCHIVE_COLS},
      company:companies ( id, name ), ${jobs}`
+  // The jobs a person is the ASSIGNEE of, so assigning someone shows on their
+  // card the way a call does. The outermost layer, by the usual rule.
+  const withAssigned = `${withArchive},
+     assigned:orders!photographer_contact_id ( sets ( id, title, date, studio_id, status ) )`
   const enriched = stripArchive(withArchive)
   const basic = `id, full_name, email, phone, notes, company:companies ( id, name ), ${jobs}`
 
-  let { data, error } = await supabase.from('contacts').select(withArchive).order('full_name')
+  let { data, error } = await supabase.from('contacts').select(withAssigned).order('full_name')
+  if (error) ({ data, error } = await supabase.from('contacts').select(withArchive).order('full_name'))
   if (error) ({ data, error } = await supabase.from('contacts').select(enriched).order('full_name'))
   if (error) ({ data, error } = await supabase.from('contacts').select(basic).order('full_name'))
   if (error) return []
@@ -1851,19 +1849,24 @@ export async function getPeople() {
     cvFilename: p.cv_filename ?? null,
     companyId: p.company?.id ?? null,
     companyName: p.company?.name ?? null,
-    jobs: (p.roster_entries || [])
-      .filter((r) => r.set)
-      .map((r) => ({
-        id: r.set.id,
-        title: r.set.title,
-        date: r.set.date,
-        studioId: r.set.studio_id,
-        status: r.set.status,
-        role: r.role,
-      }))
-      .sort(newestFirst('date', 'setId')),
+    jobs: personJobs(p),
     ...archiveFields(p),
   }))
+}
+
+// A person's jobs: every shoot whose call sheet names them (with their role
+// there), then every job they are the assignee of — ONE row per shoot, the
+// call-sheet role winning. Since the call sheet a person can be called twice in
+// one day, and that is still one job on their card.
+function personJobs(p) {
+  const out = new Map()
+  const add = (s, role) => {
+    if (!s || out.has(s.id)) return
+    out.set(s.id, { id: s.id, title: s.title, date: s.date, studioId: s.studio_id, status: s.status, role })
+  }
+  for (const r of p.roster_entries || []) add(r.set, r.role)
+  for (const o of p.assigned || []) for (const s of o.sets || []) add(s, 'Assignee')
+  return [...out.values()].sort(newestFirst('date', 'setId'))
 }
 
 // contacts columns for a person payload (only the keys present are written).

@@ -675,10 +675,8 @@ ok(
   eq(theme.resolveTheme('midnight', true), 'dark', 'so does a value from the future')
   eq(theme.resolveTheme(null, false), 'light', 'and null is not a crash')
 
-  eq(theme.nextTheme('system'), 'light', 'the cycle runs System → Light')
-  eq(theme.nextTheme('light'), 'dark', '→ Dark')
-  eq(theme.nextTheme('dark'), 'system', 'and back to System, so it is reachable again')
-  eq(theme.nextTheme('nonsense'), 'system', 'a broken value lands on System')
+  eq(theme.THEME_ORDER, ['system', 'light', 'dark'], 'the dropdown lists System first, then Light, then Dark')
+  eq(theme.nextTheme, undefined, 'the one-button cycle is gone with its only caller')
   eq(new Set(theme.THEME_ORDER).size, 3, 'three distinct states')
   ok(theme.THEME_ORDER.every((t) => theme.THEME_LABEL[t]), 'each one has a label to show')
   ok(theme.isTheme('dark') && !theme.isTheme('darkish'), 'and the guard is exact')
@@ -1207,11 +1205,13 @@ ok(
   eq(sheetJob.roster, [{ role: 'Photographer', name: 'Marcus Reed', time: '08:00' }], 'only NAMED rows go on a client document')
   const t = bytes(estimatePdf.buildEstimatePdf(sheetJob))
   ok(t.includes('(Marcus Reed) Tj') && t.includes('(08:00) Tj'), 'the estimate prints the person and their call')
-  eq(
-    estimate.buildEstimate(job, { inventory }).roster,
-    [{ role: 'Photographer', name: 'Ann Taylor', time: null }],
-    'a job with no shoot falls back to its own photographer',
-  )
+  eq(estimate.buildEstimate(job, { inventory }).roster, [], 'the assignee is not crew — no sheet, no crew rows')
+  const noSheet = bytes(estimatePdf.buildEstimatePdf(estimate.buildEstimate(job, { inventory })))
+  ok(noSheet.includes('(Assignee) Tj') && noSheet.includes('(Ann Taylor) Tj'), 'the assignee prints as its own row')
+  ok(!noSheet.includes('(Photographer) Tj'), 'and the meta row no longer says Photographer')
+  const sheet2 = bytes(packingPdf.buildPackingListPdf(estimate.buildEstimate(job, { inventory }), { booking, inventory }))
+  ok(sheet2.includes('(Assignee) Tj'), 'on the packing list too')
+  eq(activity.jobFieldWords(['photographer']), ['assignee'], 'the feed calls the field Assignee')
   eq(activity.jobFieldWords(['crew']), ['call times'], 'the feed calls an edited sheet "call times"')
 }
 

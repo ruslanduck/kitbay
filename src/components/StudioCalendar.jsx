@@ -10,6 +10,7 @@ import {
   Tag,
   Layers,
   MapPin,
+  UserRound,
 } from 'lucide-react'
 import {
   startOfWeek,
@@ -98,6 +99,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
     b.studioId === 'L' && b.location,
     meta ? meta.label : 'no job attached',
     b.setLabel && `Set name ${b.setLabel}`,
+    b.assignee && `Assignee ${b.assignee}`,
     spanSummary(b.date, b.endDate),
     b.spanDays > 1 && `day ${b.dayIndex} of ${b.spanDays}`,
     // The whole call sheet on hover; the chip has room for one number, and
@@ -255,6 +257,7 @@ export default function StudioCalendar() {
           brand: order?.brand || null,
           jobType: order?.jobType || null,
           location: order?.location || null,
+          assignee: order?.photographer || null,
           poNumber: order?.poNumber || null,
           lineCount: (order?.lines || []).length,
           spanDays: days.length,
@@ -772,6 +775,15 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
       </div>
 
       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+        {/* Labelled, not just an icon: right under the call sheet a bare name
+            reads as one more person on it. */}
+        {b.assignee && (
+          <span className="inline-flex items-center gap-1">
+            <UserRound size={12} className="text-slate-400" />
+            <span className="text-slate-400">Assignee</span>
+            <span className="font-medium text-slate-700">{b.assignee}</span>
+          </span>
+        )}
         {/* What the job actually HOLDS, which is not the length of the unit
             list: a closed set keeps its units as history flagged returned, and
             a hold reserves nothing at all. Saying "8 pc(s) held" for either

@@ -37,10 +37,9 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
           endDate: b.endDate,
           studioId: b.studioId,
           reservationStatus: b.status === 'active' ? 'reserved' : b.status,
-          roster: [
-            b.photographer && { role: 'photographer', name: b.photographer },
-            b.model && { role: 'model', name: b.model },
-          ].filter(Boolean),
+          // The call sheet's NAMED rows — the same list the database mode reads
+          // from roster_entries, not just its first photographer and model.
+          roster: (b.crew || []).filter((r) => r.name).map((r) => ({ role: r.role, name: r.name })),
         }))
         .sort((a, b) => String(b.date).localeCompare(String(a.date)))
       setRows(local)

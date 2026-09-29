@@ -12,7 +12,7 @@ export const THEME_SYSTEM = 'system'
 export const THEME_LIGHT = 'light'
 export const THEME_DARK = 'dark'
 
-// The order the control cycles through — System first, because that is the
+// The order the dropdown lists them in — System first, because that is the
 // default and the one a person returns to.
 export const THEME_ORDER = [THEME_SYSTEM, THEME_LIGHT, THEME_DARK]
 
@@ -29,12 +29,6 @@ export function resolveTheme(preference, systemPrefersDark = false) {
   if (preference === THEME_DARK) return THEME_DARK
   if (preference === THEME_LIGHT) return THEME_LIGHT
   return systemPrefersDark ? THEME_DARK : THEME_LIGHT
-}
-
-// The next value the one-button control moves to.
-export function nextTheme(preference) {
-  const i = THEME_ORDER.indexOf(preference)
-  return THEME_ORDER[(i + 1) % THEME_ORDER.length]
 }
 
 // Whether a stored value is one we understand.

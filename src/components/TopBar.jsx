@@ -5,7 +5,8 @@ import { usingSupabase } from '../data/repository'
 import { roleLabel } from '../lib/permissions'
 import { WORKSPACE_NAV } from '../data/nav'
 import Logo, { BRAND_NAME } from './Logo'
-import { THEME_DARK, THEME_LABEL, THEME_SYSTEM, nextTheme } from '../lib/theme'
+import SelectField from './SelectField'
+import { THEME_DARK, THEME_LABEL, THEME_LIGHT, THEME_ORDER, THEME_SYSTEM } from '../lib/theme'
 
 // The top bar carries the navigation on desktop, so the views get the full
 // window width — the inventory and packing tables need it more than a permanent
@@ -110,7 +111,7 @@ export default function TopBar() {
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-        <ThemeButton />
+        <ThemeSelect />
         {/* Account menu — who you are signed in as, and the two actions that
             belong to the session rather than to a view. */}
         {usingSupabase && profile ? (
@@ -188,30 +189,32 @@ export default function TopBar() {
   )
 }
 
-// One button rather than a popover: three short states, and a tooltip that says
-// what the next click does. It lives in the BAR and not in the account menu
-// because local mode has no account menu, and a preference nobody can find is
-// not a preference.
+// A dropdown, not a button that cycles: with a cycle, reaching Dark from System
+// meant clicking through Light, and nothing on screen said what the other states
+// were. The list shows all three with the one in effect ticked — the app's own
+// SelectField, so it looks and behaves like every other dropdown here. It lives
+// in the BAR and not in the account menu because local mode has no account menu,
+// and a preference nobody can find is not a preference.
 //
-// The ICON shows what is in effect (a monitor while following the device), so
-// the control reports the current state instead of only offering a change.
-function ThemeButton() {
+// The trigger's ICON is what is in effect (a monitor while following the
+// device); on a phone it is the icon alone, as the button was.
+const THEME_ICON = {
+  [THEME_SYSTEM]: MonitorSmartphone,
+  [THEME_LIGHT]: Sun,
+  [THEME_DARK]: Moon,
+}
+
+function ThemeSelect() {
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
-  const Icon = theme === THEME_SYSTEM ? MonitorSmartphone : theme === THEME_DARK ? Moon : Sun
-  const next = nextTheme(theme)
   return (
-    <button
-      type="button"
-      onClick={() => setTheme(next)}
-      title={`Theme: ${THEME_LABEL[theme]}${
-        theme === THEME_SYSTEM ? ' (following your device)' : ''
-      } — click for ${THEME_LABEL[next]}`}
-      aria-label={`Theme: ${THEME_LABEL[theme]}. Switch to ${THEME_LABEL[next]}.`}
-      className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-    >
-      <Icon size={15} />
-      <span className="hidden sm:inline">{THEME_LABEL[theme]}</span>
-    </button>
+    <SelectField
+      value={theme}
+      onChange={(e) => setTheme(e.target.value)}
+      options={THEME_ORDER.map((t) => ({ value: t, label: THEME_LABEL[t], icon: THEME_ICON[t] }))}
+      ariaLabel={`Theme: ${THEME_LABEL[theme] ?? THEME_LABEL[THEME_SYSTEM]}`}
+      labelClassName="hidden sm:inline"
+      className="rounded-md px-2 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+    />
   )
 }

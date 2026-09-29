@@ -26,14 +26,12 @@ export const money = (n) =>
 
 // The crew on the set an order equips: its call sheet's NAMED rows, in the
 // sheet's order (role, person, call time). A role nobody is booked for yet is
-// not crew to put on a client's document. A job with no shoot of its own
-// (sub-rental history) falls back to the order's photographer, the one crew fact
-// it carries.
+// not crew to put on a client's document. The job's ASSIGNEE is not crew by
+// definition — it prints in the meta table as its own row.
 export function rosterFor(order, booking) {
-  const named = (booking?.crew || []).filter((r) => r?.name)
-  if (named.length) return named.map((r) => ({ role: r.role, name: r.name, time: r.time ?? null }))
-  const photographer = order?.photographer || booking?.photographer
-  return photographer ? [{ role: 'Photographer', name: photographer, time: null }] : []
+  return (booking?.crew || [])
+    .filter((r) => r?.name)
+    .map((r) => ({ role: r.role, name: r.name, time: r.time ?? null }))
 }
 
 // Group an order's lines: one group per kit (in first-seen order), then the

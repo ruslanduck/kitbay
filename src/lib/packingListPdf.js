@@ -142,7 +142,7 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
           : est.order.startsOn
         : '—',
     ],
-    ['Photographer', est.order.photographer || '—'],
+    ['Assignee', est.order.photographer || '—'],
     ['Client', est.order.companyName || '—'],
   ]
   doc.setFontSize(9)

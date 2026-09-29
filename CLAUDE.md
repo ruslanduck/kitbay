@@ -2798,6 +2798,58 @@
 > ⚠️ **`node --env-file=.env.local` TRUNCATES the DB password**: the value is unquoted and contains `#`, which
 > `--env-file` reads as a comment — 7 of its 15 characters came through and the push failed with `28P01`. Parse
 > `.env.local` by hand (split on the first `=`) before `encodeURIComponent`; the other keys have no `#`.
+> **CHANGE — the job has an ASSIGNEE again; the call sheet is just the schedule** (frontend only, no migration).
+> Reported against the job card one day after the call sheet shipped: "здесь должны быть указаны времена звонков
+> просто, верни фотографа на место … Вместо фотографа поставь Assignee и чтобы можно было выбрать кого угодно с
+> People". That reverses the previous entry's "the job's single photographer is the first Photographer row", and
+> the reversal is right: the sheet says WHO IS CALLED WHEN, the assignee says WHOSE JOB IT IS, and deriving the
+> second from the first meant a job had no owner until somebody was booked in a Photographer row.
+> **Assignee** sits where the Photographer field was — beside Location / Studio in the form, after Shoot type on
+> the card — and is a `ComboField` over **everyone in People** (`useAssigneeNames`: the whole roster in name order,
+> then any name already on a job that People lacks, so a job's own value stays offerable). No trade is put first,
+> because "кого угодно" was the requirement. Read live from the store, so a person filed a moment ago is offered.
+> A typed name People doesn't have is ADDED to People on save, the rule the call sheet already follows; the combo's
+> "is not in the list — it will be added when you save" note says so before the click.
+> **Storage did not move:** it is still `orders.photographer_contact_id` (`order.photographer` in the app) — it named
+> the photographer when that was the only person a job carried, the same "the identifier keeps its old word" rule as
+> the `orders` table. What changed is who WRITES it:
+> • ⚠️ `setCrew` no longer syncs it from the first Photographer row — a sheet that rewrote the column would silently
+>   undo what the form just saved. The `orderId` option went from `setCrew` / `updateBooking` / `syncSetForOrder`
+>   and from both store callers; local mode's two `crewNameFor(crew, 'Photographer')` overrides went too.
+> • New `withAssignee(row, o)` in the repository resolves the form's NAME to a contact id (via `resolveContactId`,
+>   which files a new person) on `createOrder` and `updateOrder`. ⚠️ This is the write the photographer field had
+>   been MISSING since the beginning (the form sent a name, `orderColumns` only writes an id) — the previous entry
+>   papered over it through the sheet. A patch without `photographer` (status, note) leaves the column alone.
+> Shown on the job card (a link to the person's card, or "not assigned"), the job PEEK (the card a calendar chip
+> opens — linked, stacks the person card), the day view's card ("Assignee · Nadia Brooks", LABELLED: right under
+> the call sheet a bare name read as one more person on it), the chip tooltip, and both PDFs, whose meta row now
+> reads **Assignee**. The estimate's CREW section is the sheet's named rows only — the assignee is not crew by
+> definition, so its old "fall back to the job's photographer" row is gone. The feed words `photographer` /
+> `photographerContactId` read "assignee", on events already stored too (applied on read).
+> Work history counts it: a person's card lists every job they are the assignee of, "as assignee" — local mode via a
+> mirrored `booking.assignee` (seed, create, edit), Supabase via a new OUTERMOST `getPeople` layer
+> (`assigned:orders!photographer_contact_id ( sets (…) )`, falling back to the old select). ONE row per shoot, and a
+> call-sheet role beats "Assignee" for the same shoot (`personJobs`), so Ann Taylor on her own job still reads "as
+> Photographer" rather than twice. Local unit history now lists the sheet's named rows (it only knew the first
+> photographer and model), matching what the database mode reads from `roster_entries`.
+> **The theme control is a dropdown** (asked for in the same breath: "сделай выбор темы выпадающим списком"). The
+> cycling button made Dark two clicks from System through Light, and nothing on screen said what the other states
+> were. It is the app's own `SelectField` now — System / Light / Dark with the one in effect ticked — which gained an
+> optional per-option `icon` (drawn in the row AND the trigger) and a `labelClassName`, so on a phone the trigger is
+> its icon alone (`hidden sm:inline`), as the button was. `nextTheme` went with its only caller; the head script
+> never used it.
+> 499 assertions (the PDFs print Assignee and not Photographer, no crew row is invented from the assignee, the feed
+> word, the dropdown's order). Verified in local mode: the card reads "Assignee · Ann Taylor" after Shoot type; the
+> form puts Assignee beside Location / Studio (same row, 302px each) with all 31 people offered; picking Jonas Lind —
+> a stylist — saved `order.photographer` and `booking.assignee` while the sheet's Photographer row stayed Ann Taylor,
+> the feed read "edited the job · assignee" and his card "as assignee"; typing "Nadia Brooks" showed the will-be-added
+> note, saving took People 31 → 32 with her history "as assignee" and dropped Jonas's (re-resolved, not appended); her
+> name is a link on the card and on the job peek ("2 deep"); the tooltip reads "… · Assignee Nadia Brooks · …"; the
+> day card reads "Assignee Nadia Brooks". Theme: 3 options with icons, Dark → `html.dark` + moon, Light → sun, System
+> → monitor and following the device; at 375px the trigger is 54px, the list slides to 252–367 on screen, no overflow.
+> Reseeded (31 people / 14 jobs / 11 shoots / 0 activity), 0 console errors. On prod, read-only through the app's own
+> new select: 200, 33 contacts, 8 people are the assignee of a job with a shoot (each still shows once, under their
+> call-sheet role), and 14 of 21 live jobs carry an assignee — they will read as such on the first load.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

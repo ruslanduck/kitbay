@@ -16,6 +16,7 @@ import { MAX_SET_DAYS, setSpanDays } from '../lib/setDays'
 import { isValidTime } from '../lib/callTimes'
 import { normalizeCrew, crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
 import CrewField from './CrewField'
+import { useAssigneeNames } from '../lib/usePeopleNames'
 import { setNameApplies } from '../lib/orderSearch'
 
 // Order (Estimate) creation form — epic #5, 5.1 + 5.2.
@@ -55,6 +56,7 @@ const blank = {
   endsOn: '',
   crew: [],
   wrapTime: '',
+  photographer: '',
   poNumber: '',
   status: 'hold',
 }
@@ -73,6 +75,7 @@ export default function OrderEditorModal({
   onDelete,
 }) {
   const isEdit = !!order
+  const assignees = useAssigneeNames()
   const [form, setForm] = useState(blank)
   const [error, setError] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -96,6 +99,7 @@ export default function OrderEditorModal({
             // edits it, so the caller hands it in alongside the order.
             crew: (order.crew ?? []).map((c) => ({ ...c })),
             wrapTime: order.wrapTime ?? '',
+            photographer: order.photographer ?? '',
             poNumber: order.poNumber ?? '',
             status: order.status ?? 'hold',
           }
@@ -136,6 +140,7 @@ export default function OrderEditorModal({
     const payload = {
       ...form,
       jobName: form.jobName.trim(),
+      photographer: (form.photographer ?? '').trim(),
       // A set name belongs to a PDP day. Any other type sends it empty, which
       // clears one left over from before the type changed (the Location rule).
       setLabel: setNameApplies(form.jobType) ? form.setLabel.trim() : '',
@@ -213,8 +218,6 @@ export default function OrderEditorModal({
             )}
           </div>
 
-          {/* The photographer is not a field of its own any more: they are one
-              row of the call sheet below, with everyone else on the crew. */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={label}>Location / Studio</label>
@@ -225,15 +228,17 @@ export default function OrderEditorModal({
                 className={field}
               />
             </div>
-            {/* A shoot books whole days, from the first to the last — no times.
-                Availability, the estimate's billable days, the packing list and
-                the job search all read this window. */}
+            {/* The job's ASSIGNEE — back where the photographer was, and open to
+                anyone in People, not only photographers. It is not a call-sheet
+                row: the sheet says who is called WHEN, this says whose job it
+                is. A name People doesn't have is added there on save. */}
             <div>
-              <label className={label}>Shoot dates</label>
-              <DateRangeField
-                from={form.startsOn}
-                to={form.endsOn}
-                onChange={({ from, to }) => set({ startsOn: from, endsOn: to })}
+              <label className={label}>Assignee</label>
+              <ComboField
+                value={form.photographer}
+                onChange={(e) => set({ photographer: e.target.value })}
+                options={assignees}
+                placeholder="Select or type…"
                 className={field}
               />
             </div>
@@ -251,6 +256,19 @@ export default function OrderEditorModal({
               />
             </div>
           )}
+
+          {/* A shoot books whole days, from the first to the last — no times.
+              Availability, the estimate's billable days, the packing list and
+              the job search all read this window. */}
+          <div>
+            <label className={label}>Shoot dates</label>
+            <DateRangeField
+              from={form.startsOn}
+              to={form.endsOn}
+              onChange={({ from, to }) => set({ startsOn: from, endsOn: to })}
+              className={field}
+            />
+          </div>
 
           {/* The call sheet. A shoot has no single start time — the
               photographer is called at 08:00 and the models at 10:00 — so the

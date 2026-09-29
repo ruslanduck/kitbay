@@ -16,7 +16,9 @@ import { ChevronDown, Check, Plus } from 'lucide-react'
 // `onChange` is called with an event-like { target: { value } }, exactly like a
 // real <select> and like DateField — so every call site keeps its handler body.
 //
-// Options: [{ value, label, disabled? }] or plain strings.
+// Options: [{ value, label, disabled?, icon? }] or plain strings. `icon` is a
+// component (a lucide icon); it is drawn in the row AND in the trigger, so a
+// compact trigger can show just the icon of what is in effect.
 export default function SelectField({
   value,
   onChange,
@@ -31,6 +33,9 @@ export default function SelectField({
   // quietly allowed typing read as two fixed choices. { label, placeholder,
   // submitLabel }
   other = null,
+  // Extra classes for the trigger's label — e.g. `hidden sm:inline`, so a trigger
+  // in the top bar is its icon alone on a phone.
+  labelClassName = '',
 }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState(null)
@@ -54,6 +59,7 @@ export default function SelectField({
       : []
   const opts = [...given, ...custom]
   const current = opts.find((o) => String(o.value) === String(value ?? ''))
+  const CurrentIcon = current?.icon ?? null
 
   const place = () => {
     const el = btnRef.current
@@ -198,8 +204,11 @@ export default function SelectField({
           .filter(Boolean)
           .join(' ')}
       >
+        {CurrentIcon && <CurrentIcon size={15} className="shrink-0" />}
         <span
-          className={['min-w-0 flex-1 truncate', current ? '' : 'text-slate-400'].join(' ')}
+          className={['min-w-0 flex-1 truncate', current ? '' : 'text-slate-400', labelClassName]
+            .filter(Boolean)
+            .join(' ')}
         >
           {current ? current.label : placeholder}
         </span>
@@ -234,6 +243,7 @@ export default function SelectField({
             )}
             {opts.map((o, i) => {
               const selected = String(o.value) === String(value ?? '')
+              const Icon = o.icon ?? null
               return (
                 <button
                   key={`${o.value}`}
@@ -258,6 +268,12 @@ export default function SelectField({
                     size={14}
                     className={['shrink-0', selected ? 'text-violet-600' : 'invisible'].join(' ')}
                   />
+                  {Icon && (
+                    <Icon
+                      size={14}
+                      className={['shrink-0', selected ? 'text-violet-600' : 'text-slate-400'].join(' ')}
+                    />
+                  )}
                   {/* `flex-auto`, NOT `flex-1`: a flex item with a basis of 0
                       contributes nothing to its container's max-content width,
                       so the list would not grow to fit its labels at all — the

@@ -4,7 +4,6 @@ import {
   ClipboardList,
   ChevronLeft,
   Pencil,
-  Camera,
   CalendarRange,
   Package,
   Building2,
@@ -147,7 +146,7 @@ export default function Orders() {
 
   const [search, setSearch] = usePersisted('orders', 'search', '')
   const [status, setStatus] = usePersisted('orders', 'status', 'All')
-  // 5.7 — job search: free text plus explicit photographer / studio / date-range
+  // 5.7 — job search: free text plus explicit studio / brand / type / date-range
   // filters and a sort. All matching lives in lib/orderSearch.
   const [studioFilter, setStudioFilter] = usePersisted('orders', 'studio', 'All')
   const [brandFilter, setBrandFilter] = usePersisted('orders', 'brand', 'All')
@@ -315,7 +314,7 @@ export default function Orders() {
           <FilterBar
             search={search}
             onSearch={setSearch}
-            searchPlaceholder="PO, shoot, photographer…"
+            searchPlaceholder="PO, shoot, assignee…"
             activeCount={activeFilters}
             onClear={clearAll}
             count={filtered.length}
@@ -819,13 +818,15 @@ function OrderDetail({
           <Row icon={Briefcase} label="Shoot type">
             {order.jobType || <span className="text-slate-400">—</span>}
           </Row>
-          {/* The photographer is a row of the call sheet above. Only a job with
-              no shoot of its own (sub-rental history) still carries one here. */}
-          {!booking && order.photographer && (
-            <Row icon={Camera} label="Photographer">
+          {/* Whose job it is — anyone in People. Not derived from the call sheet
+              above: that says who is called when. */}
+          <Row icon={UserRound} label="Assignee">
+            {order.photographer ? (
               <PeekLink onClick={personLink(order.photographer)}>{order.photographer}</PeekLink>
-            </Row>
-          )}
+            ) : (
+              <span className="text-slate-400">not assigned</span>
+            )}
+          </Row>
           {order.companyName && (
             <Row icon={Building2} label="Company">
               <PeekLink
