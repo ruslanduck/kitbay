@@ -2786,6 +2786,18 @@
 > 1/3) and the tooltip all read the sheet; a new job created through both steps with 08:00 Photographer Ann Taylor
 > stored the sheet and gave the job `photographer: Ann Taylor`. At 375px a row wraps to time + role / person + × /
 > note with no overflow; at 1440 it is one line. Demo data reseeded, 0 console errors on a clean load.
+> **Migration APPLIED and verified on prod** — deployed AFTER the code (the old bundle matched `role ===
+> 'photographer'` and the migration capitalises roles; the new code reads both). The dry run listed exactly this one
+> migration; the prediction was written down first and matched: `roster_entries` **22 → 27** — the two identical
+> "08:15 Producer" calls arrived ONCE, "07:15 Photographer · note Ann Tes" joined Priya Nair's row (note kept), the
+> other four calls became person-less rows with positions in time order — and roles now read Photographer 11 · Model
+> 11 · Producer 3 · Crew 1 · eee 1. The app's newest `getBookings` layer answers 200; a person-less row with a call
+> inserts, a blank role is refused with **23514**; the probe row was removed (27 again). Read through the app's own
+> rules, prod's sheets render as "07:10 eee · 09:15 Producer · 10:20 Crew" and "07:15 Photographer (Priya Nair) ·
+> Model (Amanda Googe)", with the chip reading the earliest call. `set_call_times` still holds its 7 rows, unread.
+> ⚠️ **`node --env-file=.env.local` TRUNCATES the DB password**: the value is unquoted and contains `#`, which
+> `--env-file` reads as a comment — 7 of its 15 characters came through and the push failed with `28P01`. Parse
+> `.env.local` by hand (split on the first `=`) before `encodeURIComponent`; the other keys have no `#`.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
