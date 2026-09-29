@@ -831,13 +831,6 @@ function OrderDetail({
               </PeekLink>
             </Row>
           )}
-          {order.setId && (
-            <Row icon={Briefcase} label="Shoot">
-              <PeekLink onClick={() => peek({ type: 'job', id: order.setId })}>
-                Crew &amp; gear on the day
-              </PeekLink>
-            </Row>
-          )}
         </section>
 
         {/* The note is written HERE, not in the editor. It used to appear only
@@ -1057,7 +1050,7 @@ function OrderDetail({
         {/* 5.2 who raised it + who last touched the gear (the attribution block) */}
         <section className="space-y-1.5">
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Attribution
+            More about Activity
           </h4>
           <Row icon={UserRound} label="Created by">
             {order.createdBy || (

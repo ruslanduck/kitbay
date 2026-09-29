@@ -348,17 +348,6 @@ function OrderPeek({ id }) {
               <span className="text-slate-400">—</span>
             )}
           </Field>
-          {booking && (
-            <Field label="Shoot">
-              <button
-                type="button"
-                onClick={() => peek({ type: 'job', id: booking.id })}
-                className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
-              >
-                {booking.title} · {spanSummary(booking.date, booking.endDate)}
-              </button>
-            </Field>
-          )}
           {/* Who is called when. It lives on the SHOOT, but this is the card a
               calendar chip opens, and the first thing anyone asks of a job on
               the day is what time people are due. */}
