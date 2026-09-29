@@ -2531,6 +2531,44 @@
 > seven; Agency clears the trade as above; Clear all resets both and the count line disappears; the choice
 > survives leaving the screen and is written to `viewState.people.subcategory`, so a reload keeps it.
 > 0 console errors.
+> **RENAME — the job card's own words, from an annotated screenshot, confirmed item by item.** The
+> studio drew on the card and asked for each change to be proposed in text and confirmed before anything
+> shipped ("уточняй … чтобы не ушло ненужное"). Confirmed and done, EVERYWHERE a person reads the word —
+> the job card, the job form, the peek card, both PDFs, the Jobs filter and the calendar chip's tooltip:
+> **Set date(s) → Shoot date(s)** (and the two forms' "Shoot days" → **Shoot dates**, so one field has one
+> name); **Set → Set name**; **Type → Shoot type** ("Any type" → "Any shoot type"); the job note's
+> PLACEHOLDER only → **Additional details** (its title stays **Note**, as asked). And **Attribution moved
+> below Equipment**, directly above Activity: The shoot → Note → Equipment → Attribution → Activity.
+> ⚠️ **"Type" is three different fields in this app and only ONE was renamed.** The company Type (the
+> editable `company_types` list) and the inventory item Type (Barcoded / Non-barcoded) kept theirs, and so
+> did the inventory CATEGORY named "Set" in `data/inventory.js` — set dressing, not a job's set. A blanket
+> find-and-replace would have renamed all four; the edit list named each occurrence and asserted it.
+> **The activity feed printed CODE:** a job edit logs the KEYS of what moved, and the feed showed them
+> verbatim — "Edited the job · setLabel, jobType". `jobFieldWords()` in `lib/activity.js` maps them to the
+> card's own words ("set name, shoot type"), both ends of the dates collapse to one "shoot dates", and an
+> unmapped key still reads as words rather than camelCase. Applied when an event is READ, so every edit
+> already logged on prod reads right too. +9 assertions (**403 total**).
+> ⚠️ **The escape trap, a FOURTH time — and this time it produced an assertion that could never fail.** A
+> `\b` word boundary in a test regex reached the file as a literal BACKSPACE byte (0x08), so
+> `/<BS>Set dates?<BS>/` matched nothing, ever, and "no Set date left on the PDF" passed unconditionally.
+> `cat -A` showed the `^H`. Rewritten as `!t.includes('Set date')` — a substring test has no escape to
+> lose, and "Set dates" contains "Set date" anyway. **A check that cannot fail is worse than no check:
+> it reads as protection.** After any scripted edit that writes a backslash, grep for control characters.
+> ℹ️ **Found and deliberately NOT fixed (asked instead):** every save of a job that HAS a wrap time logs
+> "wrap time" as changed even when nobody touched it. The diff in `updateOrder` compares the submitted
+> fields with the JOB record, but `wrapTime` and `callTimes` live on the SHOOT — so the job always reads
+> as empty there. The same comparison stringifies the call-time ARRAY, so a real call-time change never
+> registers. Pre-existing; it only became legible once the feed spoke in words.
+> Verified in local mode: the card's rows read Shoot date · Studio · Call times · Set name · Brand ·
+> Shoot type · Photographer · Company · Shoot; the form's labels read Set name / Shoot dates / Shoot type
+> with the note placeholder "Additional details" and the title Note; the filter offers "Any shoot type";
+> 14 calendar tooltips read "Set name OMSet1" with 0 old-style left; a 3-day job's peek card says
+> "Shoot dates 2026-09-28 → 2026-09-30"; an edit of the set name logged "edited the job · set name, wrap
+> time" (the second word is the defect above). The longest new PDF label, "Shoot dates", measures 47.7pt
+> at 9pt Helvetica — shorter than the existing "Photographer" (54pt), against a value column at 100pt.
+> Demo data reseeded, 0 console errors. Items 6–9 of the same screenshot (Studio → Location with an
+> address, a person's name on each call, "all crew" instead of one photographer, the Shoot row's "?") are
+> DATA changes, not renames, and wait on the studio's answers.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

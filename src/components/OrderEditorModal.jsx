@@ -198,7 +198,7 @@ export default function OrderEditorModal({
                 like the PO. A studio runs several sets a day and this is what
                 tells them apart on the calendar and on the pull sheet. */}
             <div>
-              <label className={label}>Set</label>
+              <label className={label}>Set name</label>
               <input
                 type="text"
                 value={form.setLabel}
@@ -236,7 +236,7 @@ export default function OrderEditorModal({
               the job search already read this window; the form is what used to
               force it shut on the day it opened. */}
           <div>
-            <label className={label}>Shoot days</label>
+            <label className={label}>Shoot dates</label>
             <DateRangeField
               from={form.startsOn}
               to={form.endsOn}
@@ -293,7 +293,7 @@ export default function OrderEditorModal({
               />
             </div>
             <div>
-              <label className={label}>Type</label>
+              <label className={label}>Shoot type</label>
               <ComboField
                 value={form.jobType}
                 onChange={(e) => set({ jobType: e.target.value })}
@@ -314,7 +314,7 @@ export default function OrderEditorModal({
               rows={3}
               value={form.notes}
               onChange={(e) => set({ notes: e.target.value })}
-              placeholder="Anything the crew should know about this job…"
+              placeholder="Additional details"
               className={`${field} resize-y`}
             />
           </div>

@@ -309,15 +309,15 @@ function OrderPeek({ id }) {
 
       <Section title="The shoot">
         <div className="space-y-1.5">
-          <Field label="Set date">
+          <Field label={order.startsOn === order.endsOn ? 'Shoot date' : 'Shoot dates'}>
             {order.startsOn === order.endsOn
               ? order.startsOn
               : `${order.startsOn} → ${order.endsOn}`}
           </Field>
           <Field label="Studio">{order.studioId ? studioLabel(order.studioId) : '—'}</Field>
-          <Field label="Set">{order.setLabel || '—'}</Field>
+          <Field label="Set name">{order.setLabel || '—'}</Field>
           <Field label="Brand">{order.brand || '—'}</Field>
-          <Field label="Type">{order.jobType || '—'}</Field>
+          <Field label="Shoot type">{order.jobType || '—'}</Field>
           <Field label="Photographer">
             {order.photographer ? (
               photographer ? (
@@ -414,7 +414,7 @@ function OrderPeek({ id }) {
         value={order.notes}
         cap={CAP.ORDER_MANAGE}
         onSave={(notes) => updateOrder(order.id, { notes })}
-        placeholder="Anything the crew should know about this job…"
+        placeholder="Additional details"
       />
 
       <Section title="Estimate">

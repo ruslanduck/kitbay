@@ -160,8 +160,11 @@ for (const [label, doc] of [
   ok(t.includes('Job ref'), `${label}: the reference row says Job`)
   ok(!t.includes('Order ref'), `${label}: not Order`)
   ok(t.includes('Brand') && t.includes('Nike'), `${label}: prints the brand`)
-  ok(t.includes('Type') && t.includes('Editorial'), `${label}: prints the shoot type`)
-  ok(t.includes('OMSet1'), `${label}: and the Set the crew reads`)
+  ok(t.includes('Shoot type') && t.includes('Editorial'), `${label}: prints the shoot type under its own name`)
+  ok(t.includes('Set name') && t.includes('OMSet1'), `${label}: and the set name the crew reads`)
+  // The renamed labels must not survive anywhere on the paper — a document
+  // that says "Type" while the screen says "Shoot type" is two vocabularies.
+  ok(!t.includes('Set date'), `${label}: no "Set date(s)" left`)
   ok(doc.getNumberOfPages() >= 1, `${label}: builds`)
 }
 ok(!bytes(packingPdf.buildPackingListPdf(est, { booking, inventory })).includes('$'), 'a pull sheet carries no money')
@@ -273,7 +276,7 @@ eq(setDays.spanSummary('2026-09-09', '2026-09-09'), 'Sep 9', 'and says nothing e
   eq(e3.days, 3, 'three days on the job')
   eq(e3.total, 540, 'and the estimate bills all three')
   const t = bytes(packingPdf.buildPackingListPdf(e3, { booking, inventory }))
-  ok(t.includes('Set dates'), 'the pull sheet says dates, plural, for a multi-day shoot')
+  ok(t.includes('Shoot dates'), 'the pull sheet says dates, plural, for a multi-day shoot')
   ok(t.includes('2026-09-10') || t.includes('to  2026-09-12') || t.includes('2026-09-12'), 'and prints the window')
 }
 
@@ -844,6 +847,22 @@ ok(
   eq(peopleOptions.subcategoriesIn(roster, 'Model', CATS), [], 'a category whose people have no trade offers none')
   eq(peopleOptions.subcategoriesIn([], 'All', CATS), [], 'an empty roster offers nothing')
   eq(peopleOptions.subcategoriesIn(undefined, undefined, undefined), [], 'and nothing at all is survivable')
+}
+
+// ─────────────────────────────── activity — a job edit names fields in WORDS
+// The feed printed the form's keys verbatim ("setLabel, jobType"). It reads the
+// same words as the job card now, and an edit logged before that still does,
+// because the words are applied when the event is read.
+{
+  const words = activity.jobFieldWords
+  eq(words(['setLabel', 'jobType']), ['set name', 'shoot type'], 'the renamed fields read as their new labels')
+  eq(words(['startsOn', 'endsOn']), ['shoot dates'], 'both ends of the dates are ONE field on screen, named once')
+  eq(words(['notes']), ['note'], 'the note is still called Note')
+  eq(words(['someNewField']), ['some new field'], 'an unmapped key still reads as words, never camelCase')
+  eq(words(undefined), [], 'nothing survivable')
+  const d = activity.describeEvent({ type: activity.EVENT.ORDER_UPDATED, data: { changed: ['setLabel', 'jobType'] } })
+  eq(d.detail, 'set name, shoot type', 'and that is what the feed shows')
+  ok(!/[a-z][A-Z]/.test(d.detail), 'with no camelCase in it')
 }
 
 console.log(`OK — ${n} assertions passed`)

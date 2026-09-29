@@ -128,14 +128,14 @@ export function buildEstimatePdf(estimateOrOrder, context) {
     ['PO number', est.order.poNumber || '—'],
     ['Job ref', est.order.number || '—'],
     ['Studio', est.order.studioId ? studioLabel(est.order.studioId) : '—'],
-    ['Set', est.order.setLabel || '—'],
+    ['Set name', est.order.setLabel || '—'],
     ['Brand', est.order.brand || '—'],
-    ['Type', est.order.jobType || '—'],
+    ['Shoot type', est.order.jobType || '—'],
     [
       // A shoot may run for several days (20260909120000), and the sheet has to
       // say so: the crew reads this to know when the gear goes out and when it
       // is due back.
-      est.days > 1 ? 'Set dates' : 'Set date',
+      est.days > 1 ? 'Shoot dates' : 'Shoot date',
       est.order.startsOn
         ? est.order.endsOn && est.order.endsOn !== est.order.startsOn
           ? `${est.order.startsOn} to ${est.order.endsOn}  (${est.days} days)`

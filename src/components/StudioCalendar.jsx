@@ -103,7 +103,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
     month ? studioLabel(b.studioId) : null,
     b.title,
     meta ? meta.label : 'no job attached',
-    b.setLabel && `Set ${b.setLabel}`,
+    b.setLabel && `Set name ${b.setLabel}`,
     spanSummary(b.date, b.endDate),
     b.spanDays > 1 && `day ${b.dayIndex} of ${b.spanDays}`,
     // The whole call sheet on hover; the chip has room for one number, and

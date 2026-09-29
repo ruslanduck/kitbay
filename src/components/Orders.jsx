@@ -362,7 +362,7 @@ export default function Orders() {
               <SelectField
                 value={typeValue}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                options={[{ value: 'All', label: 'Any type' }, ...typeOptions]}
+                options={[{ value: 'All', label: 'Any shoot type' }, ...typeOptions]}
                 className={FILTER_FIELD}
               />
             </div>
@@ -788,7 +788,7 @@ function OrderDetail({
           </h4>
           <Row
             icon={CalendarRange}
-            label={setSpanDays(order.startsOn, order.endsOn) > 1 ? 'Set dates' : 'Set date'}
+            label={setSpanDays(order.startsOn, order.endsOn) > 1 ? 'Shoot dates' : 'Shoot date'}
           >
             {order.startsOn ? dateRange(order.startsOn, order.endsOn) : '—'}
           </Row>
@@ -800,13 +800,13 @@ function OrderDetail({
           <Row icon={Clock3} label="Call times">
             <CallSheetList callTimes={booking?.callTimes} wrapTime={booking?.wrapTime} />
           </Row>
-          <Row icon={Layers} label="Set">
+          <Row icon={Layers} label="Set name">
             {order.setLabel || <span className="text-slate-400">not named</span>}
           </Row>
           <Row icon={Tag} label="Brand">
             {order.brand || <span className="text-slate-400">—</span>}
           </Row>
-          <Row icon={Briefcase} label="Type">
+          <Row icon={Briefcase} label="Shoot type">
             {order.jobType || <span className="text-slate-400">—</span>}
           </Row>
           <Row icon={Camera} label="Photographer">
@@ -849,42 +849,8 @@ function OrderDetail({
             value={order.notes}
             canEdit={canManage}
             onSave={(notes) => updateOrder(order.id, { notes })}
-            placeholder="Anything the crew should know about this job…"
+            placeholder="Additional details"
           />
-        </section>
-
-        {/* 5.2 who raised it + who last touched the gear (the attribution block) */}
-        <section className="space-y-1.5">
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Attribution
-          </h4>
-          <Row icon={UserRound} label="Created by">
-            {order.createdBy || (
-              // Null means the seed script raised it, not a mystery — say so.
-              <span className="text-slate-400">seed data</span>
-            )}
-          </Row>
-          <Row icon={Clock3} label="Created">
-            {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
-          </Row>
-          {/* The question this whole block exists to answer. */}
-          <Row icon={Boxes} label="Equipment by">
-            {order.eqUpdatedBy ? (
-              <>
-                {order.eqUpdatedBy}
-                {order.eqUpdatedAt && (
-                  <span className="text-slate-400">
-                    {' · '}
-                    {new Date(order.eqUpdatedAt).toLocaleString()}
-                  </span>
-                )}
-              </>
-            ) : (
-              <span className="text-slate-400">
-                {estimate.lineCount > 0 ? 'not recorded yet' : 'no equipment added yet'}
-              </span>
-            )}
-          </Row>
         </section>
 
         {/* Equipment, the estimate it prices and the pull sheet it fills are ONE
@@ -1086,6 +1052,40 @@ function OrderDetail({
               </>
             )}
           </div>
+        </section>
+
+        {/* 5.2 who raised it + who last touched the gear (the attribution block) */}
+        <section className="space-y-1.5">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Attribution
+          </h4>
+          <Row icon={UserRound} label="Created by">
+            {order.createdBy || (
+              // Null means the seed script raised it, not a mystery — say so.
+              <span className="text-slate-400">seed data</span>
+            )}
+          </Row>
+          <Row icon={Clock3} label="Created">
+            {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
+          </Row>
+          {/* The question this whole block exists to answer. */}
+          <Row icon={Boxes} label="Equipment by">
+            {order.eqUpdatedBy ? (
+              <>
+                {order.eqUpdatedBy}
+                {order.eqUpdatedAt && (
+                  <span className="text-slate-400">
+                    {' · '}
+                    {new Date(order.eqUpdatedAt).toLocaleString()}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-slate-400">
+                {estimate.lineCount > 0 ? 'not recorded yet' : 'no equipment added yet'}
+              </span>
+            )}
+          </Row>
         </section>
 
         {/* Who changed what on this order. Reservation churn is filtered out —

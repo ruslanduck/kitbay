@@ -129,6 +129,41 @@ const list = (rows, fmt) => rows.map(fmt).join(', ')
 
 // Turn an event into a sentence. Returns { icon, title, detail } — the icon is a
 // KEY, resolved to a lucide component by the component, keeping this file pure.
+// A job edit records the KEYS of the fields that moved, and the feed printed
+// them as they are — "setLabel, jobType" — the one place a person read code
+// instead of a label. These are the words the job card itself uses, so the
+// feed and the card name a field the same way. Applied when the event is READ,
+// so edits logged before the renames read right too.
+const JOB_FIELD_WORDS = {
+  jobName: 'job name',
+  setLabel: 'set name',
+  studioId: 'studio',
+  startsOn: 'shoot dates',
+  endsOn: 'shoot dates',
+  photographer: 'photographer',
+  photographerContactId: 'photographer',
+  companyId: 'client',
+  brand: 'brand',
+  jobType: 'shoot type',
+  poNumber: 'PO',
+  status: 'status',
+  notes: 'note',
+  callTimes: 'call times',
+  wrapTime: 'wrap time',
+}
+
+// Keys → words, in order, once each (both ends of the dates are one field on
+// screen). A key nobody mapped still reads as words rather than camelCase.
+export function jobFieldWords(keys = []) {
+  const out = []
+  for (const key of keys ?? []) {
+    const word =
+      JOB_FIELD_WORDS[key] ?? String(key).replace(/([A-Z])/g, ' $1').toLowerCase()
+    if (!out.includes(word)) out.push(word)
+  }
+  return out
+}
+
 export function describeEvent(ev) {
   const d = ev?.data || {}
   switch (ev?.type) {
@@ -182,7 +217,7 @@ export function describeEvent(ev) {
       return {
         icon: 'pencil',
         title: 'Edited the job',
-        detail: d.changed?.length ? d.changed.join(', ') : null,
+        detail: d.changed?.length ? jobFieldWords(d.changed).join(', ') : null,
       }
     case EVENT.ORDER_DELETED:
       return { icon: 'trash', title: 'Scrapped the job', detail: d.jobName ?? null }

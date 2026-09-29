@@ -298,7 +298,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                 to take one date plus a start and end time; the grid is
                 studio x day, so the times said nothing the range doesn't. */}
             <div className="sm:col-span-2">
-              <label className={labelClass}>Shoot days</label>
+              <label className={labelClass}>Shoot dates</label>
               <DateRangeField
                 from={form.date}
                 to={form.endDate}
