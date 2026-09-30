@@ -993,7 +993,9 @@ ok(
     [/\bpresets?\b/i, 'a preset is a scenario list'],
     [/\bpc\(s\)/, 'pieces are "pcs"'],
     [/\b(pull sheet|packing checklist|digital checklist)\b/i, 'the document is the packing list'],
-    [/\b(inventory item|item type|add inventory)\b/i, 'an item is an item — created by "New item"'],
+    // "Add Inventory" is legal again: the studio chose it for the Items tab's
+    // primary button (30 Sep). The two phrases below still are not.
+    [/\b(inventory item|item type)\b/i, 'an entry is created by "Add Inventory"'],
     [/\bStudio L\b/, 'L is Location'],
     [/\broster\b/i, 'the roster is the crew'],
     [/\bplacement\b/i, 'placement is the storage location'],

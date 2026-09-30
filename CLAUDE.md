@@ -2905,6 +2905,21 @@
 > button icon-only; light and dark both looked at. Reseeded (44 items / 27 subcategories / 2 unfiled / 0 activity),
 > 0 console errors. ℹ️ The Supabase write path was verified by reading, not by clicking — signing in is not something
 > Claude does; the first real drag on prod exercises it.
+> **RENAME — the Items tab's primary button is "Add Inventory", and the card's is "Add item"** (frontend only).
+> Asked why the card's **Add unit** couldn't read "Add item", the studio heard the answer (an item's card vs one
+> physical piece of it) and decided: the header button that CREATES an entry becomes **Add Inventory**, which frees
+> **Add item** for the card's button that adds another piece to that entry. Exactly those two labels changed, plus
+> the card button's tooltip ("Another one of these — with its own barcode and serial"), which would otherwise have
+> contradicted it. A non-barcoded entry keeps **Add stock** there. The vocabulary scan used to RETIRE "add
+> inventory" (from the sweep that made the button "New item"); that entry is gone and the reason now names the new
+> button — the scan follows the studio's words, not the other way round.
+> ⚠️ **Deliberately NOT renamed, pending the studio's call** — the windows those buttons open and the rest of the
+> unit vocabulary still say what they said: the create window is titled "New item" / "Create item" (and the job
+> equipment window offers "New item “…”"), the card's window is "Add units" with "Add another unit" / "Add 2 units",
+> and the card, table and counts read UNIT / "N units". Asked in the same breath whether those should follow.
+> Verified in local mode: header reads Inventory Hierarchy · Add Inventory; a barcoded card reads Add item · Work
+> history · Edit item, a non-barcoded one (Gaffer Tape) Add stock; Add item opens the units window and Add Inventory
+> the create window, as before; 523 assertions, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

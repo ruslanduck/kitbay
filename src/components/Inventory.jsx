@@ -561,8 +561,10 @@ export default function Inventory() {
             <span className="hidden sm:inline">Inventory Hierarchy</span>
           </button>
         )}
-        {/* The primary action follows the active tab — New item / New kit /
-            New list, the same "New X" every other record in the app uses. */}
+        {/* The primary action follows the active tab — Add Inventory / New kit /
+            New list. "Add Inventory" is the studio's own wording for creating a
+            register entry (asked for by name), which frees "Add item" for the
+            card's button that adds another piece of an entry. */}
         {entryType === 'kits'
           ? can(CAP.KIT_MANAGE) && (
               <button
@@ -592,7 +594,7 @@ export default function Inventory() {
                   className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-strong"
                 >
                   <Plus size={16} />
-                  New item
+                  Add Inventory
                 </button>
               )}
         </div>
@@ -1190,21 +1192,22 @@ function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggle
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {/* Add physical units to THIS item. "New item" at the top creates the
-              item itself; this adds to it. */}
+          {/* Add another physical piece to THIS entry. "Add Inventory" at the
+              top creates the entry itself; this adds to it. The studio calls
+              that piece an item here, by request. */}
           {canEdit && (
             <button
               type="button"
               onClick={isBarcoded ? onAddUnit : onAddStock}
               title={
                 isBarcoded
-                  ? 'Register another unit of this item'
+                  ? 'Another one of these — with its own barcode and serial'
                   : 'Stock received or gone out — logged with who and when'
               }
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-strong"
             >
               <Plus size={14} />
-              {isBarcoded ? 'Add unit' : 'Add stock'}
+              {isBarcoded ? 'Add item' : 'Add stock'}
             </button>
           )}
           <button
