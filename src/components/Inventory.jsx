@@ -546,17 +546,19 @@ export default function Inventory() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-        {/* Managing the tree is a separate, non-destructive job from adding
-            stock, so it gets its own quiet button rather than a menu nobody
-            would find. */}
+        {/* The Inventory Hierarchy (Category → Subcategory → Item) is a
+            separate, non-destructive job from adding stock, so it gets its own
+            quiet button rather than a menu nobody would find. */}
         {entryType === 'items' && can(CAP.INVENTORY_EDIT) && (
           <button
             type="button"
             onClick={() => setTaxOpen(true)}
+            title="Inventory Hierarchy — categories, subcategories and what is filed where"
+            aria-label="Inventory Hierarchy"
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             <FolderTree size={15} />
-            Categories
+            <span className="hidden sm:inline">Inventory Hierarchy</span>
           </button>
         )}
         {/* The primary action follows the active tab — New item / New kit /

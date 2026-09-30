@@ -2458,20 +2458,29 @@ export const useStore = create(
             entityId: id,
             data: { what: 'subcategory', from, to },
           })
+        // Shown at once in both modes, like a moved item: a subcategory dragged
+        // to another category lands there. Put back if the database refuses.
+        const place = (name, categoryId) =>
+          set({
+            taxonomy: {
+              ...get().taxonomy,
+              subcategories: get().taxonomy.subcategories.map((x) =>
+                x.id === id ? { ...x, name, categoryId } : x,
+              ),
+            },
+          })
+        place(clean, nextCat)
         if (usingSupabase) {
-          await sbUpdateInventorySubcategory(id, { name: clean, categoryId: nextCat })
+          try {
+            await sbUpdateInventorySubcategory(id, { name: clean, categoryId: nextCat })
+          } catch (e) {
+            place(before.name, before.categoryId)
+            return { error: `That change wasn't saved — ${e?.message || 'the database refused it'}.` }
+          }
           log()
           await get().hydrate({ quiet: true })
           return { ok: true, id }
         }
-        set({
-          taxonomy: {
-            ...state.taxonomy,
-            subcategories: state.taxonomy.subcategories.map((x) =>
-              x.id === id ? { ...x, name: clean, categoryId: nextCat } : x,
-            ),
-          },
-        })
         log()
         return { ok: true, id }
       },
@@ -2540,18 +2549,32 @@ export const useStore = create(
               },
             })
         }
-        if (usingSupabase) {
-          const res = await sbSetItemsSubcategory(moving.map((i) => i.id), subcategoryId)
-          logMoves()
-          await get().hydrate({ quiet: true })
-          return { ok: true, count: res.count }
-        }
+        // Shown at once in BOTH modes: a piece dragged into a subcategory in the
+        // Inventory Hierarchy must land where it was dropped, not snap back
+        // until the refetch arrives. A write the database refuses is put back —
+        // only the rows this call moved — and said.
         const movingIds = new Set(moving.map((i) => i.id))
+        const was = new Map(moving.map((i) => [i.id, i.subcategoryId ?? null]))
         set({
           inventory: state.inventory.map((i) =>
             movingIds.has(i.id) ? { ...i, subcategoryId: subcategoryId ?? null } : i,
           ),
         })
+        if (usingSupabase) {
+          try {
+            await sbSetItemsSubcategory([...movingIds], subcategoryId)
+          } catch (e) {
+            set({
+              inventory: get().inventory.map((i) =>
+                movingIds.has(i.id) ? { ...i, subcategoryId: was.get(i.id) } : i,
+              ),
+            })
+            return { error: `That move wasn't saved — ${e?.message || 'the database refused it'}.` }
+          }
+          logMoves()
+          await get().hydrate({ quiet: true })
+          return { ok: true, count: moving.length }
+        }
         logMoves()
         return { ok: true, count: moving.length }
       },

@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react'
 
 // A refusal, where the person can actually see it.
 //
-// Reported against the Categories window: removing a category that still holds
+// Reported against the Inventory Hierarchy window: removing a category that still holds
 // stock is refused with a reason, the reason rendered at the top of a long
 // scrolling list, and "я ее не вижу пока не пролистаю наверх" — a message
 // nobody reads is the same as no message.

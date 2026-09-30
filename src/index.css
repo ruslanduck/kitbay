@@ -255,6 +255,17 @@
 }
 
 /* Someone who asked the OS for less motion gets the new page, not the slide. */
+/* While a row of the Inventory Hierarchy is being dragged (lib/useTreeDrag):
+   one cursor everywhere — buttons under the pointer would otherwise show their
+   own — and no text selection trailing it. Outside any @layer so no utility
+   out-ranks it. */
+body.tree-dragging,
+body.tree-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cal-flip-fwd,
   .cal-flip-back,

@@ -2850,6 +2850,61 @@
 > Reseeded (31 people / 14 jobs / 11 shoots / 0 activity), 0 console errors. On prod, read-only through the app's own
 > new select: 200, 33 contacts, 8 people are the assignee of a job with a shoot (each still shows once, under their
 > call-sheet role), and 14 of 21 live jobs carry an assignee — they will read as such on the first load.
+> **CHANGE — "Categories" is the INVENTORY HIERARCHY, and it is organised by drag & drop** (frontend only, no
+> migration). Requested as a ticket ("Rename the existing Categories section to Inventory Hierarchy … Inventory →
+> Inventory Hierarchy → Category → Subcategory") plus the studio's own line under it: "дать им тут возможность
+> раскрывать списки inventory и перемещать их между категориями и сабкатегориями при помощи drag&drop".
+> **The rename is two strings, deliberately:** the Inventory header button (`Categories` → **Inventory Hierarchy**,
+> icon-only below `sm` with the name in `aria-label`) and the window title (`Categories & subcategories` →
+> **Inventory Hierarchy**). The LEVELS keep their names — Category and Subcategory are what the filters, the item
+> form's "Filed under" and every count say — and the window now states the order they nest in with a small
+> "CATEGORY › SUBCATEGORY › ITEM" key, counts read "5 subcategories · 11 items" (it said "5 sub"), and adding one is a
+> labelled "+ Subcategory" instead of a bare plus. The vocabulary scan retires the old title.
+> **The tree opens down to the items.** Categories start open and collapse (one by one, or "Collapse all"); a
+> subcategory opens to list its items with their unit / on-hand counts; and **Not filed** is a group of its own at the
+> top — the 51 pieces on prod with no subcategory, grouped by the category they were imported as — always present,
+> so there is somewhere to drag an item OUT to.
+> **Drag & drop, on pointer events — not the HTML5 API**, which does not work with a finger on most phones and
+> tablets, and this app runs on iPads. `src/lib/useTreeDrag.js` owns the gesture: a press becomes a drag only after
+> 4px of movement (a tap is still a tap), the place under the pointer is the nearest `[data-drop]` ancestor of
+> `elementFromPoint`, the panel scrolls itself near its edges, a place held for 550ms is reported (a collapsed
+> category opens under the pointer, like a folder), Escape cancels WITHOUT closing the window (a capture-phase
+> listener on window runs before the modal's own), and the click the browser fires after a drop is swallowed so the
+> drop doesn't also toggle what it landed on. The ghost follows the pointer by writing its transform directly; React
+> re-renders only when the PLACE under it changes. A mouse drags a row from anywhere on it; a finger only from the
+> grip, which carries `touch-action: none`, so the rest of the list still scrolls under a thumb.
+> **What a drop MEANS lives in the pure `src/lib/hierarchyDrop.js`** (+24 assertions, **523 total**): an item (or
+> every TICKED item — a drag of one carries them all) onto a subcategory files it there, only the pieces not already
+> there move, and the destination reads as its path because "LED" can exist in two categories; onto Not filed takes it
+> out; onto a CATEGORY is refused with the reason ("Items go in a subcategory — drop on one.") — the rule the
+> taxonomy was built on; a subcategory onto a category, or onto a row of another category, moves there with its items
+> following, and a name that category already has is refused with the clash named. Dropped where it already is,
+> nothing happens and nothing lights up. `undoPlan` is worked out BEFORE the move, per origin, so **Undo** sends a
+> gathered drag's pieces each back to its own subcategory, Not filed included. The place under the pointer lights
+> violet where it would land and rose where it is refused, and the ghost says which ("→ Grip / Rigging").
+> Without a drag: tick items and the footer offers **Move to…** (every "Category / Subcategory" path + Not filed) —
+> the keyboard's and a small screen's way, through the SAME verdicts. The footer is also where "Moved “B10” to Grip /
+> Clamps · Undo" appears, outside the scroll container like `ErrorNote`, so it is seen wherever the list is scrolled.
+> ⚠️ **Moves are OPTIMISTIC in Supabase mode now** (`assignItemsSubcategory`, `updateSubcategory`): the local state
+> changes first in both modes, then the database is written, and a refused write is put back — only the rows that
+> call moved — and reported. Without it a dropped item snapped back to where it came from for the second the refetch
+> took, which reads exactly like a failed drop. Both used to let a thrown write escape as an unhandled rejection; they
+> return `{ error }` now, which the bulk "File under…" tool gets for free.
+> Verified in local mode by measurement, every path: mid-drag the ghost read "Big Ben Clamp → Grip / Rigging", the
+> target carried `ring-violet-300`, the source row `opacity-40` and `body.tree-dragging` was set; the drop moved it
+> (Clamps 3 → 2, Rigging 1 → 2, stored subcategory Rigging, one `item.filed` event), Undo put it back; an item held
+> over a category went rose with the reason and changed nothing; Rigging dragged onto Audio moved with its J-Hook
+> (Audio 4 subcategories · 5 items) and Undo returned it; Grip's Clamps onto an Audio that has a "Clamps" was refused
+> ("Audio already has a “Clamps”."); an unfiled Safety Cable into Rigging took Not filed 2 → 1, and back out to Not
+> filed 1 → 2; two ticked items moved together both by drag ("2 items → Grip / Rigging") and by Move to… (28 options);
+> a click dispatched onto the Rigging row right after a drop did NOT open it; Escape mid-drag cancelled with the
+> window still open and the item unmoved; a collapsed Audio opened after 800ms held over its header; holding at the
+> bottom edge scrolled the list 294px in half a second and the top edge brought it back; a TOUCH pointer on a row
+> did not start a drag while one on the grip did. At 375px no overflow, every subcategory on one line (a long name
+> truncates rather than pushing its icons onto a line of their own — found in the screenshot and fixed), the header
+> button icon-only; light and dark both looked at. Reseeded (44 items / 27 subcategories / 2 unfiled / 0 activity),
+> 0 console errors. ℹ️ The Supabase write path was verified by reading, not by clicking — signing in is not something
+> Claude does; the first real drag on prod exercises it.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew, hierarchyDrop] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -41,6 +41,7 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/data/studios.js'),
     load('src/lib/capacity.js'),
     load('src/lib/crew.js'),
+    load('src/lib/hierarchyDrop.js'),
   ])
 
 let n = 0
@@ -517,6 +518,97 @@ ok(
     'a subcategory with no category is refused — that is the invariant')
 }
 
+// ─────────────────────────────────────────────── the Inventory Hierarchy's drag & drop
+// What a drop MEANS. The window only asks; every rule lives in lib/hierarchyDrop.
+{
+  const tax = {
+    categories: [
+      { id: 'c-light', name: 'Lighting', position: 1 },
+      { id: 'c-grip', name: 'Grip', position: 2 },
+      { id: 'c-old', name: 'Retired', position: 3, archivedAt: '2026-09-01' },
+    ],
+    subcategories: [
+      { id: 's-strobe', categoryId: 'c-light', name: 'Strobes', position: 1 },
+      { id: 's-led', categoryId: 'c-light', name: 'LED', position: 2 },
+      { id: 's-clamp', categoryId: 'c-grip', name: 'Clamps', position: 1 },
+      // The same name in another category — so a move there must be refused.
+      { id: 's-grip-led', categoryId: 'c-grip', name: 'LED', position: 2 },
+      { id: 's-gone', categoryId: 'c-grip', name: 'Gone', archivedAt: '2026-09-01' },
+    ],
+  }
+  const items = [
+    { id: 'a', name: 'B10', subcategoryId: 's-strobe' },
+    { id: 'b', name: 'A-clamp', subcategoryId: 's-clamp' },
+    { id: 'c', name: 'C-stand' }, // not filed
+    { id: 'd', name: 'Retired head', subcategoryId: 's-strobe', archivedAt: '2026-08-01' },
+  ]
+  const item = (ids) => ({ kind: 'item', ids })
+  const v = (p, t) => hierarchyDrop.dropVerdict(p, t, tax, items)
+
+  eq(v(item(['a']), { kind: 'sub', id: 's-clamp' }).move,
+    { type: 'items', ids: ['a'], subcategoryId: 's-clamp', to: 'Grip / Clamps' },
+    'an item dropped on a subcategory is filed there')
+  eq(v(item(['a']), { kind: 'sub', id: 's-strobe' }), { ok: false, noop: true },
+    'dropped where it already is, nothing happens — and nothing lights up')
+  eq(v(item(['a', 'b', 'c']), { kind: 'sub', id: 's-clamp' }).move.ids, ['a', 'c'],
+    'a drag of several moves only the pieces not already there')
+  eq(v(item(['c']), { kind: 'sub', id: 's-led' }).move.to, 'Lighting / LED',
+    'the destination reads as its path — LED exists in two categories')
+  const onCat = v(item(['a']), { kind: 'cat', id: 'c-grip' })
+  ok(!onCat.ok && onCat.reason.includes('subcategory'),
+    'an item dropped on a CATEGORY is refused with the reason — items live in a subcategory')
+  eq(v(item(['a', 'c']), { kind: 'unfiled', id: null }).move,
+    { type: 'items', ids: ['a'], subcategoryId: null, to: 'Not filed' },
+    'dragged to Not filed, a filed item is taken out and an unfiled one left alone')
+  eq(v(item(['c']), { kind: 'unfiled', id: null }), { ok: false, noop: true },
+    'an unfiled item dropped on Not filed is a no-op')
+  ok(v(item(['a']), { kind: 'sub', id: 's-gone' }).reason.includes('no longer exists'),
+    'an archived subcategory takes nothing')
+  ok(v(item(['d']), { kind: 'sub', id: 's-clamp' }).reason.includes('no longer in the register'),
+    'a written-off item cannot be moved')
+  eq(hierarchyDrop.dropVerdict(null, { kind: 'sub', id: 's-clamp' }, tax, items), { ok: false, noop: true },
+    'nothing carried, nothing to decide')
+
+  const sub = { kind: 'sub', id: 's-strobe' }
+  eq(v(sub, { kind: 'cat', id: 'c-grip' }).move,
+    { type: 'sub', id: 's-strobe', categoryId: 'c-grip', fromCategoryId: 'c-light', to: 'Grip' },
+    'a subcategory dropped on a category moves there — its items follow')
+  eq(v(sub, { kind: 'sub', id: 's-clamp' }).move.categoryId, 'c-grip',
+    'dropped on another subcategory, it moves to THAT one’s category')
+  eq(v(sub, { kind: 'cat', id: 'c-light' }), { ok: false, noop: true },
+    'dropped on its own category, nothing happens')
+  eq(v(sub, { kind: 'sub', id: 's-led' }), { ok: false, noop: true }, 'nor on a sibling')
+  ok(v({ kind: 'sub', id: 's-led' }, { kind: 'cat', id: 'c-grip' }).reason.includes('already has'),
+    'a name the target category already has is refused, with the clash named')
+  ok(v(sub, { kind: 'unfiled', id: null }).reason.includes('always belongs'),
+    'a subcategory cannot be unfiled')
+  ok(v(sub, { kind: 'cat', id: 'c-old' }).reason.includes('no longer exists'),
+    'an archived category takes nothing')
+
+  eq(hierarchyDrop.dragLabel(item(['a']), items, tax), 'B10', 'one carried item reads as its name')
+  eq(hierarchyDrop.dragLabel(item(['a', 'b', 'c']), items, tax), '3 items', 'several read as a count')
+  eq(hierarchyDrop.dragLabel(sub, items, tax), 'Strobes', 'a subcategory reads as its name')
+
+  const move = v(item(['a', 'b', 'c']), { kind: 'sub', id: 's-led' }).move
+  eq(hierarchyDrop.undoPlan(move, items),
+    {
+      type: 'items',
+      groups: [
+        { subcategoryId: 's-strobe', ids: ['a'] },
+        { subcategoryId: 's-clamp', ids: ['b'] },
+        { subcategoryId: null, ids: ['c'] },
+      ],
+    },
+    'Undo sends each piece home — including back to Not filed')
+  eq(hierarchyDrop.undoPlan(v(sub, { kind: 'cat', id: 'c-grip' }).move, items),
+    { type: 'sub', id: 's-strobe', categoryId: 'c-light' },
+    'and a subcategory back to its category')
+  eq(hierarchyDrop.moveSummary(move, items, tax), 'Moved 3 items to Lighting / LED',
+    'the summary counts several')
+  eq(hierarchyDrop.moveSummary(v(item(['a']), { kind: 'sub', id: 's-clamp' }).move, items, tax),
+    'Moved “B10” to Grip / Clamps', 'and names one')
+}
+
 // Building a taxonomy from the legacy text — the seed's job, and the SQL
 // migration's, so the rule is asserted once here.
 {
@@ -907,6 +999,7 @@ ok(
     [/\bplacement\b/i, 'placement is the storage location'],
     [/\bjob name\b/i, 'the field is the Shoot name'],
     [/\bFULFILLED\b/, 'the closed status reads "Closed" — on paper too'],
+    [/Categories & subcategories/, 'the window is the Inventory Hierarchy'],
   ]
   // Only in JSX text, where a lone LOWERCASE word is the noun of a count
   // ("{n} sets"). Case-sensitive on purpose: "Contact" is the contact-details
