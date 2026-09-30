@@ -15,6 +15,9 @@ import {
 import Modal from './Modal'
 import ErrorNote from './ErrorNote'
 import { notArchived } from '../store'
+import { findMatches, searchRows } from '../lib/search'
+import { useItemIndex } from '../lib/useItemIndex'
+import MatchText from './MatchText'
 
 // Scenario list editor (Build order #3, 3.6). A list is the preset pull list for
 // a *type of shoot* — it mixes whole KITS and a-la-carte ITEMS with quantities.
@@ -105,23 +108,26 @@ export default function ScenarioEditorModal({
   const usedItemIds = new Set(form.entries.filter((e) => e.itemId).map((e) => e.itemId))
   const usedKitIds = new Set(form.entries.filter((e) => e.kitId).map((e) => e.kitId))
 
-  const pickerResults = useMemo(() => {
-    const q = pickerSearch.trim().toLowerCase()
+  // Ranked, typo- and synonym-tolerant (lib/search) — items through the
+  // register's index, kits by name.
+  const itemIndex = useItemIndex(inventory)
+  const pickerHits = useMemo(() => {
+    const q = pickerSearch.trim()
+    const plain = (rows) => rows.slice(0, 8).map((row) => ({ row, spans: [] }))
     if (picker === 'kit') {
-      return kits
-        .filter((k) => notArchived(k) && !usedKitIds.has(k.id))
-        .filter((k) => q === '' || k.name.toLowerCase().includes(q))
-        .slice(0, 8)
+      const pool = kits.filter((k) => notArchived(k) && !usedKitIds.has(k.id))
+      return q ? searchRows(pool, q, { limit: 8 }) : plain(pool)
     }
     if (picker === 'item') {
-      return inventory
-        .filter((i) => notArchived(i) && !usedItemIds.has(i.id))
-        .filter((i) => q === '' || i.name.toLowerCase().includes(q))
-        .slice(0, 8)
+      const pool = (i) => notArchived(i) && !usedItemIds.has(i.id)
+      if (!q) return plain(inventory.filter(pool))
+      return findMatches(itemIndex, q).filter((h) => pool(h.row)).slice(0, 8)
     }
     return []
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [picker, pickerSearch, inventory, kits, form.entries])
+  }, [picker, pickerSearch, inventory, kits, form.entries, itemIndex])
+  const pickerResults = pickerHits.map((h) => h.row)
+  const pickerSpans = new Map(pickerHits.map((h) => [h.row.id, h.spans]))
 
   function submit(e) {
     e?.preventDefault()
@@ -299,7 +305,9 @@ export default function ScenarioEditorModal({
                           onClick={() => addEntry(picker, t.id)}
                           className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-sm transition hover:bg-slate-50"
                         >
-                          <span className="min-w-0 truncate text-slate-700">{t.name}</span>
+                          <span className="min-w-0 truncate text-slate-700">
+                            <MatchText text={t.name} spans={pickerSpans.get(t.id)} />
+                          </span>
                           <span className="shrink-0 text-xs text-slate-400">
                             {picker === 'kit'
                               ? `${t.slots?.length ?? 0} slots`

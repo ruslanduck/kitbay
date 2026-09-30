@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew, hierarchyDrop] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew, hierarchyDrop, search, searchSynonyms] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -42,6 +42,8 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/lib/capacity.js'),
     load('src/lib/crew.js'),
     load('src/lib/hierarchyDrop.js'),
+    load('src/lib/search.js'),
+    load('src/data/searchSynonyms.js'),
   ])
 
 let n = 0
@@ -516,6 +518,136 @@ ok(
     'but the same name under a DIFFERENT category is allowed')
   ok(taxonomy.subcategoryNameError('Anything', tax, null)?.includes('category'),
     'a subcategory with no category is refused — that is the invariant')
+}
+
+// ─────────────────────────────────────────────── inventory search
+// The words a crew types must find the gear: any order, part-typed, misspelt,
+// or said another way. Names below are the studio's own register's shapes.
+{
+  const tax = {
+    categories: [
+      { id: 'c-strobes', name: 'Strobes' },
+      { id: 'c-grip', name: 'Grip' },
+      { id: 'c-mod', name: 'Lighting Modification' },
+    ],
+    subcategories: [
+      { id: 's-pro', categoryId: 'c-strobes', name: 'Profoto' },
+      { id: 's-stands', categoryId: 'c-grip', name: 'Stands' },
+      { id: 's-12', categoryId: 'c-mod', name: 'OVERHEAD FABRICS / 12X12' },
+    ],
+  }
+  const items = [
+    { id: 'fres', name: 'Profoto Fresnel Spot, Oldstyle', subcategoryId: 's-pro', units: [{ barcode: '0793', serial: 'PF79301' }] },
+    { id: 'snoot', name: 'Profoto Snoot', subcategoryId: 's-pro' },
+    { id: 'dish', name: 'Profoto Beauty Dish, White', subcategoryId: 's-pro' },
+    { id: 'cst', name: 'C+ Stand 20"', subcategoryId: 's-stands' },
+    { id: 'kitst', name: 'Kit Stand' },
+    { id: 'silk12', name: "Matthews 1/4 Silk, 12' x 12'", subcategoryId: 's-12' },
+    { id: 'silk66', name: '6×6 Silk - 1/4, White' },
+    { id: 'solid66', name: "Matthews Solid, 6' x 6'" },
+    { id: 'sand', name: 'Sandbag, 25lb' },
+    { id: 'shot', name: 'Mathews Shot Bag, 10lb' },
+    { id: 'bank', name: 'Chimera White Lightbank, Medium' },
+    { id: 'rail', name: "Speed Rail, 8'" },
+    { id: 'rail2', name: "Speedrail, 10'" },
+    { id: 'mk4', name: 'Canon 5D Mark IV Camera Body' },
+    { id: 'lap', name: 'Stylist Laptop (CARK-ANN-STYLE4)' },
+    { id: 'mbp', name: 'Apple Late 2019 16" Macbook Pro' },
+    { id: 'kbd', name: 'Apple Wireless Magic Keyboard', units: [{ barcode: '0851', serial: 'SF0T919700HYH1' }, { barcode: '0852', serial: 'SF0T919700HYH2' }] },
+    { id: 'lens', name: 'Canon EF 24-70mm f/2.8L II USM Lens' },
+    { id: 'lou', name: 'Lou & Grey Chair' },
+    { id: 'aclamp', name: 'A-Clamp, Small' },
+  ]
+  const index = search.buildIndex(items, search.describeItem(tax))
+  const ids = (q) => search.findMatches(index, q).map((h) => h.row.id)
+  const top = (q) => ids(q)[0]
+
+  // Reading names and queries
+  const terms = (t) => search.termsOf(t).map((x) => x.term)
+  ok(['c', 'stand', 'cstand'].every((t) => terms('C-Stand').includes(t)), 'a hyphenated name also yields its joined word')
+  ok(terms("12' x 12'").includes('12x12') && terms("12' x 12'").includes('ft'), "12' x 12' is the size 12x12, in feet")
+  ok(terms('6×6 Silk').includes('6x6'), 'the × of a size reads as x')
+  ok(['b10x', 'b', '10', 'x'].every((t) => terms('B10X').includes(t)), 'a word mixing letters and digits yields its parts')
+  ok(!terms('Canon EF 24-70mm').includes('2470'), 'two numbers are never joined — 24-70 is not 2470')
+  eq(search.queryWords('C-Stand 2"').map((w) => w.text), ['cstand', '2', 'in'], 'a query is read the same way')
+  ok(search.sameWord('lens', 'lenses') && search.sameWord('battery', 'batteries') && search.sameWord('stand', 'stands'),
+    'plural and singular are the same word')
+  eq(search.editDistance('keybaord', 'keyboard'), 1, 'a swapped pair is ONE typo')
+  eq(search.editDistance('profto', 'profoto'), 1, 'a missing letter is one')
+  eq([search.maxEdits(3), search.maxEdits(4), search.maxEdits(8)], [0, 1, 2], 'no typo under four letters, one from four, two from eight')
+
+  // What the ticket asked for
+  eq(top('fresnel profoto'), 'fres', 'words in any order')
+  eq(top('prof fres'), 'fres', 'only parts of the words')
+  ok(ids('profto').includes('fres') && ids('profto').includes('snoot'), 'a misspelling still finds it')
+  eq(ids('keybaord'), ['kbd'], 'a swapped pair too')
+  eq(ids('macbok'), ['mbp'], 'and a missing letter')
+  ok(ids('profoto b').includes('dish'), 'the word still being typed matches as the start of one')
+  eq(ids('c stand'), ['cst'], '"c stand" is the C+ Stand — and not every stand')
+  eq(ids('century stand'), ['cst'], 'a synonym phrase finds it')
+  eq(ids('cstand'), ['cst'], 'and so does the joined spelling')
+  ok(ids('stnad').includes('kitst') && ids('stnad').includes('cst'), 'a transposition typo finds the stands')
+  eq(ids('12x12 silk'), ['silk12'], "a size typed as 12x12 finds 12' x 12'")
+  ok(ids('6x6').includes('silk66') && ids('6x6').includes('solid66'), "6x6 finds 6×6 and 6' x 6' alike")
+  ok(ids('quarter silk').includes('silk12') && ids('quarter silk').includes('silk66'), 'quarter is 1/4')
+  ok(ids('shot bag').includes('sand') && ids('shot bag').includes('shot'), 'a shot bag is a sandbag')
+  eq(ids('softbox'), ['bank'], 'a lightbank is a softbox')
+  eq(ids('lightbank md'), ['bank'], 'md is medium')
+  eq(ids('speed rail').sort(), ['rail', 'rail2'], 'Speed Rail and Speedrail are one thing')
+  eq(ids('mbp'), ['mbp'], 'mbp is a MacBook Pro')
+  ok(ids('laptop').includes('mbp') && ids('laptop').includes('lap'), 'a MacBook is a laptop')
+  eq(ids('lou and grey'), ['lou'], '"and" finds the &')
+  eq(ids('a clamp'), ['aclamp'], 'a lone letter matches a whole word of the name')
+  ok(ids('strobes').includes('fres') && ids('strobes').includes('snoot'), 'the subcategory and category are searched too')
+
+  // Codes, numbers and the noise rules
+  eq(ids('0851'), ['kbd'], 'a barcode finds its item')
+  eq(ids('#0851'), ['kbd'], 'with the decorative # too')
+  eq(ids('0853'), [], 'a code is never matched fuzzily — 0853 is not 0851')
+  eq(ids('SF0T9197'), ['kbd'], 'the start of a serial finds it')
+  eq(ids('24-70'), ['lens'], 'a range of numbers stays two numbers')
+  eq(ids('2 inch'), [], '"2 inch" means 2", not 20" — a number is a start only while being typed')
+  eq(ids('16 inch'), ['mbp'], 'and 16 inch finds 16"')
+  eq(ids('mark 4'), ['mk4'], 'mark 4 is Mark IV — and a typo keeps its first letter, so "mark" is not "cark"')
+  eq(ids('magc keybaord'), ['kbd'], 'a four-letter word may carry one typo')
+  {
+    const noisy = search.buildIndex(
+      [{ id: 'g1', name: 'Profoto Grid' }, { id: 'g2', name: 'Grip Head' }, { id: 'm1', name: 'Rubber Mat' }, { id: 'm2', name: 'Matthews Flag' }],
+    )
+    eq(search.findMatches(noisy, 'grid').map((h) => h.row.id), ['g1'],
+      'a four-letter word that exists as typed brings no typo matches — grid is not grip')
+    eq(search.findMatches(noisy, 'mats').map((h) => h.row.id), ['m1'],
+      'and a four-letter start carries no typo — mats is not the start of Matthews')
+  }
+  ok(!ids('head').includes('silk12'), 'inside-a-word matching reads names, not the subcategory — "head" is not in OVERHEAD')
+  ok(ids('bank').includes('bank'), 'while inside a name it still finds the compound (Light-bank)')
+  eq(ids('profoto keyboard'), [], 'every word must match')
+  eq(ids('xyzzy'), [], 'nothing is invented')
+  ok(ids('mathews').indexOf('shot') === 0 && ids('mathews').includes('silk12'),
+    'the exact spelling ranks first, the near one still shows')
+  eq(search.findMatches(index, '  ').length, items.length, 'an empty query lists everything, in order')
+
+  // Highlighting the words that matched
+  const marks = (q, id) => {
+    const h = search.findMatches(index, q).find((x) => x.row.id === id)
+    return search.highlightParts(h.row.name, h.spans).filter((p) => p.hit).map((p) => p.text)
+  }
+  eq(marks('fresnel', 'fres'), ['Fresnel'], 'the matched word is marked in the name')
+  eq(marks('profto', 'fres'), ['Profoto'], 'a misspelt match marks the word it found')
+  eq(marks('12x12 silk', 'silk12'), ['Silk', "12' x 12'"], 'a size marks the whole size')
+  eq(marks('shot bag', 'sand'), ['Sandbag'], 'a synonym marks what it matched')
+
+  // The synonym list itself
+  ok(searchSynonyms.SEARCH_SYNONYMS.every((g) => g.length >= 2), 'every synonym group has at least two entries')
+  ok(searchSynonyms.SEARCH_SYNONYMS.every((g) => g.every((e) => search.queryWords(e).length)),
+    'and every entry reads as at least one word')
+  ok(searchSynonyms.SEARCH_SYNONYMS.every((g) => new Set(g.map((e) => e.toLowerCase())).size === g.length),
+    'no group repeats an entry')
+  ok(searchSynonyms.SEARCH_SYNONYMS.flat().every((e) => e === e.toLowerCase()), 'entries are lower-case')
+
+  // Kits and lists are searched by name the same way
+  eq(search.searchRows([{ id: 'k', name: 'Camera Kit A' }, { id: 'l', name: 'Loft e-commerce' }], 'camra kit').map((h) => h.row.id),
+    ['k'], 'a kit is found by name, typo included')
 }
 
 // ─────────────────────────────────────────────── the Inventory Hierarchy's drag & drop

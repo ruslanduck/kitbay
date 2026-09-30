@@ -21,6 +21,9 @@ import SelectField from './SelectField'
 import AddInventoryModal from './AddInventoryModal'
 import CompanyEditorModal from './CompanyEditorModal'
 import { normalizeBarcode } from '../lib/barcode'
+import { findMatches } from '../lib/search'
+import { useItemIndex } from '../lib/useItemIndex'
+import MatchText from './MatchText'
 import { studioLabel } from '../data/studios'
 import { setSpanDays } from '../lib/setDays'
 import { useStore, notArchived } from '../store'
@@ -656,14 +659,17 @@ export default function OrderEquipmentModal({
   const liveScenarios = useMemo(() => (scenarios || []).filter(notArchived), [scenarios])
 
   // The picker deliberately shows exhausted stock too — that is how the crew
-  // discovers a sub-rental is needed.
-  const pickerResults = useMemo(() => {
-    const q = pickerSearch.trim().toLowerCase()
-    return inventory
-      .filter((i) => notArchived(i) && (q === '' || i.name.toLowerCase().includes(q)))
-      .slice(0, 10)
+  // discovers a sub-rental is needed. Ranked, typo- and synonym-tolerant
+  // (lib/search) — the best ten, not the first ten in register order.
+  const itemIndex = useItemIndex(inventory)
+  const pickerHits = useMemo(() => {
+    const q = pickerSearch.trim()
+    if (!q) return inventory.filter(notArchived).slice(0, 10).map((row) => ({ row, spans: [] }))
+    return findMatches(itemIndex, q).filter((h) => notArchived(h.row)).slice(0, 10)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inventory, pickerSearch, itemLines, stagedIds])
+  }, [itemIndex, inventory, pickerSearch, itemLines, stagedIds])
+  const pickerResults = pickerHits.map((h) => h.row)
+  const pickerSpans = new Map(pickerHits.map((h) => [h.row.id, h.spans]))
 
   // A draft handed over by the order form has no id yet: this window is step two
   // of creating the order, so its button creates rather than saves.
@@ -1124,7 +1130,9 @@ export default function OrderEquipmentModal({
                           onClick={() => addItem(item.id)}
                           className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-sm transition hover:bg-slate-50"
                         >
-                          <span className="min-w-0 truncate text-slate-700">{item.name}</span>
+                          <span className="min-w-0 truncate text-slate-700">
+                            <MatchText text={item.name} spans={pickerSpans.get(item.id)} />
+                          </span>
                           <span
                             className={[
                               'shrink-0 text-xs',

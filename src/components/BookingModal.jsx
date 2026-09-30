@@ -12,6 +12,9 @@ import {
 } from 'lucide-react'
 import { useStore, notArchived } from '../store'
 import { applyScenarioList } from '../lib/scenarios'
+import { findMatches } from '../lib/search'
+import { useItemIndex } from '../lib/useItemIndex'
+import MatchText from './MatchText'
 import { availableCount, resolveUnitsForQuantities } from '../lib/availability'
 import { studioLabel } from '../data/studios'
 import { endsOnFor } from '../lib/setDays'
@@ -156,13 +159,14 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
     })
   }
 
-  const searchResults = useMemo(() => {
-    const q = invSearch.trim().toLowerCase()
-    if (q === '') return []
-    return inventory
-      .filter((i) => notArchived(i) && i.name.toLowerCase().includes(q))
-      .slice(0, 8)
-  }, [invSearch, inventory])
+  // Ranked, typo- and synonym-tolerant (lib/search).
+  const itemIndex = useItemIndex(inventory)
+  const searchHits = useMemo(() => {
+    if (!invSearch.trim()) return []
+    return findMatches(itemIndex, invSearch).filter((h) => notArchived(h.row)).slice(0, 8)
+  }, [invSearch, itemIndex])
+  const searchResults = searchHits.map((h) => h.row)
+  const searchSpans = new Map(searchHits.map((h) => [h.row.id, h.spans]))
 
   const totalUnits =
     Object.values(selected).reduce((n, q) => n + q, 0) + stagedUnits.length
@@ -549,7 +553,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                           className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-slate-50"
                         >
                           <span className="min-w-0 truncate text-slate-700">
-                            {item.name}
+                            <MatchText text={item.name} spans={searchSpans.get(item.id)} />
                           </span>
                           <span
                             className={[

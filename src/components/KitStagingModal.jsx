@@ -17,6 +17,9 @@ import {
 import Modal from './Modal'
 import { freeUnitsOf, isUnitFree } from '../lib/availability'
 import { normalizeBarcode } from '../lib/barcode'
+import { findMatches } from '../lib/search'
+import { useItemIndex } from '../lib/useItemIndex'
+import MatchText from './MatchText'
 import UnitPickList from './UnitPickList'
 
 // Staging window (Build order #3, 3.2 + 3.3 + 3.4). Adding a kit to a set opens
@@ -402,15 +405,18 @@ export default function KitStagingModal({
     setPickerSearch('')
   }
 
-  const pickerResults = useMemo(() => {
+  // Ranked, typo- and synonym-tolerant (lib/search).
+  const itemIndex = useItemIndex(inventory)
+  const pickerHits = useMemo(() => {
     if (!picker) return []
-    const q = pickerSearch.trim().toLowerCase()
-    return inventory
-      .filter((i) => i.kind === 'barcoded' && freeUnitsFor(i.id).length > 0)
-      .filter((i) => q === '' || i.name.toLowerCase().includes(q))
-      .slice(0, 8)
+    const pool = (i) => i.kind === 'barcoded' && freeUnitsFor(i.id).length > 0
+    const q = pickerSearch.trim()
+    if (!q) return inventory.filter(pool).slice(0, 8).map((row) => ({ row, spans: [] }))
+    return findMatches(itemIndex, q).filter((h) => pool(h.row)).slice(0, 8)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [picker, pickerSearch, inventory, usedIds])
+  }, [picker, pickerSearch, inventory, usedIds, itemIndex])
+  const pickerResults = pickerHits.map((h) => h.row)
+  const pickerSpans = new Map(pickerHits.map((h) => [h.row.id, h.spans]))
 
   function confirm() {
     if (!ready) return
@@ -948,7 +954,9 @@ export default function KitStagingModal({
                       onClick={() => addExtra(item.id)}
                       className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-sm transition hover:bg-slate-50"
                     >
-                      <span className="min-w-0 truncate text-slate-700">{item.name}</span>
+                      <span className="min-w-0 truncate text-slate-700">
+                        <MatchText text={item.name} spans={pickerSpans.get(item.id)} />
+                      </span>
                       <span className="shrink-0 text-xs text-slate-400">
                         {freeUnitsFor(item.id).length} free
                       </span>

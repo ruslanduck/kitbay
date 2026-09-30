@@ -2920,6 +2920,68 @@
 > Verified in local mode: header reads Inventory Hierarchy · Add Inventory; a barcoded card reads Add item · Work
 > history · Edit item, a non-barcoded one (Gaffer Tape) Add stock; Add item opens the units window and Add Inventory
 > the create window, as before; 523 assertions, 0 console errors.
+> **FEATURE — inventory search that finds the gear without its exact name** (frontend only, no migration).
+> Ticket: partial keyword matching, live results, typo tolerance, part of a name, and a synonym list — "users must
+> type inventory names almost exactly as stored". True, and worse than it sounds: SIX places searched inventory
+> (the Inventory list, the job's equipment window, the legacy shoot editor, the kit window's "Add item", the kit and
+> scenario-list editors), each with `name.toLowerCase().includes(query)` — ONE unbroken piece of the stored name —
+> and every picker then took `.slice(0, 8)` in REGISTER order, so with many matches the best one could be cut off.
+> **Options weighed, and why this one:** a server-side search (Postgres full-text or `pg_trgm`) would add a round
+> trip per keystroke to data the browser already holds — the whole register (276 items / 437 units) is loaded, so
+> the right place is the client, and it stays right to tens of thousands of rows. A library (Fuse.js, MiniSearch)
+> was the other option; a pure module was chosen because the rules that matter here are domain rules no library
+> ships with (sizes, inch/foot marks, fractions, barcodes that must never match fuzzily), and a pure module is what
+> `test:lib` can pin — the same reason every other rule in this codebase lives in `src/lib`.
+> **`src/lib/search.js`** (PURE): both the names and the query are normalised the same way — case and accents off;
+> a size written 6×6, 6x6 or 6' x 6' is ONE term (the real register writes it all three ways, sometimes for the same
+> product); 2" is "2 in", 25' is "25 ft", 5° is "5 degree"; neighbouring words also yield the joined word (C-Stand →
+> cstand, Speed Rail → speedrail — both spellings exist in the register) and a word mixing letters and digits its
+> parts (B10X → b, 10, x). Every query term must match (AND, in any order) the name, brand, subcategory, category,
+> unit barcodes/serials or note — as the whole word, the start of a word (live, part-typed), inside a word, or
+> within typo distance (Damerau–Levenshtein, a swapped pair counts once; one edit from 4 letters, two from 8 — the
+> thresholds search engines use). Plural = singular without a stemmer ("lens" must not become "len"). Ranked by how
+> well and where each term matched (name counts most) plus small bonuses (name starts with the first word, holds
+> every word, in the order typed); highlighting returns spans in the ORIGINAL string, so a typo or synonym match
+> marks the word it actually found ("profto" marks Profoto, "shot bag" marks Sandbag).
+> **The noise rules — each one found by running the engine against the studio's REAL register** (read-only, into the
+> scratchpad, never the public repo) with a battery of ~80 queries, old `includes()` count beside the new one:
+> • numbers and codes are never fuzzy — 0852 must not find barcode 0851 — and a number is the START of another
+>   ("12" → 120) only while it is the word being typed: "2 inch" means 2", not the 20"/24"/27" it first returned;
+> • a single letter matches a whole word of the NAME only ("usb c", "a clamp"), or the start of one while typed
+>   ("profoto b" → Beauty Dish) — "c stand" first returned stands filed under the category **C**amera Support;
+> • inside-a-word matching reads names and brands only: "head" inside "OVERHEAD Fabrics" brought 15 silks;
+> • a typo keeps its first letter ("mark" is not "cark" — the laptops are named CARK-ANN-…; "cstand" is not "stand"
+>   with the c deleted), and synonym expansions get no typo tolerance on top (it compounded exactly that way);
+> • a four-letter word is forgiven a typo only when it matches NOTHING as typed: "grid" is a real word and must not
+>   also bring every item filed under "Grip", while "magc" still finds Magic; and a typo in a word still being typed
+>   needs five letters ("mats" was a typo of the start of every "Matt…hews").
+> **Synonyms: `src/data/searchSynonyms.js`**, ~90 groups built from the register's own vocabulary (Lightbank/Octabank
+> = Softbox, Shot Bag = Sandbag, Applebox Eighth/Quarter/Half = 1/8, 1/4, 1/2, Para = parabolic, Transceiver /
+> Pocket Wizard = trigger, Cube Tap, UPS = Battery Back-Up, China ball = Lantern, mbp = MacBook Pro, md/lg/xs…) plus
+> the usual grip and camera slang and spelling (grey/gray, colour/color, inch/in, feet/ft, lb/pounds, watt/w). A
+> phrase of up to three words is one term ("century stand"), and the word still being typed reaches a group through
+> its start ("shotb" → sandbag). A wrong entry can only widen a search; a direct match always outranks a synonym one.
+> **Speed:** each distinct query word is scored against each DISTINCT term of the register once (a dictionary built
+> with the index), and items only look those scores up — the first version scored per item and took 65 ms on a
+> synonym-heavy query; now 1–8 ms per keystroke, the index ~15–25 ms and rebuilt only when the register changes.
+> **Wiring:** `src/lib/useItemIndex.js` (the index, reading the taxonomy ITSELF so no picker grew a prop — the
+> `companies={companies}` lesson) and `src/components/MatchText.jsx` (the highlight) are used by all six places; the
+> Inventory list orders groups, subgroups and items by relevance while a search is on (the tree order returns when
+> it is cleared); kits and lists are searched by name the same way; the unit table's barcode/serial marking now
+> strips a copied `#`. Barcodes and serials keep exact-piece matching in `UnitPickList` (a typo there is a wrong unit).
+> **58 new assertions (581 total)** — every requested behaviour, every noise rule, highlighting, the synonym list's
+> shape — and proved able to fail by mutation (typo tolerance switched off → the suite goes red).
+> Verified on the real register: "fresnel profoto" / "prof fres" → Profoto Fresnel Spot; "profto" → the 24 Profoto
+> items; "c stand" / "cstand" / "century stand" → exactly the two C+ Stands; "12x12 silk" → the two 12' x 12' silks;
+> "6x6" → 12 (was 3); "quarter silk" → the 1/4 silks; "chimera lightbank md" → the two medium Lightbanks; "mark 4" →
+> the three Mark IV items; "type c" → the 8 USB-C/Type-C items and "usb-c cable" the 5 USB-C cables (adapters left
+> out); "#0793" → the Fresnel by barcode; "2 inch" → nothing (there is no 2" item); "profoto keyboard" → nothing.
+> In the browser (local mode): the list, the job's equipment window ("magik keybaord" → Apple Wireless **Magic
+> Keyboard**, both words marked), the kit editor, and the Kits/Lists tabs ("camra" → Camera Kit A, "ecomerce" →
+> Loft e-commerce); 0 console errors.
+> ℹ️ **Not built, offered instead:** a studio-EDITABLE synonym list (the file above is code — adding a word needs a
+> deploy; a small table + screen would let the crew add their own nicknames), a per-item "also known as" field, and
+> the same engine for the Jobs and People searches, which still use their own matching.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

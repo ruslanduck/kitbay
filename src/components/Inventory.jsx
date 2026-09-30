@@ -32,10 +32,14 @@ import {
   unassignedItems,
 } from '../lib/taxonomy'
 import FilterBar, { FILTER_FIELD } from './FilterBar'
+import MatchText from './MatchText'
 import { useActivity } from '../lib/useActivity'
+import { useItemIndex } from '../lib/useItemIndex'
+import { buildIndex, findMatches } from '../lib/search'
 
 // Render `text` with the first occurrence of `query` (already lowercased) wrapped
-// in a highlight. Used to show what a name / barcode / serial search matched.
+// in a highlight — for a barcode or serial, where the search is an exact piece
+// of the code. NAMES are highlighted by MatchText with what lib/search matched.
 function Highlight({ text, query }) {
   const s = String(text ?? '')
   if (!query) return s
@@ -159,7 +163,7 @@ function OwnershipBadge({ ownership, onToggle, disabled }) {
   )
 }
 
-function ItemRow({ item, active, onSelect, query }) {
+function ItemRow({ item, active, onSelect, spans }) {
   const subtitle = [
     item.brand,
     item.kind !== 'barcoded' ? kindLabel(item.kind) : null,
@@ -190,7 +194,7 @@ function ItemRow({ item, active, onSelect, query }) {
             active ? 'text-violet-900' : 'text-slate-800',
           ].join(' ')}
         >
-          <Highlight text={item.name} query={query} />
+          <MatchText text={item.name} spans={spans} />
         </span>
         <span className="block truncate text-xs text-slate-400">
           {subtitle || ' '}
@@ -334,9 +338,21 @@ export default function Inventory() {
   )
 
   const query = search.trim().toLowerCase()
+  // A code copied off the screen carries the decorative # (lib/barcode's rule).
+  const codeQuery = query.replace(/^#+/, '')
 
-  // Search matches name, barcode, or serial (scan a barcode/serial → find the
-  // item). Category / brand / type narrow the list independently.
+  // The search (lib/search): any order, part-typed, misspelt or said another
+  // way — across the name, brand, subcategory, category, unit barcodes and
+  // serials, and the note. One index, rebuilt only when the register changes;
+  // each keystroke only reads it. `hits` maps an item to its score and the
+  // words to mark in its name.
+  const itemIndex = useItemIndex(liveInventory)
+  const hits = useMemo(
+    () => (query ? new Map(findMatches(itemIndex, search).map((h) => [h.row.id, h])) : null),
+    [itemIndex, search, query],
+  )
+
+  // Category / brand / type narrow the list independently of the search.
   // Both levels of the tree filter, and both read the TAXONOMY — an item's
   // category is derived through its subcategory, so filtering on the legacy
   // text column would answer a different question than the headers show.
@@ -348,14 +364,10 @@ export default function Inventory() {
       if (subcategory !== 'All' && (item.subcategoryId ?? null) !== subcategory) return false
       if (brand !== 'All' && item.brand !== brand) return false
       if (kind !== 'All' && item.kind !== kind) return false
-      if (query === '') return true
-      if (hay(item.name).includes(query)) return true
-      return activeUnits(item).some(
-        (u) => hay(u.barcode).includes(query) || hay(u.serial).includes(query),
-      )
+      return !hits || hits.has(item.id)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveInventory, query, category, subcategory, brand, kind, taxonomy])
+  }, [liveInventory, hits, category, subcategory, brand, kind, taxonomy])
 
   // How many filters are narrowing the list — the count the Filters button shows.
   const activeFilters =
@@ -428,7 +440,12 @@ export default function Inventory() {
   // Group the list by category → subcategory, derived through the taxonomy and
   // in the studio's own category order. Unfiled stock groups last, under a
   // header that says so rather than an empty one.
+  // While searching, the best match leads: groups, subgroups and items are
+  // ordered by relevance instead of by the tree — a typo'd or synonym match
+  // three categories down would otherwise sit below the fold.
   const groups = useMemo(() => {
+    const scoreOf = (item) => hits?.get(item.id)?.score ?? 0
+    const best = (items) => items.reduce((m, i) => Math.max(m, scoreOf(i)), 0)
     const order = liveCategories(taxonomy)
     const rank = new Map(order.map((c, i) => [c.id, i]))
     const byCat = new Map()
@@ -439,7 +456,11 @@ export default function Inventory() {
       byCat.get(key).items.push(item)
     }
     return [...byCat.entries()]
-      .sort(([a], [b]) => {
+      .sort(([a, x], [b, y]) => {
+        if (hits) {
+          const d = best(y.items) - best(x.items)
+          if (d) return d
+        }
         if (a === UNASSIGNED) return 1
         if (b === UNASSIGNED) return -1
         return (rank.get(a) ?? 99) - (rank.get(b) ?? 99)
@@ -452,19 +473,25 @@ export default function Inventory() {
           if (!bySub.has(key)) bySub.set(key, { name: sub?.name ?? '', items: [] })
           bySub.get(key).items.push(item)
         }
-        const subs = [...bySub.entries()].sort(([a, x], [b, y]) =>
-          a === '' ? 1 : b === '' ? -1 : x.name.localeCompare(y.name),
-        )
+        const subs = [...bySub.entries()].sort(([a, x], [b, y]) => {
+          if (hits) {
+            const d = best(y.items) - best(x.items)
+            if (d) return d
+          }
+          return a === '' ? 1 : b === '' ? -1 : x.name.localeCompare(y.name)
+        })
         return {
           categoryId: catId,
           category: group.name,
           subgroups: subs.map(([, sub]) => ({
             subcategory: sub.name,
-            items: sub.items.sort((x, y) => x.name.localeCompare(y.name)),
+            items: sub.items.sort(
+              (x, y) => (hits ? scoreOf(y) - scoreOf(x) : 0) || x.name.localeCompare(y.name),
+            ),
           })),
         }
       })
-  }, [filtered, taxonomy])
+  }, [filtered, taxonomy, hits])
 
   // Selection resolves against the LIVE collections: an archived record has no
   // Archive screen any more and must not be viewable anywhere — not even via a
@@ -476,22 +503,18 @@ export default function Inventory() {
     liveInventory[0] ??
     null
 
-  // Kits (entry type #2): filter by name when searching, derive the selection.
-  const filteredKits = useMemo(
-    () =>
-      query === '' ? liveKits : liveKits.filter((k) => k.name.toLowerCase().includes(query)),
-    [liveKits, query],
-  )
+  // Kits (entry type #2) and lists (#3) are searched by name the same way.
+  const kitIndex = useMemo(() => buildIndex(liveKits), [liveKits])
+  const kitHits = useMemo(() => (query ? findMatches(kitIndex, search) : null), [kitIndex, search, query])
+  const filteredKits = kitHits ? kitHits.map((h) => h.row) : liveKits
+  const kitSpans = useMemo(() => new Map((kitHits ?? []).map((h) => [h.row.id, h.spans])), [kitHits])
   const selectedKit = liveKits.find((k) => k.id === selectedKitId) ?? liveKits[0] ?? null
 
   // Predefined scenario lists (3.5) — same list/detail pattern as kits.
-  const filteredLists = useMemo(
-    () =>
-      query === ''
-        ? liveLists
-        : liveLists.filter((l) => l.name.toLowerCase().includes(query)),
-    [liveLists, query],
-  )
+  const listIndex = useMemo(() => buildIndex(liveLists), [liveLists])
+  const listHits = useMemo(() => (query ? findMatches(listIndex, search) : null), [listIndex, search, query])
+  const filteredLists = listHits ? listHits.map((h) => h.row) : liveLists
+  const listSpans = useMemo(() => new Map((listHits ?? []).map((h) => [h.row.id, h.spans])), [listHits])
   const selectedList =
     liveLists.find((l) => l.id === selectedListId) ?? liveLists[0] ?? null
 
@@ -721,6 +744,7 @@ export default function Inventory() {
                 lists={filteredLists}
                 selectedId={selectedList?.id ?? null}
                 query={query}
+                spans={listSpans}
                 onSelect={(id) => {
                   setSelectedListId(id)
                   setShowDetailMobile(true)
@@ -731,6 +755,7 @@ export default function Inventory() {
                 kits={filteredKits}
                 selectedId={selectedKitId}
                 query={query}
+                spans={kitSpans}
                 onSelect={(id) => {
                   setSelectedKitId(id)
                   setShowDetailMobile(true)
@@ -867,7 +892,7 @@ export default function Inventory() {
                                 <ItemRow
                                   item={item}
                                   active={item.id === selectedId}
-                                  query={query}
+                                  spans={hits?.get(item.id)?.spans}
                                   onSelect={() => {
                                     setSelectedId(item.id)
                                     setShowDetailMobile(true)
@@ -986,7 +1011,7 @@ export default function Inventory() {
               </button>
               <UnitDetail
                 item={selected}
-                query={query}
+                query={codeQuery}
                 canEdit={can(CAP.INVENTORY_EDIT)}
                 onEdit={() => setItemModal({ open: true, item: selected })}
                 canToggleOwnership={can(CAP.UNIT_OWNERSHIP_TOGGLE)}
@@ -1584,7 +1609,7 @@ function slotAvailability(item) {
 }
 
 // Kit list (entry type #2) — rows in the list pane when the Kits tab is active.
-function KitList({ kits, selectedId, query, onSelect }) {
+function KitList({ kits, selectedId, query, spans, onSelect }) {
   if (kits.length === 0) {
     return (
       <p className="px-3 py-10 text-center text-sm text-slate-400">
@@ -1622,7 +1647,7 @@ function KitList({ kits, selectedId, query, onSelect }) {
                     active ? 'text-violet-900' : 'text-slate-800',
                   ].join(' ')}
                 >
-                  <Highlight text={kit.name} query={query} />
+                  <MatchText text={kit.name} spans={spans?.get(kit.id)} />
                 </span>
                 <span className="block truncate text-xs text-slate-400">{subtitle}</span>
               </span>
@@ -1755,7 +1780,7 @@ function listTotals(list, kits) {
 }
 
 // Scenario-list pane (entry type #3, 3.5) — rows in the list pane.
-function ScenarioListPane({ lists, selectedId, query, onSelect }) {
+function ScenarioListPane({ lists, selectedId, query, spans, onSelect }) {
   if (lists.length === 0) {
     return (
       <p className="px-3 py-10 text-center text-sm text-slate-400">
@@ -1793,7 +1818,7 @@ function ScenarioListPane({ lists, selectedId, query, onSelect }) {
                     active ? 'text-violet-900' : 'text-slate-800',
                   ].join(' ')}
                 >
-                  <Highlight text={list.name} query={query} />
+                  <MatchText text={list.name} spans={spans?.get(list.id)} />
                 </span>
                 <span className="block truncate text-xs text-slate-400">{subtitle}</span>
               </span>

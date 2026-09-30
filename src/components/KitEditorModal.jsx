@@ -17,6 +17,9 @@ import ErrorNote from './ErrorNote'
 import SelectField from './SelectField'
 import { notArchived } from '../store'
 import { activeUnits } from '../data/inventory'
+import { findMatches } from '../lib/search'
+import { useItemIndex } from '../lib/useItemIndex'
+import MatchText from './MatchText'
 
 // Kit editor (Build order #3, 3.6). Authors a kit's *slot definitions* — the
 // counterpart to KitStagingModal, which fills them at pull time.
@@ -116,13 +119,16 @@ export default function KitEditorModal({
   }
 
   // Barcoded stock only (see header comment).
-  const pickerResults = useMemo(() => {
-    const q = pickerSearch.trim().toLowerCase()
-    return inventory
-      .filter((i) => notArchived(i) && i.kind === 'barcoded' && activeUnits(i).length > 0)
-      .filter((i) => q === '' || i.name.toLowerCase().includes(q))
-      .slice(0, 8)
-  }, [inventory, pickerSearch])
+  // Ranked, typo- and synonym-tolerant (lib/search).
+  const itemIndex = useItemIndex(inventory)
+  const pickerHits = useMemo(() => {
+    const pool = (i) => notArchived(i) && i.kind === 'barcoded' && activeUnits(i).length > 0
+    const q = pickerSearch.trim()
+    if (!q) return inventory.filter(pool).slice(0, 8).map((row) => ({ row, spans: [] }))
+    return findMatches(itemIndex, q).filter((h) => pool(h.row)).slice(0, 8)
+  }, [inventory, pickerSearch, itemIndex])
+  const pickerResults = pickerHits.map((h) => h.row)
+  const pickerSpans = new Map(pickerHits.map((h) => [h.row.id, h.spans]))
 
   function submit(e) {
     e?.preventDefault()
@@ -331,7 +337,9 @@ export default function KitEditorModal({
                           onClick={() => addSlot(item.id)}
                           className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-sm transition hover:bg-slate-50"
                         >
-                          <span className="min-w-0 truncate text-slate-700">{item.name}</span>
+                          <span className="min-w-0 truncate text-slate-700">
+                            <MatchText text={item.name} spans={pickerSpans.get(item.id)} />
+                          </span>
                           <span className="shrink-0 text-xs text-slate-400">
                             {item.units.length} units
                           </span>
