@@ -1313,7 +1313,10 @@ ok(
     const walk = (node, parent) => {
       if (!node || typeof node.type !== 'string') return
       if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration') return
-      if (node.type === 'JSXAttribute' && CODE_ATTR.has(node.name?.name)) return
+      // Any *ClassName prop is a class list too (`otherClassName="order-last …"`
+      // once read as the word "order").
+      if (node.type === 'JSXAttribute' && (CODE_ATTR.has(node.name?.name) || /ClassName$/.test(node.name?.name ?? '')))
+        return
       // A developer's console line is not on screen.
       if (
         node.type === 'CallExpression' &&

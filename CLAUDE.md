@@ -3200,6 +3200,13 @@
 > On prod (service_role only): predicted the 19 assignments' roles from their people first (Photographer 13, Model
 > 3, Assistant / Booker / Warehouse 1 each — the studio had added five since the morning) and got **19/19**; the
 > app's two new embeds answer 200 (27 jobs, 33 people), e.g. "Priya Nair (Photographer)".
+> ⚠️ **Pushed once with a RED suite, and the reason is worth keeping.** The gate ran as `npm run test:lib | tail -1
+> && git commit …` — a pipeline's exit status is the LAST command's, so `tail` succeeded and the chain committed and
+> pushed while the suite had failed (its last line read "Node.js v22.18.0", the tail of a crash). Vercel runs the
+> same gates before building, so the bad commit never deployed; the fix followed minutes later. Gate chains run
+> under `set -o pipefail` now. The failure itself was a FALSE positive in the vocabulary scan: it skipped
+> `className` but not `otherClassName="order-last …"`, and read "order" as the retired word. Any `*ClassName`
+> prop is code now — and the scan was proved to still bark by planting "Role on 2 orders" in a placeholder.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
