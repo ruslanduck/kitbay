@@ -5,6 +5,7 @@ import { useStore } from '../store'
 import { studioLabel } from '../data/studios'
 import { usingSupabase, getUnitHistory } from '../data/repository'
 import { spanSummary } from '../lib/setDays'
+import { lifecycleEventsFor, whenLabel } from '../lib/packing'
 
 // Click a unit → every set it was reserved for → each set's roster.
 //
@@ -13,6 +14,10 @@ import { spanSummary } from '../lib/setDays'
 // stacked over a modal would be a dead end to escape from.
 export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpenSet, onOpenPerson }) {
   const bookings = useStore((s) => s.bookings)
+  // The packing lists' record for this copy — checked out / checked in, by whom
+  // and when — read from every job, matched to its shoot below.
+  const orders = useStore((s) => s.orders)
+  const checks = unit ? lifecycleEventsFor(orders, { barcode: unit.barcode }) : []
   const [rows, setRows] = useState([])
   const [busy, setBusy] = useState(false)
 
@@ -110,6 +115,26 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
                   <span>{spanSummary(r.date, r.endDate || r.reservedTo)}</span>
                   <span className="capitalize text-slate-400">{r.reservationStatus}</span>
                 </div>
+                {/* Out and back on THIS shoot, as the packing list recorded it. */}
+                {checks.filter((c) => c.setId === r.setId).length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 pl-6 text-xs">
+                    {checks
+                      .filter((c) => c.setId === r.setId)
+                      .slice()
+                      .reverse()
+                      .map((c, i) => (
+                        <span
+                          key={i}
+                          className={c.kind === 'out' ? 'text-violet-600' : 'text-emerald-600'}
+                        >
+                          <span className="font-medium">{c.kind === 'out' ? 'Out' : 'Back'}</span>{' '}
+                          {whenLabel(c.at)}
+                          {c.who ? ` · ${c.who}` : ''}
+                          {c.via === 'scan' ? ' · scan' : ''}
+                        </span>
+                      ))}
+                  </div>
+                )}
 
                 {/* Roster */}
                 <div className="mt-2 flex flex-wrap gap-1.5 pl-6">

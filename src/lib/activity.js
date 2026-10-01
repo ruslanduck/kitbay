@@ -226,11 +226,14 @@ export function describeEvent(ev) {
       return {
         icon: 'signature',
         title: slotTitle(d.slot),
-        // The name recorded on the sheet; the initials for sign-offs logged
-        // before names were kept. A scanned check-in says so.
+        // The feed already names the actor, and the name recorded on the
+        // sheet IS the actor's now — printing it again read as a stutter. The
+        // initials of a sign-off from before names were kept could differ from
+        // the actor (they were hand-typed), so those still show. A scanned
+        // check-in says so.
         detail: [
           d.itemName,
-          d.name ? d.name : d.initials ? `“${d.initials}”` : null,
+          !d.name && d.initials ? `“${d.initials}”` : null,
           d.via === 'scan' ? 'scanned' : null,
         ]
           .filter(Boolean)

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { categoryLabel } from '../lib/taxonomy'
 import { useStore } from '../store'
+import { isOutNow, unitLifecycle, unitState } from '../lib/packing'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 import { studioLabel, placeLabel } from '../data/studios'
@@ -457,6 +458,8 @@ function ItemPeek({ id, unitId }) {
   const taxonomy = useStore((s) => s.taxonomy)
   const bookings = useStore((s) => s.bookings)
   const orders = useStore((s) => s.orders)
+  // Where each copy stands now, from every job's packing list.
+  const lifecycle = unitLifecycle(orders)
   const companies = useStore((s) => s.companies)
   const peek = useStore((s) => s.peek)
   const focusInventory = useStore((s) => s.focusInventory)
@@ -540,6 +543,10 @@ function ItemPeek({ id, unitId }) {
                       ].join(' ')}
                     >
                       {u.status === 'available' ? 'Available' : u.location}
+                      {/* The packing list's word: out of the building now. */}
+                      {isOutNow(unitState(lifecycle, item.id, u.barcode)) && (
+                        <span className="ml-1.5 font-medium text-violet-600">· Out</span>
+                      )}
                     </span>
                   }
                   tint={

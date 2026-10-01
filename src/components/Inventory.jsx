@@ -33,6 +33,7 @@ import {
 } from '../lib/taxonomy'
 import FilterBar, { FILTER_FIELD } from './FilterBar'
 import MatchText from './MatchText'
+import { isOutNow, outNowByItem, unitLifecycle, unitState, whenLabel } from '../lib/packing'
 import { useActivity } from '../lib/useActivity'
 import { useItemIndex } from '../lib/useItemIndex'
 import { buildIndex, findMatches } from '../lib/search'
@@ -85,7 +86,9 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 const STATUS_STYLES = {
   available: { chip: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500', label: 'Available' },
-  checked_out: { chip: 'bg-orange-50 text-orange-700', dot: 'bg-orange-500', label: 'Checked out' },
+  // A unit a confirmed job HOLDS. It used to read "Checked out", which now
+  // means the packing list's recorded moment — one word cannot carry both.
+  checked_out: { chip: 'bg-orange-50 text-orange-700', dot: 'bg-orange-500', label: 'Reserved' },
   in_repair: { chip: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500', label: 'In repair' },
 }
 
@@ -163,7 +166,7 @@ function OwnershipBadge({ ownership, onToggle, disabled }) {
   )
 }
 
-function ItemRow({ item, active, onSelect, spans }) {
+function ItemRow({ item, active, onSelect, spans, outCount = 0 }) {
   const subtitle = [
     item.brand,
     item.kind !== 'barcoded' ? kindLabel(item.kind) : null,
@@ -197,7 +200,14 @@ function ItemRow({ item, active, onSelect, spans }) {
           <MatchText text={item.name} spans={spans} />
         </span>
         <span className="block truncate text-xs text-slate-400">
-          {subtitle || ' '}
+          {/* Pieces checked out on a job and not back yet — the register's
+              view of the packing list, visible before any filter. */}
+          {outCount > 0 && (
+            <span className="font-medium text-violet-600">
+              {outCount} out{subtitle ? ' · ' : ''}
+            </span>
+          )}
+          {subtitle || (outCount > 0 ? '' : ' ')}
         </span>
       </span>
     </button>
@@ -250,6 +260,12 @@ export default function Inventory() {
   const [subcategory, setSubcategory] = usePersisted('inventory', 'subcategory', 'All')
   const [brand, setBrand] = usePersisted('inventory', 'brand', 'All')
   const [kind, setKind] = usePersisted('inventory', 'kind', 'All')
+  // Only the pieces checked out on a job and not back yet.
+  const [outNow, setOutNow] = usePersisted('inventory', 'outNow', false)
+  // Where every unit stands right now, from every job's packing list.
+  const orders = useStore((s) => s.orders)
+  const lifecycle = useMemo(() => unitLifecycle(orders), [orders])
+  const outByItem = useMemo(() => outNowByItem(lifecycle), [lifecycle])
   const [selectedId, setSelectedId] = usePersisted('inventory', 'itemId', null)
   const [selectedKitId, setSelectedKitId] = usePersisted('inventory', 'kitId', null)
   const [selectedListId, setSelectedListId] = usePersisted('inventory', 'listId', null)
@@ -278,6 +294,7 @@ export default function Inventory() {
       setCategory('All')
       setBrand('All')
       setKind('All')
+      setOutNow(false)
     }
     if (listId && scenarios.some((l) => l.id === listId)) {
       setEntryType('lists')
@@ -364,17 +381,23 @@ export default function Inventory() {
       if (subcategory !== 'All' && (item.subcategoryId ?? null) !== subcategory) return false
       if (brand !== 'All' && item.brand !== brand) return false
       if (kind !== 'All' && item.kind !== kind) return false
+      if (outNow && !(outByItem.get(item.id) > 0)) return false
       return !hits || hits.has(item.id)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveInventory, hits, category, subcategory, brand, kind, taxonomy])
+  }, [liveInventory, hits, category, subcategory, brand, kind, outNow, outByItem, taxonomy])
+  const outNowItems = useMemo(
+    () => liveInventory.filter((i) => outByItem.get(i.id) > 0).length,
+    [liveInventory, outByItem],
+  )
 
   // How many filters are narrowing the list — the count the Filters button shows.
   const activeFilters =
     (category !== 'All' ? 1 : 0) +
     (subcategory !== 'All' ? 1 : 0) +
     (brand !== 'All' ? 1 : 0) +
-    (kind !== 'All' ? 1 : 0)
+    (kind !== 'All' ? 1 : 0) +
+    (outNow ? 1 : 0)
 
   // File every picked item under one subcategory. `''` unfiles them, which is a
   // legitimate move — gear can be taken out of a subcategory that was wrong.
@@ -409,7 +432,8 @@ export default function Inventory() {
     category !== 'All' ||
     subcategory !== 'All' ||
     brand !== 'All' ||
-    kind !== 'All'
+    kind !== 'All' ||
+    outNow
 
   function clearFilters() {
     setSearch('')
@@ -417,6 +441,7 @@ export default function Inventory() {
     setSubcategory('All')
     setBrand('All')
     setKind('All')
+    setOutNow(false)
   }
 
   // The filter offers exactly what the taxonomy holds — plus "not filed", which
@@ -734,6 +759,24 @@ export default function Inventory() {
                     options={[{ value: 'All', label: 'All types' }, ...ITEM_KINDS]}
                     className={FILTER_FIELD}
                   />
+                  {/* What is out of the building right now — checked out on a
+                      job's packing list and not checked back in. The count is
+                      ITEMS, the same unit the list is in. */}
+                  <button
+                    type="button"
+                    onClick={() => setOutNow(!outNow)}
+                    aria-pressed={outNow}
+                    title="Only items with a piece checked out on a job and not back yet"
+                    className={[
+                      FILTER_FIELD,
+                      'text-left transition',
+                      outNow
+                        ? 'border-violet-400 bg-violet-50 font-medium text-violet-700'
+                        : 'text-slate-600 hover:bg-slate-50',
+                    ].join(' ')}
+                  >
+                    Out now{outNowItems ? ` · ${outNowItems}` : ''}
+                  </button>
                 </div>
               )}
             </FilterBar>
@@ -893,6 +936,7 @@ export default function Inventory() {
                                   item={item}
                                   active={item.id === selectedId}
                                   spans={hits?.get(item.id)?.spans}
+                                  outCount={outByItem.get(item.id) ?? 0}
                                   onSelect={() => {
                                     setSelectedId(item.id)
                                     setShowDetailMobile(true)
@@ -1012,6 +1056,7 @@ export default function Inventory() {
               <UnitDetail
                 item={selected}
                 query={codeQuery}
+                lifecycle={lifecycle}
                 canEdit={can(CAP.INVENTORY_EDIT)}
                 onEdit={() => setItemModal({ open: true, item: selected })}
                 canToggleOwnership={can(CAP.UNIT_OWNERSHIP_TOGGLE)}
@@ -1155,7 +1200,7 @@ export default function Inventory() {
   )
 }
 
-function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggleOwnership, vendors, onSetVendor, onShowHistory, onShowRepair, onShowWorkHistory, canWriteOff, unitError, onDismissUnitError, onAddUnit, onAddStock, onEditUnit, onDeleteUnit }) {
+function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnership, onToggleOwnership, vendors, onSetVendor, onShowHistory, onShowRepair, onShowWorkHistory, canWriteOff, unitError, onDismissUnitError, onAddUnit, onAddStock, onEditUnit, onDeleteUnit }) {
   // Read from the store, not threaded down: which category an item is in is
   // this header's own business, and passing collections through the tree is
   // exactly how `companies={companies}` white-screened a whole view.
@@ -1168,7 +1213,9 @@ function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggle
   const units = activeUnits(item)
   const available = availableCount(item)
   const inRepair = units.filter((u) => u.status === 'in_repair').length
-  const checkedOut = units.length - available - inRepair
+  const reserved = units.length - available - inRepair
+  // Out of the building on a job's packing list and not back yet.
+  const outNowCount = units.filter((u) => isOutNow(unitState(lifecycle, item.id, u.barcode))).length
 
   // A unit matches the search when its barcode or serial contains the query.
   const unitMatches = (u) =>
@@ -1204,9 +1251,14 @@ function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggle
             </span>
             {isBarcoded ? (
               <>
-                <span>{units.length} units</span>
+                <span>
+                  {units.length} unit{units.length === 1 ? '' : 's'}
+                </span>
                 <span className="text-emerald-600">{available} available</span>
-                <span className="text-orange-600">{checkedOut} checked out</span>
+                <span className="text-orange-600">{reserved} reserved</span>
+                {outNowCount > 0 && (
+                  <span className="font-medium text-violet-600">{outNowCount} out now</span>
+                )}
                 {inRepair > 0 && (
                   <span className="text-amber-600">{inRepair} in repair</span>
                 )}
@@ -1316,6 +1368,28 @@ function UnitDetail({ item, query, canEdit, onEdit, canToggleOwnership, onToggle
                 </td>
                 <td className="px-3 py-2.5">
                   <StatusBadge status={unit.status} />
+                  {/* The packing list's record for THIS copy: out of the
+                      building since when and by whom, or back. Derived from
+                      every job's sign-offs (lib/packing unitLifecycle). */}
+                  {(() => {
+                    const ev = unitState(lifecycle, item.id, unit.barcode)
+                    if (!ev) return null
+                    const out = isOutNow(ev)
+                    if (ev.kind === 'out' && !out) return null // a closed job: history, in the unit's log
+                    return (
+                      <div
+                        title={ev.jobName ? `${out ? 'Checked out on' : 'Checked in on'} ${ev.jobName}` : undefined}
+                        className={[
+                          'mt-1 whitespace-nowrap text-[11px] font-medium',
+                          out ? 'text-violet-600' : 'text-emerald-600',
+                        ].join(' ')}
+                      >
+                        {out ? 'Out since ' : 'Back '}
+                        {whenLabel(ev.at)}
+                        {ev.who ? ` · ${ev.who}` : ''}
+                      </div>
+                    )
+                  })()}
                 </td>
                 {/* Out on a job or in repair → the DERIVED whereabouts (comes
                     from the orders, so it isn't typed). Otherwise → where the

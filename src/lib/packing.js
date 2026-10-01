@@ -12,6 +12,8 @@
 // change reads as checked out) and `ret`, which the table carried from the
 // start and nothing wrote until now. The 20261001120000 migration adds the NAME
 // beside each slot's initials, and how the return was recorded.
+import { isCanceledStatus, isClosedStatus } from '../data/orderStatus.js'
+
 export const CHECK_OUT = 'out1'
 export const CHECK_IN = 'ret'
 export const PACKING_SLOTS = [CHECK_OUT, CHECK_IN]
@@ -171,6 +173,96 @@ export function whenLabel(iso) {
   if (Number.isNaN(d.getTime())) return ''
   const two = (n) => String(n).padStart(2, '0')
   return `${two(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${two(d.getHours())}:${two(d.getMinutes())}`
+}
+
+// ---------------------------------------------------------------------------
+// The register's side of the lifecycle: where every unit stands RIGHT NOW,
+// derived from the sign-offs of every job. A check-out on a job that is still
+// open means the piece is out of the building; a check-in means it is back; the
+// LATEST event for a unit wins (a piece goes out on one job and comes back on
+// it, then goes out again on the next). An archived job's checks are gone with
+// it, and a CLOSED or canceled job's outstanding check-outs are history — closing
+// a job releases its gear, so "out on a closed job" is not "out now".
+
+const hasSign = (s) => !!(s?.initials || s?.name)
+const later = (a, b) => {
+  const x = a.at ?? ''
+  const y = b.at ?? ''
+  if (x !== y) return x > y
+  return a.kind === 'back' && b.kind !== 'back' // same instant: the return wins
+}
+
+// { units: Map<"itemId::barcode", event>, counted: Map<itemId, event> } — each
+// the unit's (or counted row's) latest event: { kind: 'out' | 'back', at, who,
+// via, itemId, barcode, orderId, setId, jobName, live }.
+export function unitLifecycle(orders = []) {
+  const units = new Map()
+  const counted = new Map()
+  for (const o of orders) {
+    if (!o || o.archivedAt) continue
+    const live = !isClosedStatus(o.status) && !isCanceledStatus(o.status)
+    for (const [key, s] of Object.entries(o.packing || {})) {
+      const [itemId, , barcode] = String(key).split('::')
+      if (!itemId) continue
+      const out = hasSign(s?.out1) ? s.out1 : hasSign(s?.out2) ? s.out2 : null
+      const ret = hasSign(s?.ret) ? s.ret : null
+      const base = {
+        itemId,
+        barcode: barcode || null,
+        orderId: o.id ?? null,
+        setId: o.setId ?? null,
+        jobName: o.jobName ?? o.setTitle ?? null,
+        live,
+      }
+      const events = []
+      if (out) events.push({ ...base, kind: 'out', at: out.at ?? null, who: signerName(out), via: null })
+      if (ret) events.push({ ...base, kind: 'back', at: ret.at ?? null, who: signerName(ret), via: ret.via ?? null })
+      const map = barcode ? units : counted
+      const k = barcode ? `${itemId}::${barcode}` : itemId
+      for (const ev of events) {
+        const prev = map.get(k)
+        if (!prev || later(ev, prev)) map.set(k, ev)
+      }
+    }
+  }
+  return { units, counted }
+}
+
+export const isOutNow = (event) => !!event && event.kind === 'out' && event.live
+
+// A unit's current state, or null when nothing was ever recorded for it.
+export const unitState = (index, itemId, barcode) =>
+  index?.units?.get(`${itemId}::${barcode ?? ''}`) ?? null
+
+// How many pieces of each item are out of the building now: its units that are
+// out, plus one for a counted row that is (counted stock has no copies to name).
+export function outNowByItem(index) {
+  const out = new Map()
+  for (const ev of index?.units?.values() ?? [])
+    if (isOutNow(ev)) out.set(ev.itemId, (out.get(ev.itemId) ?? 0) + 1)
+  for (const ev of index?.counted?.values() ?? [])
+    if (isOutNow(ev)) out.set(ev.itemId, (out.get(ev.itemId) ?? 0) + 1)
+  return out
+}
+
+// Every check ever recorded for one unit (by its barcode, unique across the
+// register), newest first — the unit's own history, beside its reservations.
+export function lifecycleEventsFor(orders = [], { barcode } = {}) {
+  const code = String(barcode ?? '')
+  if (!code) return []
+  const out = []
+  for (const o of orders) {
+    if (!o || o.archivedAt) continue
+    for (const [key, s] of Object.entries(o.packing || {})) {
+      const [itemId, , bc] = String(key).split('::')
+      if (bc !== code) continue
+      const base = { itemId, barcode: code, orderId: o.id ?? null, setId: o.setId ?? null, jobName: o.jobName ?? o.setTitle ?? null }
+      const outS = hasSign(s?.out1) ? s.out1 : hasSign(s?.out2) ? s.out2 : null
+      if (outS) out.push({ ...base, kind: 'out', at: outS.at ?? null, who: signerName(outS), via: null })
+      if (hasSign(s?.ret)) out.push({ ...base, kind: 'back', at: s.ret.at ?? null, who: signerName(s.ret), via: s.ret.via ?? null })
+    }
+  }
+  return out.sort((a, b) => String(b.at ?? '').localeCompare(String(a.at ?? '')))
 }
 
 // Where a scanned code lands: the row carrying that barcode (bare digits — the

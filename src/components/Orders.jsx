@@ -639,7 +639,7 @@ export default function Orders() {
         onSign={(lineKey, slot, initials, itemName, extra) =>
           signPackingLine(selected.id, lineKey, slot, initials, itemName, extra)
         }
-        onClear={(lineKey, slot) => clearPackingSignoff(selected.id, lineKey, slot)}
+        onClear={(lineKey, slot, extra) => clearPackingSignoff(selected.id, lineKey, slot, extra)}
         onClose={() => setChecklistOpen(false)}
       />
 

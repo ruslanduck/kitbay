@@ -254,7 +254,7 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
 
   // The feed
   eq(activity.describeEvent({ type: activity.EVENT.PACKING_SIGNED, data: { slot: 'ret', name: 'Clay Rodriguez', via: 'scan', itemName: 'Profoto B10' } }),
-    { icon: 'signature', title: 'Checked in', detail: 'Profoto B10 · Clay Rodriguez · scanned' }, 'a scanned check-in reads as one')
+    { icon: 'signature', title: 'Checked in', detail: 'Profoto B10 · scanned' }, 'a scanned check-in reads as one — the feed names the actor, so the detail does not repeat them')
   eq(activity.describeEvent({ type: activity.EVENT.PACKING_SIGNED, data: { slot: 'out1', initials: 'AT', itemName: 'Profoto B10' } }).title, 'Checked out', 'a check-out — and an initials-only event from before still renders')
   eq(activity.describeEvent({ type: activity.EVENT.PACKING_CLEARED, data: { slot: 'ret', itemName: 'Profoto B10' } }).title, 'Undid the check-in', 'undoing says which')
 
@@ -280,6 +280,32 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
   ok(sheet.includes('4 rows') && sheet.includes('2 checked out') && sheet.includes('1 checked in'), 'the totals line counts both moments')
   const blank = bytes(packingPdf.buildPackingListPdf(e9, { inventory: inv, booking: bk }))
   ok(!blank.includes('Clay Rodriguez') && blank.includes('(In-House) Tj'), 'with nothing recorded the cells print empty, to be written in by hand')
+
+  // The register's side: where every unit stands now, from every job's list.
+  const jobs = [
+    {
+      id: 'o1', status: 'confirmed', setId: 's1', jobName: 'Loft FW26',
+      packing: {
+        'cam::::0801': { out1: { initials: 'CR', name: 'Clay Rodriguez', at: '2026-10-01T10:17:00Z' } },
+        'cam::::0802': { out1: { initials: 'CR', name: 'Clay Rodriguez', at: '2026-10-01T10:00:00Z' }, ret: { initials: 'CR', name: 'Clay Rodriguez', at: '2026-10-01T18:40:00Z', via: 'scan' } },
+        'tape::::': { out1: { initials: 'CR', at: '2026-10-01T10:05:00Z' } },
+      },
+    },
+    { id: 'o2', status: 'fulfilled', setId: 's2', jobName: 'Last week', packing: { 'cam::::0803': { out1: { initials: 'AT', at: '2026-09-20T10:00:00Z' } } } },
+    { id: 'o3', status: 'confirmed', setId: 's3', archivedAt: '2026-09-30', packing: { 'cam::::0804': { out1: { initials: 'AT', at: '2026-09-29T10:00:00Z' } } } },
+    { id: 'o4', status: 'confirmed', setId: 's4', jobName: 'Earlier', packing: { 'cam::::0802': { out2: { initials: 'AT', at: '2026-09-10T09:00:00Z' } } } },
+  ]
+  const idx = packing.unitLifecycle(jobs)
+  ok(packing.isOutNow(packing.unitState(idx, 'cam', '0801')), '#0801 is out now — checked out on an open job, not back')
+  eq(packing.unitState(idx, 'cam', '0802')?.kind, 'back', '#0802 is back — the latest event wins over its check-out')
+  eq(packing.unitState(idx, 'cam', '0802')?.who, 'Clay Rodriguez', 'with who brought it back')
+  eq(packing.isOutNow(packing.unitState(idx, 'cam', '0803')), false, 'a CLOSED job’s outstanding check-out is history, not out now')
+  eq(packing.unitState(idx, 'cam', '0804'), null, 'an archived job’s checks are gone with it')
+  eq(packing.unitState(idx, 'cam', '0805'), null, 'a unit nobody ever checked has no state')
+  eq([...packing.outNowByItem(idx)], [['cam', 1], ['tape', 1]], 'per item: one camera out, and the counted tape row')
+  const hist = packing.lifecycleEventsFor(jobs, { barcode: '0802' })
+  eq(hist.map((h) => `${h.kind}@${h.setId}`), ['back@s1', 'out@s1', 'out@s4'], 'a unit’s own history, newest first, across jobs — the legacy double sign-out included')
+  eq(packing.lifecycleEventsFor(jobs, {}), [], 'no barcode, no history')
 }
 eq(itemAvail.covers({ from: '2026-09-06', to: '2026-09-15' }, '2026-09-10'), true, 'a span covers a day inside it')
 eq(itemAvail.covers({ from: '2026-09-06' }, '2026-09-07'), false, 'a missing end is exactly one day')

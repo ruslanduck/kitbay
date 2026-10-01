@@ -61,9 +61,20 @@ export default function PackingChecklistModal({
   const allLines = groups.flatMap((g) => g.lines)
   const prog = packingProgress(allLines, packing)
 
+  // The unit and item ride along so the event lands on the item's card too.
   const sign = (line, slot, via) =>
-    onSign(packingLineKey(line), slot, myInitials, itemLabel(line), { name: myName, via })
-  const clear = (line, slot) => onClear(packingLineKey(line), slot)
+    onSign(packingLineKey(line), slot, myInitials, itemLabel(line), {
+      name: myName,
+      via,
+      unitId: line.unitId ?? null,
+      itemId: line.itemId ?? null,
+    })
+  const clear = (line, slot) =>
+    onClear(packingLineKey(line), slot, {
+      unitId: line.unitId ?? null,
+      itemId: line.itemId ?? null,
+      itemName: itemLabel(line),
+    })
 
   // ── the scanner: one field, pointed at check-in (the ticket's case) or out.
   const [scanDir, setScanDir] = useState(CHECK_IN)

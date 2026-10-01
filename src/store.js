@@ -3127,12 +3127,15 @@ export const useStore = create(
           ),
         })
         // The ACT is attributed to the signed-in account; the name is what the
-        // sheet prints.
+        // sheet prints. `unitId` puts the same event on the ITEM's card too —
+        // an item's feed reads its units' events — so the register sees who took
+        // a piece out and who brought it back.
         get().logActivity({
           type: EVENT.PACKING_SIGNED,
           entityType: 'order',
           entityId: orderId,
-          data: { slot, initials: ini, name, via, itemName: itemName ?? null, lineKey },
+          unitId: extra.unitId ?? null,
+          data: { slot, initials: ini, name, via, itemName: itemName ?? null, itemId: extra.itemId ?? null, lineKey },
         })
         if (usingSupabase)
           sbSetPackingSignoff(orderId, lineKey, slot, ini, itemName, { name, via }).catch((e) =>
@@ -3140,7 +3143,7 @@ export const useStore = create(
           )
       },
 
-      clearPackingSignoff: (orderId, lineKey, slot) => {
+      clearPackingSignoff: (orderId, lineKey, slot, extra = {}) => {
         set({
           orders: get().orders.map((o) =>
             o.id !== orderId
@@ -3159,7 +3162,8 @@ export const useStore = create(
           type: EVENT.PACKING_CLEARED,
           entityType: 'order',
           entityId: orderId,
-          data: { slot, lineKey },
+          unitId: extra.unitId ?? null,
+          data: { slot, lineKey, itemName: extra.itemName ?? null, itemId: extra.itemId ?? null },
         })
         if (usingSupabase)
           sbClearPackingSignoff(orderId, lineKey, slot).catch((e) =>

@@ -3051,6 +3051,32 @@
 > dark-theme entry wrote down); measured 5.89 in both themes. Their screenshots otherwise matched the design: the
 > note in parentheses, "Rental House · Kitbay" in amber, "Clay Rodriguez · 01 Oct 2026, 10:17", the PDF identical,
 > and one row reading "CR · 29 Sep 2026, 18:51" — a tick from the initials era, read as a check-out by design.
+> **FEATURE — the register sees the lifecycle: where every unit stands now, and "Out now"** (frontend only, no
+> migration). Asked after the packing redesign whether "full lifecycle tracking … with inventory visibility" was met:
+> honestly, no — a check-out lived only inside its job. The two pieces that close it:
+> **(1) Where each copy stands, on the item.** `lib/packing.js` `unitLifecycle(orders)` derives it from every job's
+> sign-offs (PURE, +9 assertions, **627 total**): per `itemId::barcode` the LATEST event wins (out on one job, back on
+> it, out again on the next), an archived job's checks are gone with it, and a CLOSED or canceled job's outstanding
+> check-outs are history — closing releases the gear, so "out on a closed job" is not "out now". `isOutNow`,
+> `unitState`, `outNowByItem` (counted rows count as one), `lifecycleEventsFor(orders, {barcode})` (a unit's own
+> history, newest first, across jobs, legacy double sign-outs included). The units table's STATUS cell carries the
+> record under the badge — "Out since 01 Oct 2026, 10:40 · Demo user" in violet, "Back 01 Oct 2026, 10:40 · Demo
+> user" in emerald, the job in the tooltip; the units header counts "N out now"; the unit HISTORY dialog prints
+> "Out … / Back … · scan" under the shoot they belong to; the item peek marks a unit "· Out"; and the packing events
+> now carry `unitId`, so an item's Activity feed shows "Demo user checked out · Aputure 300X" for free (an item's feed
+> reads its units' events). ⚠️ **The reservation badge is "Reserved" now, not "Checked out"** (and the units header
+> "N reserved"): the ticket made "checked out" mean the recorded moment, and one word cannot carry both — the value
+> stays `checked_out`. Fixed while there: "1 units".
+> **(2) "Out now" in Inventory.** A toggle in the Filters panel ("Out now · N", N = items with a piece checked out and
+> not back), counted in the Filters badge and cleared with the rest; the list row says "N out" in violet BEFORE any
+> filter, which is the register's view of the packing lists.
+> Also: the feed detail no longer repeats the actor's name (it IS the actor now; initials from the three-field era
+> still show, they could differ).
+> Verified in local mode: check-out #0803 + a pasted-scan check-in of #0805 → card "2/6 out · 1/6 back"; Inventory:
+> Aputure 600D Pro header "3 units · 1 available · 1 reserved · 1 out now · 1 in repair", #0803 "Reserved / Out since
+> 01 Oct 2026, 10:40 · Demo user", #0805 "Back …", list row "1 out", "Out now · 1" → "1 of 44 items" with Filters 1,
+> the unit history "Out 01 Oct 2026, 10:40 · Demo user" under the right shoot, the item's Activity "Demo user checked
+> in · Aputure 300X · scanned". Reseeded, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
