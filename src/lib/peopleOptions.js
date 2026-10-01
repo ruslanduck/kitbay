@@ -37,8 +37,42 @@ export function peopleNames(people = [], { role = null, used = [] } = {}) {
     .sort(byName)
   return [...new Set([...first, ...rest, ...typed])]
 }
+// What a person DOES, as People files it: their trade (the subcategory), or
+// Model, which is a category with no second level. A person put on a job starts
+// with it as their role there, and every picker shows it beside the name.
+export function personTrade(person) {
+  const sub = String(person?.subcategory ?? '').trim()
+  if (sub) return sub
+  return String(person?.category ?? '').trim() === 'Model' ? 'Model' : null
+}
+
+// A job's ASSIGNEES, tidied: each one `{ name, role }`, a name kept once (first
+// spelling wins), blanks dropped. Plain names are accepted too — a job saved
+// before roles existed holds strings.
+export function normalizeAssignees(list = []) {
+  const seen = new Set()
+  const out = []
+  for (const raw of list ?? []) {
+    const a = typeof raw === 'string' ? { name: raw, role: null } : raw || {}
+    const name = String(a.name ?? '').trim()
+    if (!name || seen.has(name.toLowerCase())) continue
+    seen.add(name.toLowerCase())
+    out.push({ name, role: String(a.role ?? '').trim() || null })
+  }
+  return out
+}
+
+// How a person on a job reads everywhere: "Marcus Reed (Photographer)" — the
+// format asked for — or just the name when nobody gave them a role.
+export const assigneeLabel = (a) => {
+  const [one] = normalizeAssignees([a])
+  if (!one) return ''
+  return one.role ? `${one.name} (${one.role})` : one.name
+}
+export const assigneeNames = (list) => normalizeAssignees(list).map((a) => a.name)
+
 // A list of typed names, tidied: trimmed, blanks dropped, and a name typed
-// twice (in any case) kept once, first spelling wins — the job's assignees.
+// twice (in any case) kept once, first spelling wins.
 export function uniqueNames(names = []) {
   const seen = new Set()
   const out = []

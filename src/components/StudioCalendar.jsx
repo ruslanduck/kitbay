@@ -32,7 +32,8 @@ import {
 import { useStore } from '../store'
 import { brandsIn } from '../lib/orderSearch'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
-import { earliestCrewCall, crewSummary, normalizeCrew } from '../lib/crew'
+import { earliestCrewCall, crewSummary, groupCrew } from '../lib/crew'
+import { assigneeLabel, normalizeAssignees } from '../lib/peopleOptions'
 import { studioLabel } from '../data/studios'
 import {
   ORDER_STATUS_CHOICES,
@@ -99,7 +100,8 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
     b.studioId === 'L' && b.location,
     meta ? meta.label : 'no job attached',
     b.setLabel && `Set name ${b.setLabel}`,
-    b.assignees?.length > 0 && `${b.assignees.length > 1 ? 'Assignees' : 'Assignee'} ${b.assignees.join(', ')}`,
+    b.assignees?.length > 0 &&
+      `${b.assignees.length > 1 ? 'Assignees' : 'Assignee'} ${b.assignees.map(assigneeLabel).join(', ')}`,
     spanSummary(b.date, b.endDate),
     b.spanDays > 1 && `day ${b.dayIndex} of ${b.spanDays}`,
     // The whole call sheet on hover; the chip has room for one number, and
@@ -253,7 +255,7 @@ export default function StudioCalendar() {
           brand: order?.brand || null,
           jobType: order?.jobType || null,
           location: order?.location || null,
-          assignees: order?.assignees ?? [],
+          assignees: normalizeAssignees(order?.assignees),
           poNumber: order?.poNumber || null,
           lineCount: (order?.lines || []).length,
           spanDays: days.length,
@@ -665,7 +667,8 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
   const meta = b.status ? orderStatusMeta(b.status) : null
   const canChange = canManage && !!b.orderId
   const press = useLongPress((at) => canChange && onStatus(b, at))
-  const calls = normalizeCrew(b.crew)
+  // One line per call, everyone called for it on that line.
+  const calls = groupCrew(b.crew)
 
   return (
     <li
@@ -753,7 +756,9 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
                 <span className="font-semibold tabular-nums text-slate-800">{c.time ?? '—:—'}</span>
                 <span className="text-slate-600">
                   {c.role}
-                  {c.name && <span className="font-medium text-slate-800"> · {c.name}</span>}
+                  {c.people.length > 0 && (
+                    <span className="font-medium text-slate-800"> · {c.people.map((p) => p.name).join(', ')}</span>
+                  )}
                 </span>
                 {c.note && <span className="text-slate-400">· {c.note}</span>}
               </span>
@@ -775,7 +780,7 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
           <span className="inline-flex items-center gap-1">
             <UserRound size={12} className="text-slate-400" />
             <span className="text-slate-400">{b.assignees.length > 1 ? 'Assignees' : 'Assignee'}</span>
-            <span className="font-medium text-slate-700">{b.assignees.join(', ')}</span>
+            <span className="font-medium text-slate-700">{b.assignees.map(assigneeLabel).join(', ')}</span>
           </span>
         )}
         {/* What the job actually HOLDS, which is not the length of the unit

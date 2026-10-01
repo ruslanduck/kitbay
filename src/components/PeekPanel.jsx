@@ -20,6 +20,7 @@ import {
 import { categoryLabel } from '../lib/taxonomy'
 import { useStore } from '../store'
 import { isOutNow, unitLifecycle, unitState } from '../lib/packing'
+import { normalizeAssignees } from '../lib/peopleOptions'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 import { studioLabel, placeLabel } from '../data/studios'
@@ -322,23 +323,23 @@ function OrderPeek({ id }) {
           {showsSetName(order) && <Field label="Set name">{order.setLabel || '—'}</Field>}
           <Field label="Brand">{order.brand || '—'}</Field>
           <Field label="Shoot type">{order.jobType || '—'}</Field>
-          <Field label={(order.assignees ?? []).length > 1 ? 'Assignees' : 'Assignee'}>
-            {(order.assignees ?? []).length ? (
-              <span className="inline-flex flex-wrap justify-end gap-x-1">
-                {order.assignees.map((name, i) => (
-                  <span key={name}>
-                    {personLink(name) ? (
+          <Field label={normalizeAssignees(order.assignees).length > 1 ? 'Assignees' : 'Assignee'}>
+            {normalizeAssignees(order.assignees).length ? (
+              <span className="inline-flex flex-col items-end gap-0.5">
+                {normalizeAssignees(order.assignees).map((a) => (
+                  <span key={a.name}>
+                    {personLink(a.name) ? (
                       <button
                         type="button"
-                        onClick={personLink(name)}
+                        onClick={personLink(a.name)}
                         className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
                       >
-                        {name}
+                        {a.name}
                       </button>
                     ) : (
-                      name
+                      a.name
                     )}
-                    {i < order.assignees.length - 1 && ','}
+                    {a.role && <span className="text-slate-500"> ({a.role})</span>}
                   </span>
                 ))}
               </span>

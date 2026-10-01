@@ -3163,6 +3163,43 @@
 > list, the inventory peek ("3 items · 2 free", "ITEMS (3)"), People, and Calendar week / month / day — **zero**
 > "unit" in text, titles, placeholders or aria-labels anywhere. 375px: no overflow, the header wraps to two
 > lines, no tab clipped. 0 console errors; demo data untouched.
+> **CHANGE — every person picker takes the whole team, and everyone's ROLE is visible**
+> (`20261001140000_assignee_roles.sql`, applied and verified on prod). The studio explained the client's "ADD ALL
+> CREW" annotation: "crew — команда … выбрать не ток фотографа, а прям много людей … отображать списком в формате
+> имя (роль)", then: "сделай это для всех мест где можно выбрать человека". Asked first, and settled: the label
+> STAYS **Assignees**, and Call times stay SEPARATE (not filled from the assignees).
+> There are exactly two person pickers, and both changed. **(1) Assignees** (`AssigneesField`): a list of rows —
+> name · role · × — with an "Add people…" search under it; each pick starts with what People says the person does
+> (`personTrade`: their subcategory, or Model), put in the call sheet's spelling (`canonicalRole`) and changeable for
+> this job through the same Other control the call-sheet roles use (a trade outside the list — a Booker —
+> arrives as Other + "Booker"). Stored as `order_assignees.role`; the migration gave every existing assignment the
+> person's own trade by the same rule — never an invented one (no trade → no role, the name reads alone). The app
+> shape is `order.assignees: [{ name, role }]` (`normalizeAssignees` also reads plain names — persist **v8**
+> converts v7's strings). Shown as "Marcus Reed (Photographer)" one per line on the job card and the peek, joined on
+> the day card, the chip tooltip and both PDFs (`assigneeLabel`); a person's work history now says "as Stylist"
+> rather than "as assignee", and a role change counts as an edit in the feed. **(2) Call times**: a line can call
+> SEVERAL people — "10:00 · Model · Hailey Halter, Valery Kaufman". The form edits LINES and the database still
+> keeps one roster row per person (that row is what puts someone on a shoot and builds their history):
+> `groupCrew` folds rows sharing time + role + note into a line, `expandCrew` writes one row per person back, and
+> every reader (the job card, both peeks, the day card, the tooltip) goes through `groupCrew`. Two calls of one role
+> with different notes stay two lines — the note is what tells them apart.
+> Every picker's list now shows each person's trade beside the name ("Marcus Reed · Photographer") and matches it
+> when typed ("hair" lists the hair & makeup people) — `MultiComboField` takes `{ value, hint }` options, a
+> `chips={false}` mode (the assignees list their picks as rows) and `size="sm"` for the call sheet's 30px fields.
+> Reads degrade by layer as always: the role is the OUTERMOST layer of both `getOrders` and `getPeople`, and a write
+> on a database without the column keeps the people and drops only the roles.
+> **674 assertions** (+15: grouping and its round trip, notes keeping lines apart, the tooltip, `personTrade`, the
+> label, plain names from before roles, the PDF printing "Marcus Reed (Photographer), Jonas Lind (Stylist)").
+> Verified in local mode: v7 snapshot converted on load; the seeded 3-day job reads "Assignees · Marcus Reed
+> (Photographer) · Jonas Lind (Stylist)" and "10:00 · Model · Hailey Halter, Valery Kaufman"; in the form, typing
+> "hair" offered Marta Silva · Hair & makeup and picking her added a row with that role; Bea Lombardi arrived as
+> Other · Booker; a new "Nadia Brooks" had no role, was set to Producer and was filed into People on save (31 → 32,
+> history "Producer"); Ann Taylor added to the 07:30 Producer line stored as her own row; the feed read "call
+> times, assignees"; the tooltip, the peek and the day card all show "name (role)" and the two-person line. 375px:
+> name + × on one line and the role under it, no overflow; 1280: every row one line. Reseeded, 0 console errors.
+> On prod (service_role only): predicted the 19 assignments' roles from their people first (Photographer 13, Model
+> 3, Assistant / Booker / Warehouse 1 each — the studio had added five since the morning) and got **19/19**; the
+> app's two new embeds answer 200 (27 jobs, 33 people), e.g. "Priya Nair (Photographer)".
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

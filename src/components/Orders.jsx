@@ -21,6 +21,7 @@ import {
 import { useStore, notArchived, capacityError } from '../store'
 import { setSpanDays } from '../lib/setDays'
 import { usePersisted } from '../lib/usePersisted'
+import { normalizeAssignees } from '../lib/peopleOptions'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 import { studioLabel } from '../data/studios'
@@ -70,6 +71,10 @@ import { packingProgress, packingRows } from '../lib/packing'
 // shows what an order already carries and says so.
 
 const PILL = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1'
+
+// A job's assignees as `{ name, role }` — a job saved before roles existed holds
+// plain names.
+const assigneesOf = (order) => normalizeAssignees(order?.assignees)
 
 // The status pill, and — when `onChange` is given — the CONTROL that moves the
 // job. Clicking the status is how you change it, so the separate STATUS block
@@ -814,15 +819,16 @@ function OrderDetail({
           <Row icon={Briefcase} label="Shoot type">
             {order.jobType || <span className="text-slate-400">—</span>}
           </Row>
-          {/* Whose job it is — anyone in People, and several of them. Not derived
-              from the call sheet above: that says who is called when. */}
-          <Row icon={UserRound} label={(order.assignees ?? []).length > 1 ? 'Assignees' : 'Assignee'}>
-            {(order.assignees ?? []).length ? (
-              <span className="flex flex-wrap gap-x-1">
-                {order.assignees.map((name, i) => (
-                  <span key={name}>
-                    <PeekLink onClick={personLink(name)}>{name}</PeekLink>
-                    {i < order.assignees.length - 1 && ','}
+          {/* The job's crew — anyone in People, each with their role on this job,
+              one per line as "Name (Role)". Not derived from the call sheet
+              above: that says who is called when. */}
+          <Row icon={UserRound} label={assigneesOf(order).length > 1 ? 'Assignees' : 'Assignee'}>
+            {assigneesOf(order).length ? (
+              <span className="flex flex-col gap-0.5">
+                {assigneesOf(order).map((a) => (
+                  <span key={a.name}>
+                    <PeekLink onClick={personLink(a.name)}>{a.name}</PeekLink>
+                    {a.role && <span className="text-slate-500"> ({a.role})</span>}
                   </span>
                 ))}
               </span>

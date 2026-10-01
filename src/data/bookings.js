@@ -16,14 +16,16 @@
 // `reservedUnitsForOrder`) — one source of truth, so inventory and orders can't
 // disagree. Each shoot below has a matching order (linked by title).
 //
-// `assignees` is whose job it is — several people (the client asked for "all
-// crew"). Optional: without it a shoot's assignee is its photographer, which is
-// what every template but the first says.
+// `assignees` is the job's crew — several people, each with their ROLE on the
+// job (the client asked for "all crew", read as "name (role)"). Optional:
+// without it a shoot's assignee is its photographer. `crew` adds people a
+// template calls beyond its one photographer and model — the first template
+// calls two models at 10:00, which is how a line with several people looks.
 //
 // Spread includes a couple of shoots on "today" and on the weekend so the
 // calendar's today/weekend tinting is visible.
 export const BOOKING_TEMPLATES = [
-  { title: '20260624_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '1', dayOffset: 0, days: 3, calls: [{ roles: ['Producer'], time: '07:30' }, { roles: ['Photographer', 'Digital tech'], time: '08:00' }, { roles: ['Hair & makeup', 'Stylist'], time: '08:30' }, { roles: ['Model'], time: '10:00' }], wrap: '18:00', photographer: 'Marcus Reed', model: 'Hailey Halter', assignees: ['Marcus Reed', 'Jonas Lind'], color: '#3b82f6' },
+  { title: '20260624_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '1', dayOffset: 0, days: 3, calls: [{ roles: ['Producer'], time: '07:30' }, { roles: ['Photographer', 'Digital tech'], time: '08:00' }, { roles: ['Hair & makeup', 'Stylist'], time: '08:30' }, { roles: ['Model'], time: '10:00' }], wrap: '18:00', photographer: 'Marcus Reed', model: 'Hailey Halter', assignees: [{ name: 'Marcus Reed', role: 'Photographer' }, { name: 'Jonas Lind', role: 'Stylist' }], crew: [{ role: 'Model', name: 'Valery Kaufman', time: '10:00' }], color: '#3b82f6' },
   { title: '20260629_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '3', dayOffset: 1, calls: [{ roles: ['Photographer'], time: '09:00' }, { roles: ['Model', 'Stylist'], time: '10:30' }], wrap: '17:00', photographer: 'Sofia Ventura', model: 'Hyunjoo', color: '#ec4899' },
   { title: '20260629_AT_MAIN_SepBOM_Missy_OMSet2', studioId: '5', dayOffset: 1, photographer: 'Diego Alvarez', model: 'Abigael Boivin', color: '#10b981' },
   { title: '20260625_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '2', dayOffset: 2, photographer: 'Priya Nair', model: 'Amanda Googe', color: '#f59e0b' },

@@ -13,7 +13,7 @@ import { generateUsage } from '../src/data/usage.js'
 import { KIT_SEED } from '../src/data/kits.js'
 import { SCENARIO_SEED } from '../src/data/scenarios.js'
 import { BOOKING_TEMPLATES } from '../src/data/bookings.js'
-import { crewFromLegacy } from '../src/lib/crew.js'
+import { crewFromLegacy, normalizeCrew } from '../src/lib/crew.js'
 import { PEOPLE_SEED, COMPANY_SEED, COMPANY_TYPES } from '../src/data/people.js'
 import { ORDER_SEED, SUB_RENTAL_VENDORS } from '../src/data/orders.js'
 import { STUDIOS, studioLabel } from '../src/data/studios.js'
@@ -96,7 +96,12 @@ async function main() {
   const seeded = new Set(PEOPLE_SEED.map((p) => p.name))
   const extras = [
     ...new Set(
-      BOOKING_TEMPLATES.flatMap((t) => [t.photographer, t.model, ...(t.assignees ?? [])]).filter(Boolean),
+      BOOKING_TEMPLATES.flatMap((t) => [
+        t.photographer,
+        t.model,
+        ...(t.assignees ?? []).map((a) => a.name),
+        ...(t.crew ?? []).map((r) => r.name),
+      ]).filter(Boolean),
     ),
   ].filter((n) => !seeded.has(n))
   const { data: contactRows, error: ctErr } = await db.from('contacts')
@@ -310,15 +315,18 @@ async function main() {
     sets++
     setByTitle[t.title] = {
       id: set.id, date, endDate, studioId: t.studioId,
-      // Whose job it is — several people, the photographer when nobody says.
-      assignees: t.assignees ?? (t.photographer ? [t.photographer] : []),
+      // The job's crew, each with a role — the photographer when nobody says.
+      assignees: t.assignees ?? (t.photographer ? [{ name: t.photographer, role: 'Photographer' }] : []),
     }
 
     // Gear is NOT reserved here: a Set's reservations derive from its CONFIRMED
     // order's in-house lines, written in the orders pass below.
     // The call sheet (20260930120000): one roster row per time · role · person,
     // built from the template by the same rule the migration applied to prod.
-    const sheet = crewFromLegacy({ calls: t.calls, photographer: t.photographer, model: t.model })
+    const sheet = normalizeCrew([
+      ...crewFromLegacy({ calls: t.calls, photographer: t.photographer, model: t.model }),
+      ...(t.crew ?? []),
+    ])
     if (sheet.length) {
       must('roster', await db.from('roster_entries').insert(
         sheet.map((r, i) => ({
@@ -368,12 +376,12 @@ async function main() {
       // that designation (…_OMSet1), so the seed reuses it.
       set_label: String(o.setTitle ?? '').split('_').slice(-1)[0] || null,
       // The first assignee, mirrored into the old single column (20261001130000).
-      photographer_contact_id: set?.assignees?.[0] ? contactId[set.assignees[0]] ?? null : null,
+      photographer_contact_id: set?.assignees?.[0] ? contactId[set.assignees[0].name] ?? null : null,
     }).select('id').single()
     if (oErr) throw oErr
     orders++
     const assigneeRows = (set?.assignees ?? [])
-      .map((name, position) => ({ order_id: order.id, contact_id: contactId[name] ?? null, position }))
+      .map((a, position) => ({ order_id: order.id, contact_id: contactId[a.name] ?? null, role: a.role ?? null, position }))
       .filter((r) => r.contact_id)
     if (assigneeRows.length) must('order_assignees', await db.from('order_assignees').insert(assigneeRows))
 

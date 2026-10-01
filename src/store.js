@@ -89,7 +89,7 @@ import { endsOnFor, setSpanDays } from './lib/setDays'
 import { MAX_SETS_PER_DAY, setsUsedOn, capacityError } from './lib/capacity'
 import { setNameApplies } from './lib/orderSearch'
 import { normalizeCrew, crewFromLegacy, crewNameFor, crewNames } from './lib/crew'
-import { uniqueNames } from './lib/peopleOptions'
+import { assigneeNames, normalizeAssignees } from './lib/peopleOptions'
 import { CHECK_IN, VIA_MANUAL } from './lib/packing'
 import { resolveUnitCodes } from './lib/unitRows'
 import { newestFirst } from './lib/ordering'
@@ -193,7 +193,7 @@ function buildSeedData() {
         wrapTime: t.wrap || null,
         // Whose job it is — several people. Mirrors the job's own field so a
         // person's work history can say "as assignee" in local mode too.
-        assignees: uniqueNames(t.assignees ?? [t.photographer]),
+        assignees: normalizeAssignees(t.assignees ?? [{ name: t.photographer, role: 'Photographer' }]),
         unitIds: [],
         orderId: null,
         status: 'active',
@@ -203,8 +203,9 @@ function buildSeedData() {
       // photographer, a model and call times by role — and are merged into ONE
       // sheet by the same rule migration 20260930120000 applied to prod, so the
       // demo looks the way the real data does. Some shoots have no calls at all:
-      // a real state, and the card says so.
-      crewFromLegacy({ calls: t.calls, photographer: t.photographer, model: t.model }),
+      // a real state, and the card says so. `crew` adds people a template calls
+      // beyond its one photographer and model (two models on one call).
+      [...crewFromLegacy({ calls: t.calls, photographer: t.photographer, model: t.model }), ...(t.crew ?? [])],
     ),
   )
 
@@ -530,7 +531,7 @@ function resolveOrder(o, companies) {
     startsOn,
     endsOn: o.endsOn || startsOn,
     // The job's people, tidied once here so every reader sees one spelling.
-    assignees: uniqueNames(o.assignees),
+    assignees: normalizeAssignees(o.assignees),
     createdBy: o.createdBy ?? 'You',
     createdAt: o.createdAt ?? format(new Date(), 'yyyy-MM-dd'),
     companyId: o.companyId || null,
@@ -567,12 +568,12 @@ function resolvePerson(person, companies, bookings) {
   const me = String(person.name ?? '').trim().toLowerCase()
   const jobs = (bookings || [])
     .map((b) => {
-      // Their role on the call sheet — or, failing that, the job is theirs.
+      // Their role on the call sheet — or the role they were given as an
+      // assignee ("as Stylist"), or simply that the job is theirs.
+      const assigned = normalizeAssignees(b.assignees).find((a) => a.name.toLowerCase() === me)
       const role =
         (b.crew || []).find((r) => String(r.name ?? '').trim().toLowerCase() === me)?.role ??
-        ((b.assignees || []).some((n) => String(n ?? '').trim().toLowerCase() === me)
-          ? 'Assignee'
-          : null)
+        (assigned ? assigned.role || 'Assignee' : null)
       return me && role
         ? {
             id: b.id,
@@ -2784,7 +2785,7 @@ export const useStore = create(
             date: startsOn,
             endDate: endsOn,
             wrapTime: order.wrapTime || null,
-            assignees: uniqueNames(order.assignees),
+            assignees: normalizeAssignees(order.assignees),
             unitIds: [],
             status: 'active',
             color: BOOKING_COLORS[state.bookings.length % BOOKING_COLORS.length],
@@ -2808,7 +2809,7 @@ export const useStore = create(
           bookings: nextBookings,
           orders: nextOrders,
           inventory: withReservations(state.inventory, nextBookings),
-          people: withCrewPeople(state.people, crew, state.companies, nextBookings, order.assignees ?? []),
+          people: withCrewPeople(state.people, crew, state.companies, nextBookings, assigneeNames(order.assignees)),
         })
         return { ok: true, id }
       },
@@ -2880,7 +2881,8 @@ export const useStore = create(
         const beforeShoot = get().bookings.find((b) => b.id === before?.setId) ?? null
         const sheet = (rows) =>
           JSON.stringify(normalizeCrew(rows).map((r) => [r.time, r.role, r.name, r.note]))
-        const people = (names) => JSON.stringify(uniqueNames(names).map((n) => n.toLowerCase()))
+        const people = (list) =>
+          JSON.stringify(normalizeAssignees(list).map((a) => [a.name.toLowerCase(), a.role ?? '']))
         const reallyChanged = Object.keys(changes).filter((k) => {
           if (k === 'crew') return sheet(changes.crew) !== sheet(beforeShoot?.crew)
           if (k === 'assignees') return people(changes.assignees) !== people(before?.assignees)
@@ -2988,7 +2990,7 @@ export const useStore = create(
                   nextCrew ?? [],
                   state.companies,
                   bookings,
-                  target?.assignees ?? [],
+                  assigneeNames(target?.assignees),
                 ),
               }
             : {}),
@@ -3415,23 +3417,25 @@ export const useStore = create(
       // proportion. Supabase mode persists only UI state, which no bump has
       // changed shape, so it keeps all of it (theme and "where I was" included —
       // the earlier bumps reset those for nothing).
-      version: 7,
+      // v8: each assignee carries a ROLE (`{ name, role }`); a v7 snapshot's
+      // plain names are converted the same way, with no role yet.
+      version: 8,
       migrate: (persisted, version) => {
-        if (version >= 7) return persisted
+        if (version >= 8) return persisted
         if (usingSupabase) {
           const { activeView, viewState, selectedDate, calendarMode, theme } = persisted || {}
           return { activeView: activeView ?? 'calendar', viewState, selectedDate, calendarMode, theme }
         }
-        if (version === 6)
+        if (version === 6 || version === 7)
           return {
             ...persisted,
             orders: (persisted?.orders || []).map(({ photographer, photographerId: _photographerId, ...o }) => ({
               ...o,
-              assignees: uniqueNames(o.assignees ?? [photographer]),
+              assignees: normalizeAssignees(o.assignees ?? [photographer]),
             })),
             bookings: (persisted?.bookings || []).map(({ assignee, ...b }) => ({
               ...b,
-              assignees: uniqueNames(b.assignees ?? [assignee]),
+              assignees: normalizeAssignees(b.assignees ?? [assignee]),
             })),
           }
         return { ...buildSeedData(), activeView: persisted?.activeView ?? 'calendar' }

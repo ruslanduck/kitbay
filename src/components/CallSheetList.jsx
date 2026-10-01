@@ -1,8 +1,9 @@
-import { normalizeCrew } from '../lib/crew'
+import { Fragment } from 'react'
+import { groupCrew } from '../lib/crew'
 
-// The call sheet as it is READ: one row per call — the time, the role and the
-// person ("08:00 · Photographer · Marcus Reed"), the note if there is one — plus
-// the wrap when the caller asks for it.
+// The call sheet as it is READ: one line per call — the time, the role and
+// everyone called for it ("10:00 · Model · Hailey Halter, Valery Kaufman"), the
+// note if there is one — plus the wrap when the caller asks for it.
 //
 // One definition because three surfaces show this: the job card, the job's peek
 // card and the shoot's peek card. Two of them had grown their own copy once, and
@@ -18,12 +19,11 @@ import { normalizeCrew } from '../lib/crew'
 // or null — so a name opens its card where it can and stays plain text where it
 // can't. `wrapTime` is optional.
 export default function CallSheetList({ crew, wrapTime = null, empty = 'not set', onPerson = null }) {
-  const rows = normalizeCrew(crew)
-  if (!rows.length && !wrapTime) return <span className="text-slate-400">{empty}</span>
+  const lines = groupCrew(crew)
+  if (!lines.length && !wrapTime) return <span className="text-slate-400">{empty}</span>
   return (
     <span className="flex flex-col items-start gap-1">
-      {rows.map((c, i) => {
-        const open = c.name && onPerson ? onPerson(c.name) : null
+      {lines.map((c, i) => {
         return (
           <span key={c.id || i} className="flex items-baseline gap-2">
             <span
@@ -38,22 +38,26 @@ export default function CallSheetList({ crew, wrapTime = null, empty = 'not set'
             </span>
             <span className="min-w-0">
               <span className="font-medium text-slate-700">{c.role}</span>
-              {c.name && (
-                <>
-                  <span className="text-slate-400"> · </span>
-                  {open ? (
-                    <button
-                      type="button"
-                      onClick={open}
-                      className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
-                    >
-                      {c.name}
-                    </button>
-                  ) : (
-                    <span className="text-slate-700">{c.name}</span>
-                  )}
-                </>
-              )}
+              {c.people.length > 0 && <span className="text-slate-400"> · </span>}
+              {c.people.map((p, n) => {
+                const open = onPerson ? onPerson(p.name) : null
+                return (
+                  <Fragment key={p.name}>
+                    {n > 0 && <span className="text-slate-400">, </span>}
+                    {open ? (
+                      <button
+                        type="button"
+                        onClick={open}
+                        className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
+                      >
+                        {p.name}
+                      </button>
+                    ) : (
+                      <span className="text-slate-700">{p.name}</span>
+                    )}
+                  </Fragment>
+                )
+              })}
               {c.note && <span className="text-slate-400"> · {c.note}</span>}
             </span>
           </span>

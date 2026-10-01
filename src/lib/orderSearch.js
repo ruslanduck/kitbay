@@ -36,7 +36,8 @@ function haystack(order) {
     // the point of pulling it out of the job name.
     order.setLabel,
     // Every assignee, not just the first: "jonas" finds the jobs Jonas is on.
-    ...(order.assignees ?? []),
+    // (A job saved before roles existed holds plain names.)
+    ...(order.assignees ?? []).map((a) => (typeof a === 'string' ? a : a?.name)),
     // Brand and shoot type are BOTH dropdowns AND free text: "nike editorial"
     // should answer without picking two fields first. Unlike the studio (which
     // was pulled OUT of the haystack because a bare "2" matched every 2026

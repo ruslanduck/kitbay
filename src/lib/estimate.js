@@ -11,6 +11,8 @@
 // but contribute 0 and are counted so the UI can say so out loud rather than
 // quietly understating the total.
 
+import { normalizeAssignees } from './peopleOptions.js'
+
 // Billable days are inclusive: a single-day job bills 1, Mon→Wed bills 3.
 export function billableDays(startsOn, endsOn) {
   if (!startsOn) return 1
@@ -108,7 +110,8 @@ export function buildEstimate(order, { inventory = [], kits = [], booking = null
       location: order?.location ?? null,
       startsOn: order?.startsOn ?? null,
       endsOn: order?.endsOn ?? null,
-      assignees: order?.assignees ?? [],
+      // Each `{ name, role }` — the PDFs print "Marcus Reed (Photographer)".
+      assignees: normalizeAssignees(order?.assignees),
       companyName: order?.companyName ?? null,
       createdBy: order?.createdBy ?? null,
       createdAt: order?.createdAt ?? null,

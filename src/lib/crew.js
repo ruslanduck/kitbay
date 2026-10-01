@@ -91,12 +91,52 @@ export function crewLine(r) {
   return [r?.time, who].filter(Boolean).join(' ')
 }
 
+// The sheet as it is READ and edited: a call is one LINE — a time, a role and
+// everyone called for it ("10:00 · Model · Hailey Halter, Valery Kaufman").
+// Asked for: "всю команду можно выбирать — несколько людей". The database keeps
+// one row per person, because that row is what puts a person on a shoot and
+// builds their work history; these two turn one shape into the other. Rows
+// share a line when time, role and note all match — the note is what tells two
+// calls of one role apart ("freight door" vs "park on 9th").
+export function groupCrew(rows = []) {
+  const out = []
+  const at = new Map()
+  for (const r of normalizeCrew(rows)) {
+    const key = [r.time ?? '', r.role.toLowerCase(), r.note ?? ''].join('|')
+    let line = at.get(key)
+    if (!line) {
+      line = { id: r.id, time: r.time, role: r.role, note: r.note, people: [] }
+      at.set(key, line)
+      out.push(line)
+    }
+    if (r.name && !line.people.some((p) => same(p.name, r.name)))
+      line.people.push({ name: r.name, contactId: r.contactId ?? null })
+  }
+  return out
+}
+
+// A line back to rows: one per person, or one with nobody booked yet.
+export function expandCrew(lines = []) {
+  const rows = []
+  for (const l of lines || []) {
+    const people = (l?.people || []).filter((p) => clean(p?.name))
+    const base = { role: l?.role, time: l?.time, note: l?.note }
+    if (!people.length) rows.push({ ...base, name: null, contactId: null })
+    else for (const p of people) rows.push({ ...base, name: clean(p.name), contactId: p.contactId ?? null })
+  }
+  return normalizeCrew(rows)
+}
+
 // The whole sheet on one line, for a tooltip — "08:00 Photographer (Marcus
-// Reed) · 10:00 Model". The rows are joined with a middle dot, so a row names
-// its person in brackets rather than with a second dot.
+// Reed) · 10:00 Model (Hailey Halter, Valery Kaufman)". The lines are joined
+// with a middle dot, so a line names its people in brackets.
 export function crewSummary(crew = []) {
-  return normalizeCrew(crew)
-    .map((r) => [r.time, r.name ? `${r.role} (${r.name})` : r.role].filter(Boolean).join(' '))
+  return groupCrew(crew)
+    .map((l) =>
+      [l.time, l.people.length ? `${l.role} (${l.people.map((p) => p.name).join(', ')})` : l.role]
+        .filter(Boolean)
+        .join(' '),
+    )
     .join(' · ')
 }
 
@@ -112,7 +152,9 @@ export function wrapBeforeFirstCrewCall(crew = [], wrapTime = null) {
 // What a row still needs before it can be saved, in the crew's words — or null.
 // A row with nothing in it is fine: it is dropped.
 export function crewRowProblem(r = {}) {
-  const hasAny = clean(r.role) || clean(r.name) || clean(r.time) || clean(r.note)
+  // A form line carries `people`; a stored row carries one `name`.
+  const named = clean(r.name) || (r.people || []).some((p) => clean(p?.name))
+  const hasAny = clean(r.role) || named || clean(r.time) || clean(r.note)
   if (!hasAny) return null
   if (!clean(r.role)) return 'Pick a role for this row — or remove it.'
   if (clean(r.time) && !isValidTime(toHHMM(r.time))) return 'The time should read as HH:MM.'

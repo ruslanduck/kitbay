@@ -2,20 +2,43 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown, Plus, X } from 'lucide-react'
 
-// SEVERAL names in one field — the job's assignees. The client asked for "all
-// crew", and a single combo box could only ever hold one person.
+// SEVERAL people in one field — wherever the app asks for a person: the job's
+// assignees and every line of the call sheet. The client asked for "all crew",
+// and a single combo box could only ever hold one person.
 //
-// Chips for who is in it, a text box after them that narrows the list, and the
-// same popover as ComboField (portal, fixed position, outside-click and Escape
-// to close, flips above when there's no room below). Picking a row TOGGLES it
-// and the list stays open, because the point of this control is picking more
-// than one. A name the list doesn't have is allowed and said out loud — the
-// caller files it into People on save, as ComboField's free entry does.
+// Chips for who is in it (or, with `chips={false}`, only the box — the caller
+// lists the picks itself, as the assignees do with a role beside each), a text
+// box that narrows the list, and the same popover as ComboField (portal, fixed
+// position, outside-click and Escape to close, flips above when there's no room
+// below). Picking a row TOGGLES it and the list stays open, because the point
+// of this control is picking more than one. A name the list doesn't have is
+// allowed and said out loud — the caller files it into People on save.
+//
+// Options are names or `{ value, hint }`: the hint is what that person does as
+// People files it, shown beside the name ("Marcus Reed · Photographer") and
+// searchable too, so typing "stylist" lists the stylists.
 //
 // `onChange` takes an UPDATER, not a value: two picks before a re-render would
 // otherwise both compute from the same `value` prop and the second would drop
 // the first (the stale-value rule written down in CLAUDE.md).
 const fold = (s) => String(s ?? '').trim().toLowerCase()
+const asOption = (o) => (typeof o === 'object' && o !== null ? o : { value: o, hint: null })
+
+const SIZES = {
+  md: {
+    box: 'min-h-[2.375rem] rounded-lg py-1.5 pl-2',
+    chip: 'h-6',
+    input: 'h-6',
+    chevron: 'top-[0.5625rem]',
+  },
+  // Matches the call sheet's compact fields (30px).
+  sm: {
+    box: 'min-h-[1.875rem] rounded-md py-[3px] pl-1.5',
+    chip: 'h-[22px]',
+    input: 'h-[22px]',
+    chevron: 'top-[0.3125rem]',
+  },
+}
 
 export default function MultiComboField({
   value = [],
@@ -24,6 +47,8 @@ export default function MultiComboField({
   placeholder,
   ariaLabel,
   className = '',
+  chips = true,
+  size = 'md',
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -32,18 +57,20 @@ export default function MultiComboField({
   const boxRef = useRef(null)
   const inputRef = useRef(null)
   const popRef = useRef(null)
+  const sz = SIZES[size] ?? SIZES.md
 
+  const all = options.map(asOption)
   const chosen = new Set(value.map(fold))
   const q = fold(draft)
-  const shown = q ? options.filter((o) => fold(o).includes(q)) : options
+  const shown = q ? all.filter((o) => fold(o.value).includes(q) || fold(o.hint).includes(q)) : all
   // A typed name nobody on the list has — offered as the first row.
-  const typed = q && !options.some((o) => fold(o) === q) && !chosen.has(q) ? draft.trim() : ''
+  const typed = q && !all.some((o) => fold(o.value) === q) && !chosen.has(q) ? draft.trim() : ''
   const rows = [
-    ...(typed ? [{ name: typed, isNew: true }] : []),
-    ...shown.map((name) => ({ name, isNew: false })),
+    ...(typed ? [{ name: typed, hint: null, isNew: true }] : []),
+    ...shown.map((o) => ({ name: o.value, hint: o.hint, isNew: false })),
   ]
   // Picked, but not on the list — they are added to People when the job saves.
-  const unknown = value.filter((n) => !options.some((o) => fold(o) === fold(n)))
+  const unknown = value.filter((n) => !all.some((o) => fold(o.value) === fold(n)))
 
   const place = () => {
     const el = boxRef.current
@@ -55,7 +82,9 @@ export default function MultiComboField({
     setCoords({
       top: openUp ? Math.max(8, r.top - Math.min(wanted, r.top - 8) - 4) : r.bottom + 4,
       left: r.left,
-      width: r.width,
+      // A call-sheet line's field is narrow; the list is never narrower than a
+      // name and its trade need.
+      width: Math.max(r.width, 240),
       maxHeight: Math.min(wanted, openUp ? r.top - 12 : below),
     })
   }
@@ -116,7 +145,7 @@ export default function MultiComboField({
 
   // What was typed, as a name: the list's own spelling when it is on it.
   function addTyped() {
-    const name = options.find((o) => fold(o) === q) ?? draft.trim()
+    const name = all.find((o) => fold(o.value) === q)?.value ?? draft.trim()
     if (!name) return
     onChange((cur) => (cur.some((n) => fold(n) === fold(name)) ? cur : [...cur, name]))
     setDraft('')
@@ -134,7 +163,7 @@ export default function MultiComboField({
       e.preventDefault()
       if (open && active >= 0 && rows[active]) pickRow(rows[active])
       else addTyped()
-    } else if (e.key === 'Backspace' && !draft && value.length) {
+    } else if (e.key === 'Backspace' && !draft && value.length && chips) {
       remove(value[value.length - 1])
     } else if (e.key === 'Tab') {
       setOpen(false)
@@ -142,7 +171,7 @@ export default function MultiComboField({
   }
 
   return (
-    <div>
+    <div className="min-w-0">
       <div
         ref={boxRef}
         onMouseDown={(e) => {
@@ -154,35 +183,40 @@ export default function MultiComboField({
           }
         }}
         className={[
-          'relative flex min-h-[2.375rem] w-full cursor-text flex-wrap items-center gap-1.5 rounded-lg border border-slate-300 bg-surface py-1.5 pl-2 pr-7 text-sm transition focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100',
+          'relative flex w-full cursor-text flex-wrap items-center gap-1.5 border border-slate-300 bg-surface pr-7 text-sm transition focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100',
+          sz.box,
           className,
         ]
           .filter(Boolean)
           .join(' ')}
       >
-        {value.map((name) => (
-          <span
-            key={fold(name)}
-            className="inline-flex h-6 max-w-full items-center gap-0.5 rounded-full bg-violet-50 pl-2.5 pr-1 text-xs font-medium text-violet-700 ring-1 ring-violet-200"
-          >
-            <span className="truncate">{name}</span>
-            <button
-              type="button"
-              onClick={() => remove(name)}
-              title={`Remove ${name}`}
-              aria-label={`Remove ${name}`}
-              className="shrink-0 rounded-full p-0.5 text-violet-400 transition hover:bg-violet-100 hover:text-violet-700"
+        {chips &&
+          value.map((name) => (
+            <span
+              key={fold(name)}
+              className={[
+                'inline-flex max-w-full items-center gap-0.5 rounded-full bg-violet-50 pl-2.5 pr-1 text-xs font-medium text-violet-700 ring-1 ring-violet-200',
+                sz.chip,
+              ].join(' ')}
             >
-              <X size={12} />
-            </button>
-          </span>
-        ))}
+              <span className="truncate">{name}</span>
+              <button
+                type="button"
+                onClick={() => remove(name)}
+                title={`Remove ${name}`}
+                aria-label={`Remove ${name}`}
+                className="shrink-0 rounded-full p-0.5 text-violet-400 transition hover:bg-violet-100 hover:text-violet-700"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          ))}
         <input
           ref={inputRef}
           type="text"
           value={draft}
           aria-label={ariaLabel}
-          placeholder={value.length ? '' : placeholder}
+          placeholder={chips && value.length ? '' : placeholder}
           onChange={(e) => {
             setDraft(e.target.value)
             setActive(-1)
@@ -194,8 +228,11 @@ export default function MultiComboField({
           // As wide as what is in it, then it grows into the rest of the line:
           // two names and an empty box share one line, and a long name being
           // typed wraps to a line of its own instead of being typed blind.
-          size={Math.max((draft || (value.length ? '' : placeholder || '')).length + 1, 2)}
-          className="h-6 min-w-0 flex-auto bg-transparent px-1 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+          size={Math.max((draft || (chips && value.length ? '' : placeholder || '')).length + 1, 2)}
+          className={[
+            'min-w-0 flex-auto bg-transparent px-1 text-sm text-slate-900 outline-none placeholder:text-slate-400',
+            sz.input,
+          ].join(' ')}
         />
         <button
           type="button"
@@ -205,7 +242,10 @@ export default function MultiComboField({
             inputRef.current?.focus()
           }}
           title="Show the list"
-          className="absolute right-1.5 top-[0.5625rem] rounded-md p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          className={[
+            'absolute right-1.5 rounded-md p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600',
+            sz.chevron,
+          ].join(' ')}
         >
           <ChevronDown size={15} className={['transition', open ? 'rotate-180' : ''].join(' ')} />
         </button>
@@ -232,6 +272,7 @@ export default function MultiComboField({
               top: coords.top,
               left: coords.left,
               width: coords.width,
+              maxWidth: 'calc(100vw - 16px)',
               maxHeight: coords.maxHeight,
             }}
             className="z-[70] overflow-auto rounded-xl border border-slate-200 bg-surface py-1 shadow-xl"
@@ -266,6 +307,7 @@ export default function MultiComboField({
                     <Check size={14} className={['shrink-0', selected ? 'text-violet-600' : 'invisible'].join(' ')} />
                   )}
                   <span className="min-w-0 flex-1 truncate">{r.isNew ? `Add “${r.name}”` : r.name}</span>
+                  {r.hint && <span className="shrink-0 text-xs font-normal text-slate-400">{r.hint}</span>}
                 </button>
               )
             })}

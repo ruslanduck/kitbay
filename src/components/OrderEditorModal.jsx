@@ -5,7 +5,7 @@ import ErrorNote from './ErrorNote'
 import DateRangeField from './DateRangeField'
 import SelectField from './SelectField'
 import ComboField from './ComboField'
-import MultiComboField from './MultiComboField'
+import AssigneesField from './AssigneesField'
 import OtherSelectField from './OtherSelectField'
 import { studioLabel } from '../data/studios'
 import {
@@ -16,12 +16,11 @@ import {
 } from '../data/orderStatus'
 import { MAX_SET_DAYS, setSpanDays } from '../lib/setDays'
 import { isValidTime } from '../lib/callTimes'
-import { normalizeCrew, crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
+import { groupCrew, expandCrew, crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
 import CrewField from './CrewField'
-import { useAssigneeNames } from '../lib/usePeopleNames'
 import { JOB_TYPES, setNameApplies } from '../lib/orderSearch'
 import { normalizeChoice } from '../lib/otherChoice'
-import { uniqueNames } from '../lib/peopleOptions'
+import { normalizeAssignees } from '../lib/peopleOptions'
 
 // Order (Estimate) creation form — epic #5, 5.1 + 5.2.
 //
@@ -77,7 +76,6 @@ export default function OrderEditorModal({
   onDelete,
 }) {
   const isEdit = !!order
-  const assignees = useAssigneeNames()
   const [form, setForm] = useState(blank)
   const [error, setError] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -99,9 +97,11 @@ export default function OrderEditorModal({
             endsOn: order.endsOn ?? order.startsOn ?? '',
             // The call sheet lives on the SHOOT; the job form is where the crew
             // edits it, so the caller hands it in alongside the order.
-            crew: (order.crew ?? []).map((c) => ({ ...c })),
+            // Edited as LINES — a time, a role and everyone called for it — and
+            // stored one row per person again on save (lib/crew).
+            crew: groupCrew(order.crew ?? []),
             wrapTime: order.wrapTime ?? '',
-            assignees: [...(order.assignees ?? [])],
+            assignees: normalizeAssignees(order.assignees),
             poNumber: order.poNumber ?? '',
             status: order.status ?? 'hold',
           }
@@ -142,7 +142,7 @@ export default function OrderEditorModal({
     const payload = {
       ...form,
       jobName: form.jobName.trim(),
-      assignees: uniqueNames(form.assignees),
+      assignees: normalizeAssignees(form.assignees),
       // A set name belongs to a PDP day. Any other type sends it empty, which
       // clears one left over from before the type changed (the Location rule).
       setLabel: setNameApplies(normalizeChoice(form.jobType, JOB_TYPES)) ? form.setLabel.trim() : '',
@@ -156,7 +156,7 @@ export default function OrderEditorModal({
       // A one-day shoot ends the day it starts; the store normalises this too,
       // so nothing downstream has to guess what an empty end means.
       endsOn: form.endsOn || form.startsOn,
-      crew: normalizeCrew(form.crew),
+      crew: expandCrew(form.crew),
       wrapTime: form.wrapTime || null,
     }
     // Creating is a two-step flow: this form settles the job, then the equipment
@@ -231,21 +231,16 @@ export default function OrderEditorModal({
                 className={field}
               />
             </div>
-            {/* The job's ASSIGNEES — where the photographer was, open to anyone
-                in People, and SEVERAL of them: the client asked for "all crew".
-                Not call-sheet rows: the sheet says who is called WHEN, this
-                says whose job it is. A name People doesn't have is added there
-                on save. */}
+            {/* A shoot books whole days, from the first to the last — no times.
+                Availability, the estimate's billable days, the packing list and
+                the job search all read this window. */}
             <div>
-              <label className={label}>Assignees</label>
-              <MultiComboField
-                value={form.assignees}
-                // An updater, applied against the CURRENT form — two picks in a
-                // row would otherwise both start from the same list.
-                onChange={(fn) => setForm((f) => ({ ...f, assignees: fn(f.assignees) }))}
-                options={assignees}
-                placeholder="Select or type…"
-                ariaLabel="Assignees"
+              <label className={label}>Shoot dates</label>
+              <DateRangeField
+                from={form.startsOn}
+                to={form.endsOn}
+                onChange={({ from, to }) => set({ startsOn: from, endsOn: to })}
+                className={field}
               />
             </div>
           </div>
@@ -263,16 +258,18 @@ export default function OrderEditorModal({
             </div>
           )}
 
-          {/* A shoot books whole days, from the first to the last — no times.
-              Availability, the estimate's billable days, the packing list and
-              the job search all read this window. */}
+          {/* The job's ASSIGNEES — where the photographer was: the whole crew,
+              anyone in People, each with their role on this job ("имя (роль)").
+              Not call-sheet lines: the sheet says who is called WHEN, this says
+              who is on the job. A name People doesn't have is added there on
+              save. Full width, because every person is a row with a role. */}
           <div>
-            <label className={label}>Shoot dates</label>
-            <DateRangeField
-              from={form.startsOn}
-              to={form.endsOn}
-              onChange={({ from, to }) => set({ startsOn: from, endsOn: to })}
-              className={field}
+            <label className={label}>Assignees</label>
+            <AssigneesField
+              value={form.assignees}
+              // An updater, applied against the CURRENT form — two picks in a
+              // row would otherwise both start from the same list.
+              onChange={(fn) => setForm((f) => ({ ...f, assignees: fn(f.assignees) }))}
             />
           </div>
 

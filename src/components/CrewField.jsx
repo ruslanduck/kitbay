@@ -2,19 +2,21 @@ import { useRef } from 'react'
 import { Plus, X, Clock, AlertTriangle } from 'lucide-react'
 import TimeField from './TimeField'
 import OtherSelectField from './OtherSelectField'
-import ComboField from './ComboField'
+import MultiComboField from './MultiComboField'
 import { crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
 import { CALL_ROLES, isValidTime, toHHMM } from '../lib/callTimes'
 import { useCrewNameOptions } from '../lib/usePeopleNames'
 
-// The call sheet, the studio's own design: every row is TIME · ROLE · PERSON —
-// "10:00 · Producer · Clay Rodriguez" — one role and one person per row, and the
-// photographer is simply one of the rows. It replaced a Photographer field and a
-// list of call times by role, which described the same people from two ends.
+// The call sheet, the studio's own design: every line is TIME · ROLE · PEOPLE —
+// "10:00 · Model · Hailey Halter, Valery Kaufman" — and a line may call several
+// people ("всю команду можно выбирать — несколько людей"). The form edits LINES
+// (`lib/crew` groupCrew); the database keeps one row per person (expandCrew on
+// save), because that row is what puts a person on the shoot.
 //
-// The person comes from People — those whose trade IS the row's role first — or
-// is typed; a typed name is filed into People on save. Time and person are
-// optional (a role can be listed before anyone is booked); the role is not.
+// The people come from People — those whose trade IS the line's role first, each
+// shown with their trade — or are typed; a typed name is filed into People on
+// save. Time and people are optional (a role can be listed before anyone is
+// booked); the role is not.
 //
 // The roles are the studio's fixed list plus Other, with the role typed beside
 // it: a role typed through the old in-menu "Other…" joined the list for every
@@ -40,7 +42,7 @@ export default function CrewField({
     onChange((cur) => cur.map((r, n) => (n === i ? { ...r, ...changes } : r)))
   const add = () => {
     uid.current += 1
-    onChange((cur) => [...cur, { uid: `new-${uid.current}`, role: '', name: '', time: '', note: '' }])
+    onChange((cur) => [...cur, { uid: `new-${uid.current}`, role: '', people: [], time: '', note: '' }])
   }
   const remove = (i) => onChange((cur) => cur.filter((_, n) => n !== i))
 
@@ -99,15 +101,33 @@ export default function CrewField({
                       detailClassName={small}
                     />
                     <div className="min-w-[10rem] flex-[2]">
-                      {/* A changed name is a different person: the contact the
-                          row was read with no longer applies, and the save
-                          resolves the name again. */}
-                      <ComboField
-                        value={r.name ?? ''}
-                        onChange={(e) => patch(i, { name: e.target.value, contactId: null })}
+                      {/* A person kept keeps the contact the line was read with;
+                          a new name is resolved again on save. */}
+                      <MultiComboField
+                        size="sm"
+                        value={(r.people ?? []).map((p) => p.name)}
+                        onChange={(fn) =>
+                          onChange((cur) =>
+                            cur.map((line, n) => {
+                              if (n !== i) return line
+                              const had = line.people ?? []
+                              const names = fn(had.map((p) => p.name))
+                              return {
+                                ...line,
+                                people: names.map(
+                                  (name) =>
+                                    had.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? {
+                                      name,
+                                      contactId: null,
+                                    },
+                                ),
+                              }
+                            }),
+                          )
+                        }
                         options={namesFor(r.role)}
-                        placeholder="Person"
-                        className={small}
+                        placeholder="People"
+                        ariaLabel="People"
                       />
                     </div>
                     <button

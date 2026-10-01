@@ -1514,6 +1514,38 @@ ok(
     1,
     'so two spellings of one call fold into one row',
   )
+  // Several people on one call — "всю команду можно выбирать". The form edits
+  // LINES; the database keeps one row per person; the two must round-trip.
+  const stored = [
+    { role: 'Model', name: 'Hailey Halter', time: '10:00' },
+    { role: 'Model', name: 'Valery Kaufman', time: '10:00' },
+    { role: 'Photographer', name: 'Marcus Reed', time: '08:00' },
+    { role: 'Producer', time: '07:30' },
+    { role: 'Crew', time: '06:45', note: 'freight door' },
+    { role: 'Crew', time: '06:45', note: 'park on 9th' },
+  ]
+  const lines = crew.groupCrew(stored)
+  eq(lines.map((l) => [l.time, l.role, l.people.map((x) => x.name)]), [
+    ['06:45', 'Crew', []],
+    ['06:45', 'Crew', []],
+    ['07:30', 'Producer', []],
+    ['08:00', 'Photographer', ['Marcus Reed']],
+    ['10:00', 'Model', ['Hailey Halter', 'Valery Kaufman']],
+  ], 'two models on one call read as ONE line; two notes stay two lines; a role nobody fills keeps its line')
+  eq(crew.expandCrew(lines).length, 6, 'and every line goes back to one row per person')
+  eq(
+    crew.expandCrew(lines).filter((r) => r.role === 'Model').map((r) => r.name),
+    ['Hailey Halter', 'Valery Kaufman'],
+    'with each person on their own row',
+  )
+  eq(crew.expandCrew([{ role: 'Stylist', time: '09:00', people: [] }])[0].name, null, 'a line with nobody yet is still a row')
+  eq(
+    crew.crewSummary(stored),
+    '06:45 Crew · 06:45 Crew · 07:30 Producer · 08:00 Photographer (Marcus Reed) · 10:00 Model (Hailey Halter, Valery Kaufman)',
+    'the tooltip names everyone on a call in one bracket',
+  )
+  eq(crew.crewRowProblem({ people: [{ name: 'Ann' }] }), 'Pick a role for this row — or remove it.', 'a line with people but no role says so')
+  eq(crew.crewRowProblem({ role: 'Model', people: [] }), null, 'and a role with nobody on it is fine')
 }
 {
   // The MIGRATION's rule, written once in JS (20260930120000 applies the same
@@ -1584,6 +1616,16 @@ ok(
     estimatePdf.buildEstimatePdf(estimate.buildEstimate({ ...job, assignees: ['Ann Taylor', 'Jonas Lind'] }, { inventory })),
   )
   ok(pair.includes('(Assignees) Tj') && pair.includes('(Ann Taylor, Jonas Lind) Tj'), 'several assignees print on one row, named')
+  const roled = bytes(
+    packingPdf.buildPackingListPdf(
+      estimate.buildEstimate(
+        { ...job, assignees: [{ name: 'Marcus Reed', role: 'Photographer' }, { name: 'Jonas Lind', role: 'Stylist' }] },
+        { inventory },
+      ),
+      { booking, inventory },
+    ),
+  )
+  ok(roled.includes('Marcus Reed \\(Photographer\\), Jonas Lind \\(Stylist\\)'), 'and with their roles, as "name (role)"')
   eq(estimate.buildEstimate({ ...job, assignees: undefined }, { inventory }).order.assignees, [], 'a job with nobody assigned carries an empty list')
   ok(!noSheet.includes('(Photographer) Tj'), 'and the meta row no longer says Photographer')
   const sheet2 = bytes(packingPdf.buildPackingListPdf(estimate.buildEstimate(job, { inventory }), { booking, inventory }))
@@ -1593,6 +1635,18 @@ ok(
   // Several people on one job — the client asked for "all crew".
   eq(peopleOptions.uniqueNames([' Ann Taylor', 'ann taylor', '', null, 'Jonas Lind']), ['Ann Taylor', 'Jonas Lind'], 'a name typed twice is kept once, first spelling wins')
   eq(peopleOptions.uniqueNames(), [], 'no names is an empty list')
+  // Each assignee has a ROLE: the crew reads as "name (role)".
+  eq(peopleOptions.personTrade({ category: 'Freelancer', subcategory: 'Stylist' }), 'Stylist', 'a trade is the subcategory')
+  eq(peopleOptions.personTrade({ category: 'Model' }), 'Model', 'a model has no subcategory — the category is the trade')
+  eq(peopleOptions.personTrade({ category: 'Freelancer' }), null, 'no trade is not invented')
+  eq(
+    peopleOptions.normalizeAssignees(['Ann Taylor', { name: ' Jonas Lind ', role: ' Stylist ' }, { name: 'ann taylor', role: 'Producer' }]),
+    [{ name: 'Ann Taylor', role: null }, { name: 'Jonas Lind', role: 'Stylist' }],
+    'plain names from before roles are read, a name is kept once, first wins',
+  )
+  eq(peopleOptions.assigneeLabel({ name: 'Marcus Reed', role: 'Photographer' }), 'Marcus Reed (Photographer)', 'the format asked for')
+  eq(peopleOptions.assigneeLabel({ name: 'Nadia Brooks', role: null }), 'Nadia Brooks', 'no role, no brackets')
+  eq(peopleOptions.assigneeLabel('Ann Taylor'), 'Ann Taylor', 'and a plain name still reads')
   eq(
     orderSearch.searchOrders([{ id: 'a', assignees: ['Ann Taylor', 'Jonas Lind'] }, { id: 'b', assignees: ['Ann Taylor'] }], { text: 'jonas' }).map((o) => o.id),
     ['a'],

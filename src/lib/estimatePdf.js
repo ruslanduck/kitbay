@@ -15,6 +15,7 @@ import { placeLabel } from '../data/studios.js'
 import { orderStatusMeta } from '../data/orderStatus.js'
 import { showsSetName } from './orderSearch.js'
 import { BRAND_NAME } from './brand.js'
+import { assigneeLabel } from './peopleOptions.js'
 
 const PAGE = { w: 595.28, h: 841.89 } // A4 portrait, points
 const M = 48 // page margin
@@ -167,7 +168,10 @@ export function buildEstimatePdf(estimateOrOrder, context) {
         : '—',
     ],
     // Several people may be on a job; the row wraps like an address does.
-    [est.order.assignees?.length > 1 ? 'Assignees' : 'Assignee', est.order.assignees?.join(', ') || '—'],
+    [
+      est.order.assignees?.length > 1 ? 'Assignees' : 'Assignee',
+      (est.order.assignees ?? []).map(assigneeLabel).join(', ') || '—',
+    ],
     ['Client', est.order.companyName || '—'],
     [
       'Raised by',

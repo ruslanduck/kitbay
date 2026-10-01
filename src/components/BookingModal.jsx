@@ -18,7 +18,7 @@ import MatchText from './MatchText'
 import { availableCount, resolveUnitsForQuantities } from '../lib/availability'
 import { studioLabel } from '../data/studios'
 import { endsOnFor } from '../lib/setDays'
-import { normalizeCrew, crewRowProblem } from '../lib/crew'
+import { groupCrew, expandCrew, crewRowProblem } from '../lib/crew'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 import Modal from './Modal'
@@ -92,7 +92,8 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
         studioId: booking.studioId,
         date: booking.date,
         endDate: booking.endDate ?? booking.date,
-        crew: (booking.crew ?? []).map((c) => ({ ...c })),
+        // Edited as LINES (several people per call), stored per person.
+        crew: groupCrew(booking.crew ?? []),
         wrapTime: booking.wrapTime ?? '',
         notes: booking.notes ?? '',
       })
@@ -227,7 +228,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
     const payload = {
       ...form,
       title: form.title.trim(),
-      crew: normalizeCrew(form.crew),
+      crew: expandCrew(form.crew),
       wrapTime: form.wrapTime || null,
       unitIds: resolveUnitIds(),
     }

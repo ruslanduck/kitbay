@@ -1,7 +1,22 @@
 import { useMemo } from 'react'
 import { useStore } from '../store'
-import { peopleNames } from './peopleOptions'
+import { assigneeNames, peopleNames, personTrade } from './peopleOptions'
 import { crewNames } from './crew'
+
+// Every picker's options are `{ value, hint }`: the name, and what that person
+// does as People files it — "Marcus Reed · Photographer" — so the right person
+// is picked out of a long list and the role is visible before the click (asked
+// for: "роли чтобы было видно"). A name with no profile simply has no hint.
+const tradesOf = (people) =>
+  new Map((people ?? []).map((p) => [String(p?.name ?? '').trim().toLowerCase(), personTrade(p)]))
+const withHints = (names, trades) =>
+  names.map((value) => ({ value, hint: trades.get(value.toLowerCase()) ?? null }))
+
+// A person's trade by name, for the role a new pick starts with.
+export function usePersonTrades() {
+  const people = useStore((s) => s.people)
+  return useMemo(() => tradesOf(people), [people])
+}
 
 // The pickers read the roster THEMSELVES instead of taking it as a prop.
 //
@@ -25,7 +40,11 @@ export function useAssigneeNames() {
   const people = useStore((s) => s.people)
   const orders = useStore((s) => s.orders)
   return useMemo(
-    () => peopleNames(people, { used: (orders ?? []).flatMap((o) => o.assignees ?? []) }),
+    () =>
+      withHints(
+        peopleNames(people, { used: (orders ?? []).flatMap((o) => assigneeNames(o.assignees)) }),
+        tradesOf(people),
+      ),
     [people, orders],
   )
 }
@@ -45,12 +64,13 @@ export function useCrewNameOptions() {
     const used = [
       ...(bookings ?? []).flatMap((b) => crewNames(b.crew)),
       // A job with no shoot of its own still carries its assignees' names.
-      ...(orders ?? []).flatMap((o) => o.assignees ?? []),
+      ...(orders ?? []).flatMap((o) => assigneeNames(o.assignees)),
     ]
+    const trades = tradesOf(people)
     const cache = new Map()
     return (role) => {
       const key = String(role ?? '').trim().toLowerCase()
-      if (!cache.has(key)) cache.set(key, peopleNames(people, { role, used }))
+      if (!cache.has(key)) cache.set(key, withHints(peopleNames(people, { role, used }), trades))
       return cache.get(key)
     }
   }, [people, orders, bookings])
