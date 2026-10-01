@@ -3045,6 +3045,12 @@
 > reseeded, 0 console errors.
 > ⚠️ Browser-tool lesson: changing only the `#zoom=…` fragment of a blob URL does NOT reload the PDF viewer in an
 > iframe — the screenshot came back identical and read as stale. Recreate the iframe element.
+> ⚠️ **Fixed from the studio's first prod screenshots:** the scan field's selected segment (Check in / Check out)
+> was `bg-slate-800 text-white` — in the dark theme slate-800 is a TEXT step and maps light, so the label vanished
+> into a white box. It is `bg-brand text-white` now (a fill under white text never follows the theme — the rule the
+> dark-theme entry wrote down); measured 5.89 in both themes. Their screenshots otherwise matched the design: the
+> note in parentheses, "Rental House · Kitbay" in amber, "Clay Rodriguez · 01 Oct 2026, 10:17", the PDF identical,
+> and one row reading "CR · 29 Sep 2026, 18:51" — a tick from the initials era, read as a check-out by design.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

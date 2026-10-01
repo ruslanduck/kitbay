@@ -144,7 +144,10 @@ export default function PackingChecklistModal({
                       }}
                       className={[
                         'rounded px-2 py-1 transition',
-                        scanDir === slot ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100',
+                        // The brand fill: a fill under white text must not follow
+                        // the theme — slate-800 turns LIGHT in dark mode and the
+                        // label vanished (seen on prod).
+                        scanDir === slot ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-100',
                       ].join(' ')}
                     >
                       {label}
