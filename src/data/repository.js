@@ -1402,17 +1402,21 @@ export async function restoreCompany(id) {
 // each slot { initials, at } or null. Fetched separately (like repairs/usage)
 // so orders still load if the 6.2 migration hasn't run yet.
 async function getPackingSignoffs() {
-  const { data, error } = await supabase
-    .from('packing_signoffs')
-    .select('order_id, line_key, out1_initials, out1_at, out2_initials, out2_at, ret_initials, ret_at')
+  const base = 'order_id, line_key, out1_initials, out1_at, out2_initials, out2_at, ret_initials, ret_at'
+  // The names and the return's method (20261001120000) are the OUTERMOST layer:
+  // a database without that migration still reads every sign-off it has.
+  const withNames = `${base}, out1_name, ret_name, ret_via`
+  let { data, error } = await supabase.from('packing_signoffs').select(withNames)
+  if (error) ({ data, error } = await supabase.from('packing_signoffs').select(base))
   if (error) return {}
   const map = {}
-  const slot = (ini, at) => (ini ? { initials: ini, at } : null)
+  const slot = (ini, at, name = null, via = null) =>
+    ini || name ? { initials: ini ?? null, at, name: name ?? null, via: via ?? null } : null
   for (const r of data || []) {
     ;(map[r.order_id] ||= {})[r.line_key] = {
-      out1: slot(r.out1_initials, r.out1_at),
+      out1: slot(r.out1_initials, r.out1_at, r.out1_name),
       out2: slot(r.out2_initials, r.out2_at),
-      ret: slot(r.ret_initials, r.ret_at),
+      ret: slot(r.ret_initials, r.ret_at, r.ret_name, r.ret_via),
     }
   }
   return map
@@ -1443,6 +1447,9 @@ function mapLineRow(l) {
     source: l.source ?? 'in_house',
     vendorId: l.vendor?.id ?? l.vendor_company_id ?? null,
     vendorName: l.vendor?.name ?? null,
+    // The line's note — "(Needs new battery)" on the packing list. The column
+    // is as old as the table; this is the first screen to read it.
+    notes: l.notes ?? null,
   }
 }
 
@@ -1454,7 +1461,7 @@ export async function getOrders() {
      photographer:contacts!photographer_contact_id ( id, full_name ),
      creator:profiles!created_by ( full_name ),
      company:companies ( id, name ),
-     order_lines ( id, quantity, kit_id, unit_id, slot_label, source, vendor_company_id,
+     order_lines ( id, quantity, notes, kit_id, unit_id, slot_label, source, vendor_company_id,
                    item:inventory_items ( id, name, day_rate ),
                    unit:units ( id, barcode ),
                    vendor:companies!vendor_company_id ( id, name ) ),
@@ -1982,7 +1989,11 @@ export async function setOrderLines(orderId, lines) {
 // partial payload leaves the other two slots untouched on conflict.
 
 
-export async function setPackingSignoff(orderId, lineKey, slot, initials, itemName) {
+// `extra.name` is who did it and `extra.via` how a check-in was taken. On a
+// database without 20261001120000 those two columns are stripped and the
+// initials + timestamp still land — and the caller is told, because a name
+// that silently vanishes is worse than one refused out loud.
+export async function setPackingSignoff(orderId, lineKey, slot, initials, itemName, extra = {}) {
   const nowIso = new Date().toISOString()
   const row = {
     order_id: orderId,
@@ -1991,11 +2002,20 @@ export async function setPackingSignoff(orderId, lineKey, slot, initials, itemNa
     updated_at: nowIso,
     [`${slot}_initials`]: initials,
     [`${slot}_at`]: nowIso,
+    ...(extra.name ? { [`${slot}_name`]: extra.name } : {}),
+    ...(slot === 'ret' ? { ret_via: extra.via ?? null } : {}),
   }
-  const { error } = await supabase
+  let { error } = await supabase
     .from('packing_signoffs')
     .upsert(row, { onConflict: 'order_id,line_key' })
+  if (error && isUndefinedColumn(error)) {
+    const { [`${slot}_name`]: _n, ret_via: _v, ...stripped } = row
+    ;({ error } = await supabase.from('packing_signoffs').upsert(stripped, { onConflict: 'order_id,line_key' }))
+    if (error) throw error
+    return { nameNotStored: true }
+  }
   if (error) throw error
+  return {}
 }
 
 export async function clearPackingSignoff(orderId, lineKey, slot) {
@@ -2005,10 +2025,16 @@ export async function clearPackingSignoff(orderId, lineKey, slot) {
     updated_at: new Date().toISOString(),
     [`${slot}_initials`]: null,
     [`${slot}_at`]: null,
+    [`${slot}_name`]: null,
+    ...(slot === 'ret' ? { ret_via: null } : {}),
   }
-  const { error } = await supabase
+  let { error } = await supabase
     .from('packing_signoffs')
     .upsert(row, { onConflict: 'order_id,line_key' })
+  if (error && isUndefinedColumn(error)) {
+    const { [`${slot}_name`]: _n, ret_via: _v, ...stripped } = row
+    ;({ error } = await supabase.from('packing_signoffs').upsert(stripped, { onConflict: 'order_id,line_key' }))
+  }
   if (error) throw error
 }
 

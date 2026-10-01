@@ -12,6 +12,7 @@ import {
   Truck,
   Home,
   ScanLine,
+  StickyNote,
 } from 'lucide-react'
 import Modal from './Modal'
 import ErrorNote from './ErrorNote'
@@ -139,6 +140,7 @@ export default function OrderEquipmentModal({
             vendorId: null,
             dayRate: l.rateOverridden ? l.dayRate ?? null : null,
             rateOverridden: !!l.rateOverridden,
+            notes: l.notes ?? '',
             units: [pin],
           })
         else {
@@ -158,6 +160,8 @@ export default function OrderEquipmentModal({
           // A rate typed on this line before; null means "follow the item".
           dayRate: l.rateOverridden ? l.dayRate ?? null : null,
           rateOverridden: !!l.rateOverridden,
+          // The packing list's note for this line — "(Needs new battery)".
+          notes: l.notes ?? '',
           units: [],
         }
         // Pinned copies of the same item arrived as their own rows; merge the
@@ -314,6 +318,7 @@ export default function OrderEquipmentModal({
         // unit-level line — which is why reservations, packing and scanning need
         // no special case for it (`reservedUnitsForOrder` pre-claims any line
         // that names a unit).
+        const notes = String(l.notes ?? '').trim() || null
         const rows = pinned.map((u) => ({
           itemId: l.itemId,
           itemName: itemsById[l.itemId]?.name ?? null,
@@ -322,6 +327,7 @@ export default function OrderEquipmentModal({
           barcode: u.barcode ?? null,
           source: l.source,
           vendorId: l.vendorId,
+          notes,
           ...rate,
         }))
         const rest = l.quantity - pinned.length
@@ -332,6 +338,7 @@ export default function OrderEquipmentModal({
             quantity: rest,
             source: l.source,
             vendorId: l.vendorId,
+            notes,
             ...rate,
           })
         return rows
@@ -430,7 +437,7 @@ export default function OrderEquipmentModal({
         next[at] = { ...next[at], quantity: next[at].quantity + 1 }
         return next
       }
-      return [...prev, { itemId, quantity: 1, source, vendorId: null }]
+      return [...prev, { itemId, quantity: 1, source, vendorId: null, notes: '' }]
     })
     setPicker(false)
     setPickerSearch('')
@@ -1033,6 +1040,20 @@ export default function OrderEquipmentModal({
                             <span className="text-amber-600">vendor price not set</span>
                           ) : null}
                         </label>
+                      </div>
+
+                      {/* A note that travels onto the packing list, in parentheses
+                          right after the name: "Profoto B10 (Needs new battery)". */}
+                      <div className="mt-1.5 flex items-center gap-1.5 pl-6">
+                        <StickyNote size={11} className="shrink-0 text-slate-400" />
+                        <input
+                          type="text"
+                          value={l.notes ?? ''}
+                          onChange={(e) => updateLine(i, { notes: e.target.value })}
+                          placeholder="Note for the packing list"
+                          aria-label={`Packing note for ${item?.name ?? 'this line'}`}
+                          className="min-w-0 flex-1 rounded-md border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                        />
                       </div>
 
                       {/* WHICH copies go on the job. Offered only for our own

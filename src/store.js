@@ -89,6 +89,7 @@ import { endsOnFor, setSpanDays } from './lib/setDays'
 import { MAX_SETS_PER_DAY, setsUsedOn, capacityError } from './lib/capacity'
 import { setNameApplies } from './lib/orderSearch'
 import { normalizeCrew, crewFromLegacy, crewNameFor, crewNames } from './lib/crew'
+import { CHECK_IN, VIA_MANUAL } from './lib/packing'
 import { resolveUnitCodes } from './lib/unitRows'
 import { newestFirst } from './lib/ordering'
 import { pathForView, viewFromLocation } from './lib/routes'
@@ -3074,6 +3075,7 @@ export const useStore = create(
               l.source === 'sub_rental'
                 ? state.companies.find((c) => c.id === l.vendorId)?.name ?? null
                 : null,
+            notes: String(l.notes ?? '').trim() || null,
           }))
         const nextOrders = state.orders.map((o) =>
           o.id === orderId
@@ -3097,13 +3099,17 @@ export const useStore = create(
         return { ok: true }
       },
 
-      // Digital packing checklist (6.2 / 6.5). Optimistic — the sign-off shows
-      // instantly and persists to Supabase in the background (a packing station
-      // shouldn't wait on a round-trip). Initials are the "who"; `at` is the when.
-      signPackingLine: (orderId, lineKey, slot, initials, itemName) => {
+      // The packing list's check-out / check-in (lib/packing). Optimistic — the
+      // sign-off shows instantly and persists to Supabase in the background (a
+      // packing station shouldn't wait on a round-trip). `extra.name` is the
+      // signed-in account's name, recorded with the time; `extra.via` says how a
+      // check-in was taken ('manual' | 'scan').
+      signPackingLine: (orderId, lineKey, slot, initials, itemName, extra = {}) => {
         const ini = (initials || '').trim().toUpperCase()
         if (!ini) return
         const at = new Date().toISOString()
+        const name = String(extra.name ?? '').trim() || null
+        const via = slot === CHECK_IN ? extra.via || VIA_MANUAL : null
         set({
           orders: get().orders.map((o) =>
             o.id !== orderId
@@ -3112,22 +3118,24 @@ export const useStore = create(
                   ...o,
                   packing: {
                     ...(o.packing || {}),
-                    [lineKey]: { ...((o.packing || {})[lineKey] || {}), [slot]: { initials: ini, at } },
+                    [lineKey]: {
+                      ...((o.packing || {})[lineKey] || {}),
+                      [slot]: { initials: ini, name, at, via },
+                    },
                   },
                 },
           ),
         })
-        // The initials stay hand-typed (that's the paper-equivalent), but the
-        // ACT of signing is now attributed to the signed-in account — so "AT" is
-        // backed by a name instead of being anonymous free text.
+        // The ACT is attributed to the signed-in account; the name is what the
+        // sheet prints.
         get().logActivity({
           type: EVENT.PACKING_SIGNED,
           entityType: 'order',
           entityId: orderId,
-          data: { slot, initials: ini, itemName: itemName ?? null, lineKey },
+          data: { slot, initials: ini, name, via, itemName: itemName ?? null, lineKey },
         })
         if (usingSupabase)
-          sbSetPackingSignoff(orderId, lineKey, slot, ini, itemName).catch((e) =>
+          sbSetPackingSignoff(orderId, lineKey, slot, ini, itemName, { name, via }).catch((e) =>
             console.error('packing sign-off failed:', e),
           )
       },

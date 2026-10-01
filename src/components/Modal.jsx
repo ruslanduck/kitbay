@@ -4,6 +4,8 @@ import { X } from 'lucide-react'
 const SIZES = {
   md: 'max-w-md',
   lg: 'max-w-2xl',
+  // A four-column table (the packing list) needs the room.
+  xl: 'max-w-4xl',
 }
 
 // Reusable centered modal with a dimmed backdrop. Closes on Escape or

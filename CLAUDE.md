@@ -2982,6 +2982,69 @@
 > ℹ️ **Not built, offered instead:** a studio-EDITABLE synonym list (the file above is code — adding a word needs a
 > deploy; a small table + screen would let the crew add their own nicknames), a per-item "also known as" field, and
 > the same engine for the Jobs and People searches, which still use their own matching.
+> **REDESIGN — the packing list tracks the lifecycle: Item · Vendor Source · Check-Out · Check-In, on screen and
+> on paper** (`20261001120000_packing_lifecycle.sql`). The ticket, item by item: (1) the item with an optional
+> per-line note IN PARENTHESES after the name, no notes column; (2) Vendor Source = In-House / Rental House, Rental
+> House highlighted yellow; (3) Check-Out when the piece is placed in the studio, recording the staff member's name
+> and the date/time by itself; (4) Check-In by a tap or by scanning a barcode / QR, recorded the same way;
+> acceptance: the same layout and the same yellow in the digital view and the exported PDF.
+> **Storage was mostly there.** `packing_signoffs` has carried `out1 / out2 / ret` slots since 6.2, the single
+> "packed" tick wrote `out1`, and `ret` sat "unwritten and waiting" — this file said so. So `CHECK_OUT = 'out1'`
+> (every tick ever made reads as a check-out, a legacy double sign-out included) and `CHECK_IN = 'ret'`; the
+> migration adds only `out1_name`, `ret_name` and `ret_via` (`manual | scan`, CHECKed). The initials stay beside
+> the names as the record of the three-field era. And `order_lines.notes` has existed since the FIRST schema —
+> `setOrderLines` even wrote it (always null) — but nothing selected it, mapped it or let anyone type it: the note
+> is a read (`notes` in the lines select, `mapLineRow`, the local resolver) plus one field in the equipment window,
+> not a column. ⚠️ Reads degrade by layer as always: `getPackingSignoffs` selects the three new columns as the
+> OUTERMOST layer, and `setPackingSignoff` strips them and retries on a database without the migration (reporting
+> `nameNotStored`), so deploying before migrating loses nothing but the name.
+> **`lib/packing.js` is the one definition** (PURE): `packingRows` carries each line's note onto every row it
+> expands to; `itemLabel` → "Profoto B10 (Needs new battery)"; `sourceLabel` / `isRentalHouse` — the ticket's
+> words, "In-House" / "Rental House · Northlight Rentals" (the equipment window still says Sub-rental, deliberately
+> not renamed on a guess); `signoffOf` (legacy-aware), `packingProgress` → `{ total, out, back }`, `signerName`,
+> `whenLabel` ("01 Oct 2026, 14:32" — one fixed English format so the screen and the paper agree to the minute),
+> and `resolvePackingScan`: the row carrying the scanned barcode, refused with a sentence when the code is not on
+> this job or the piece is already checked in/out (naming who), and ALLOWED for a piece never checked out — a crew
+> can pull a job without the sheet and still record the return — but said ("it was never checked out").
+> **Digital** (`PackingChecklistModal`, now `size="xl"` — a new `max-w-4xl` in Modal): one scan field at the top
+> with a Check in / Check out segment (check-in default, the ticket's case), the kit window's three rules (the
+> decorative `#` stripped, a value that IS a barcode on this list fires without Enter, every outcome reported); the
+> four column heads; per row the item + "(note)" + barcode/slot/×qty, the source chip (`bg-amber-100 text-amber-800`
+> for a rental house — the amber ramp is mapped in the dark theme), and two check cells. An empty cell is a dashed
+> button; a tap records the signed-in account's full name and the time; a signed cell shows both (violet for out,
+> emerald for in, "· scan" on a scanned check-in) and because a name and a time are a RECORD, undoing takes a second
+> deliberate tap — the cell turns into "Undo? Yes / No" rather than clearing on the first. On a phone the row is
+> three tiers (item / source / the two cells side by side); from `sm` the wrappers are `contents` and dissolve into
+> the four-column grid. The job card's strip reads "N/N out · N/N back". Closing a job is NOT blocked by pieces
+> still out (the rule this file already carries), the counts are what say so.
+> **PDF** (`packingListPdf`): the same four columns, 214 / 78 / 104 / 103pt on A4 portrait; the name wraps to two
+> lines with the note in parentheses, the detail line under it; a Rental House cell is filled amber-100 with
+> amber-800 ink and the vendor on a second line — `test:lib` asserts the exact fill operator jsPDF writes for
+> [254,243,199]; a recorded check prints the name (bold) and the time in a tinted cell (violet-50 / emerald-50, as
+> on screen, "(scan)" appended for a scanned check-in); an unrecorded one prints an EMPTY box to be filled in by
+> hand — so the printed sheet is both the digital record and a paper form. The legend above the table says so in
+> two lines; the totals line reads "N rows · N pieces · N checked out · N checked in". The stale "Initials: two at
+> sign-out…" line that had survived since the three-field era is gone.
+> **Activity**: `Checked out` / `Checked in` (with the name, "· scanned" for a scan) / `Undid the check-in` replace
+> "Signed packed"; an initials-only event from before still renders.
+> **+41 assertions (618 total)**, and three of the first drafts were MY fixture errors worth keeping: a row that
+> carries a legacy `out2` sign-off IS checked out, so a scan of it must not say "never checked out", and a check-out
+> scan of it must be refused by its initials; and PDF bytes escape parentheses — a note prints as `\(…\)`, so the
+> assertion has to look for the escaped form.
+> Verified in local mode by measurement: the checklist opens at 896px with the four heads; Check out → the cell
+> turns violet with "Demo user · 01 Oct 2026, 08:54"; pasting `#0805` with its hash and no Enter → "#0805 Aputure
+> 300X — checked in (it was never checked out)", the cell emerald with "· scan", the input cleared, the counts
+> 1/6 out · 1/6 back; the signed cell → "Undo?" → No keeps it; the store holds `{ name, via }` and the feed two
+> events (`out1:Demo user`, `ret:Demo user:scan`); a note typed in the equipment window on Aputure 600D Pro stored
+> on the line and read "Aputure 600D Pro (Needs new battery)" in the list, with its check-out INTACT across the
+> equipment save (the line key is content, not id); on the job with the Astera Titan Tube the chip read "Rental
+> House · Northlight Rentals" in amber; both PDFs looked at through an iframe overlay (note in parentheses, violet
+> and emerald cells with name and time, the yellow cell with the vendor, "11 rows · 12 pieces · 1 checked out · 0
+> checked in"). At 375px the first layout squeezed the source chip to 16px (two 8.5rem cells took the width) —
+> fixed to three tiers: chip 62px / rental chip 183px untruncated, cells 142 + 141, no overflow. Demo data
+> reseeded, 0 console errors.
+> ⚠️ Browser-tool lesson: changing only the `#zoom=…` fragment of a blob URL does NOT reload the PDF viewer in an
+> iframe — the screenshot came back identical and read as stale. Recreate the iframe element.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

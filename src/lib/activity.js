@@ -225,11 +225,19 @@ export function describeEvent(ev) {
     case EVENT.PACKING_SIGNED:
       return {
         icon: 'signature',
-        title: `Signed ${slotLabel(d.slot)}`,
-        detail: [d.itemName, d.initials ? `“${d.initials}”` : null].filter(Boolean).join(' · '),
+        title: slotTitle(d.slot),
+        // The name recorded on the sheet; the initials for sign-offs logged
+        // before names were kept. A scanned check-in says so.
+        detail: [
+          d.itemName,
+          d.name ? d.name : d.initials ? `“${d.initials}”` : null,
+          d.via === 'scan' ? 'scanned' : null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
       }
     case EVENT.PACKING_CLEARED:
-      return { icon: 'eraser', title: `Cleared ${slotLabel(d.slot)}`, detail: d.itemName ?? null }
+      return { icon: 'eraser', title: `Undid ${slotWord(d.slot)}`, detail: d.itemName ?? null }
     case EVENT.SCANNED_OUT:
       return {
         icon: 'scan',
@@ -368,9 +376,11 @@ export function describeEvent(ev) {
   }
 }
 
-const slotLabel = (slot) =>
-  // 'out1' is the only slot the app writes now (see lib/packing PACKED_SLOT);
-  // the other two still appear in events logged before that change.
-  slot === 'ret' ? 'the return' : slot === 'out2' ? 'the 2nd sign-out' : 'packed'
+// The packing list's two moments (lib/packing CHECK_OUT = 'out1', CHECK_IN =
+// 'ret'); 'out2' only appears in events logged in the three-field era.
+const slotWord = (slot) =>
+  slot === 'ret' ? 'the check-in' : slot === 'out2' ? 'the 2nd sign-out' : 'the check-out'
+const slotTitle = (slot) =>
+  slot === 'ret' ? 'Checked in' : slot === 'out2' ? 'Signed the 2nd sign-out' : 'Checked out'
 
 const own = (v) => (v === 'sub_rental' ? 'sub-rental' : v === 'owned' ? 'owned' : (v ?? '—'))

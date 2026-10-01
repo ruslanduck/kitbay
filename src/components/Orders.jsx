@@ -636,8 +636,8 @@ export default function Orders() {
         open={checklistOpen && !!selected}
         order={selected}
         estimate={selectedEstimate}
-        onSign={(lineKey, slot, initials, itemName) =>
-          signPackingLine(selected.id, lineKey, slot, initials, itemName)
+        onSign={(lineKey, slot, initials, itemName, extra) =>
+          signPackingLine(selected.id, lineKey, slot, initials, itemName, extra)
         }
         onClear={(lineKey, slot) => clearPackingSignoff(selected.id, lineKey, slot)}
         onClose={() => setChecklistOpen(false)}
@@ -1015,9 +1015,13 @@ function OrderDetail({
                   ) : (
                     <span className="text-xs text-slate-500">
                       <span className="font-medium text-slate-700">
-                        {packProg.packed}/{packProg.total}
+                        {packProg.out}/{packProg.total}
                       </span>{' '}
-                      packed
+                      out ·{' '}
+                      <span className="font-medium text-slate-700">
+                        {packProg.back}/{packProg.total}
+                      </span>{' '}
+                      back
                     </span>
                   )}
                   {/* Copies are fixed when the job is confirmed, so before that the

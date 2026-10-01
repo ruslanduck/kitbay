@@ -179,7 +179,8 @@ ok(packingPdf.packingListFileName(est.order).endsWith('.pdf'), 'pull-sheet filen
 ok(!packingPdf.packingListFileName({}).includes('order'), 'and a nameless job does not fall back to "order"')
 
 // ─────────────────────────────────────────────── the rules that hold stock
-eq(packing.PACKING_SLOTS, [packing.PACKED_SLOT], 'one tick per row')
+eq(packing.PACKING_SLOTS, [packing.CHECK_OUT, packing.CHECK_IN], 'two moments per row: checked out, checked in')
+eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a tick from before reads as one')
 {
   // 2 copies asked for, 1 actually reserved: a row for the copy, a row for the
   // shortfall (it must SAY it has no unit, not vanish off the sheet) and one
@@ -192,7 +193,93 @@ eq(packing.PACKING_SLOTS, [packing.PACKED_SLOT], 'one tick per row')
     rows.some((r) => /reserv/i.test(r.why || '')),
     'and the piece with no unit behind it says so rather than disappearing',
   )
-  eq(packing.packingProgress(rows, {}), { total: 3, packed: 0 }, 'nothing packed yet')
+  eq(packing.packingProgress(rows, {}), { total: 3, out: 0, back: 0 }, 'nothing checked out yet')
+}
+
+// ─────────────────────────────────────────────── the packing list's lifecycle
+// Every row is checked OUT when it is placed in the studio and checked IN when
+// it is back — by a tap or a scan — each recording who and when. The same four
+// columns on screen and on paper; a rental house's line highlighted on both.
+{
+  const inv = [
+    { id: 'cam', name: 'Profoto B10', kind: 'barcoded', dayRate: 50, units: [{ id: 'u1', barcode: '0801' }, { id: 'u2', barcode: '0802' }] },
+    { id: 'tube', name: 'Astera Titan Tube', kind: 'barcoded', dayRate: 40, units: [{ id: 'u3', barcode: '0901' }] },
+    { id: 'tape', name: 'Gaffer tape', kind: 'non_barcoded', dayRate: null, quantity: 10 },
+  ]
+  const o = {
+    id: 'o9', number: 'CL-9', jobName: 'Loft FW26', status: 'confirmed', studioId: '1',
+    startsOn: '2026-10-01', endsOn: '2026-10-01', jobType: 'Editorial',
+    lines: [
+      { itemId: 'cam', quantity: 2, notes: 'Needs new battery' },
+      { itemId: 'tube', quantity: 2, source: 'sub_rental', vendorName: 'Northlight Rentals' },
+      { itemId: 'tape', quantity: 3 },
+    ],
+  }
+  const bk = { id: 's9', unitIds: ['u1', 'u2'], roster: [] }
+  const e9 = estimate.buildEstimate(o, { inventory: inv })
+  const rows = packing.packingRows(e9, { inventory: inv, booking: bk }).flatMap((g) => g.lines)
+  eq(rows.map((r) => r.barcode ?? r.why), ['0801', '0802', 'vendor gear', 'counted stock'], 'one row per copy, the rental house and the tape counted')
+  eq(rows[0].note, 'Needs new battery', 'the line note travels onto every row it expands to')
+  eq(packing.itemLabel(rows[0]), 'Profoto B10 (Needs new battery)', 'and reads in parentheses right after the name')
+  eq(packing.itemLabel(rows[3]), 'Gaffer tape', 'no note, no parentheses')
+  eq(packing.sourceLabel(rows[0]), 'In-House', 'our own gear is In-House')
+  eq(packing.sourceLabel(rows[2]), 'Rental House · Northlight Rentals', 'a sub-rental line is the Rental House, named')
+  ok(packing.isRentalHouse(rows[2]) && !packing.isRentalHouse(rows[0]), 'and only that one is highlighted')
+
+  // Who and when
+  const at = new Date(2026, 9, 1, 14, 32).toISOString()
+  eq(packing.whenLabel(at), '01 Oct 2026, 14:32', 'the moment prints one way on screen and on paper')
+  eq(packing.whenLabel(null), '', 'and nothing invents a time')
+  const key = packing.packingLineKey(rows[0])
+  const signed = {
+    [key]: { out1: { initials: 'CR', name: 'Clay Rodriguez', at }, ret: { initials: 'CR', name: 'Clay Rodriguez', at, via: 'scan' } },
+    [packing.packingLineKey(rows[1])]: { out2: { initials: 'AT', at } }, // the three-field era
+  }
+  eq(packing.signerName(packing.signoffOf(signed, rows[0], packing.CHECK_OUT)), 'Clay Rodriguez', 'a check prints the recorded name')
+  eq(packing.signerName(packing.signoffOf(signed, rows[1], packing.CHECK_OUT)), 'AT', 'a legacy double sign-out still reads as checked out, by its initials')
+  eq(packing.signoffOf(signed, rows[1], packing.CHECK_IN), null, 'and not as checked in')
+  eq(packing.packingProgress(rows, signed), { total: 4, out: 2, back: 1 }, 'the count: two out, one back')
+
+  // Scanning a return
+  const scan = (code, slot) => packing.resolvePackingScan(rows, signed, code, slot)
+  ok(scan('0802', packing.CHECK_IN).ok && !/never/.test(scan('0802').message), 'a scanned return of a checked-out piece is taken')
+  const fresh = packing.resolvePackingScan(rows, {}, '0802', packing.CHECK_IN)
+  ok(fresh.ok && /never checked out/.test(fresh.message), 'one never checked out is taken too — and said')
+  ok(!scan('0801', packing.CHECK_IN).ok && /already checked in/.test(scan('0801').reason), 'a second scan of the same piece is refused, naming who checked it in')
+  ok(!scan('0901').ok && /isn't on this job/.test(scan('0901').reason), 'a barcode not on the list is refused')
+  ok(!scan('').ok, 'an empty scan is refused')
+  const outScan = packing.resolvePackingScan(rows, {}, '0802', packing.CHECK_OUT)
+  ok(outScan.ok && /checked out\.$/.test(outScan.message), 'the same field checks out')
+  ok(!scan('0802', packing.CHECK_OUT).ok && /already checked out/.test(scan('0802', packing.CHECK_OUT).reason), 'and refuses a piece already out — by its legacy initials')
+
+  // The feed
+  eq(activity.describeEvent({ type: activity.EVENT.PACKING_SIGNED, data: { slot: 'ret', name: 'Clay Rodriguez', via: 'scan', itemName: 'Profoto B10' } }),
+    { icon: 'signature', title: 'Checked in', detail: 'Profoto B10 · Clay Rodriguez · scanned' }, 'a scanned check-in reads as one')
+  eq(activity.describeEvent({ type: activity.EVENT.PACKING_SIGNED, data: { slot: 'out1', initials: 'AT', itemName: 'Profoto B10' } }).title, 'Checked out', 'a check-out — and an initials-only event from before still renders')
+  eq(activity.describeEvent({ type: activity.EVENT.PACKING_CLEARED, data: { slot: 'ret', itemName: 'Profoto B10' } }).title, 'Undid the check-in', 'undoing says which')
+
+  // The paper: the same columns, the yellow, the recorded checks
+  const { jsPDF } = await import('jspdf')
+  const fillOpOf = (rgb) => {
+    const d = new jsPDF({ unit: 'pt' })
+    d.setFillColor(rgb[0], rgb[1], rgb[2])
+    d.rect(0, 0, 1, 1, 'F')
+    return bytes(d).match(/[\d.]+ [\d.]+ [\d.]+ rg/)[0]
+  }
+  const sheet = bytes(packingPdf.buildPackingListPdf(e9, { inventory: inv, booking: bk, packing: signed }))
+  for (const head of ['EQUIPMENT ITEM', 'VENDOR SOURCE', 'CHECK-OUT', 'CHECK-IN'])
+    ok(sheet.includes(`(${head}) Tj`), `the PDF has the ${head} column`)
+  ok(!sheet.includes('(PACKED) Tj') && !sheet.includes('(QTY) Tj'), 'and not the old ones')
+  // Parentheses are escaped inside a PDF string, so the note reads \(…\) in the bytes.
+  ok(sheet.includes('Profoto B10 \\(Needs new battery\\)'), 'the note prints in parentheses right after the name')
+  ok(sheet.includes('(Rental House) Tj') && sheet.includes('(Northlight Rentals) Tj'), 'the rental house prints with its vendor')
+  ok(sheet.includes('(In-House) Tj'), 'our own gear prints as In-House')
+  ok(sheet.includes(fillOpOf([254, 243, 199])), 'the Rental House cell is filled amber-100 — the same yellow as on screen')
+  ok(sheet.includes('(Clay Rodriguez) Tj'), 'a recorded check prints its name')
+  ok(sheet.includes('(01 Oct 2026, 14:32) Tj') && sheet.includes('(01 Oct 2026, 14:32 \\(scan\\)) Tj'), 'and its time — a scanned check-in says so')
+  ok(sheet.includes('4 rows') && sheet.includes('2 checked out') && sheet.includes('1 checked in'), 'the totals line counts both moments')
+  const blank = bytes(packingPdf.buildPackingListPdf(e9, { inventory: inv, booking: bk }))
+  ok(!blank.includes('Clay Rodriguez') && blank.includes('(In-House) Tj'), 'with nothing recorded the cells print empty, to be written in by hand')
 }
 eq(itemAvail.covers({ from: '2026-09-06', to: '2026-09-15' }, '2026-09-10'), true, 'a span covers a day inside it')
 eq(itemAvail.covers({ from: '2026-09-06' }, '2026-09-07'), false, 'a missing end is exactly one day')
