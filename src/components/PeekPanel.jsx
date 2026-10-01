@@ -322,19 +322,26 @@ function OrderPeek({ id }) {
           {showsSetName(order) && <Field label="Set name">{order.setLabel || '—'}</Field>}
           <Field label="Brand">{order.brand || '—'}</Field>
           <Field label="Shoot type">{order.jobType || '—'}</Field>
-          <Field label="Assignee">
-            {order.photographer ? (
-              personLink(order.photographer) ? (
-                <button
-                  type="button"
-                  onClick={personLink(order.photographer)}
-                  className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
-                >
-                  {order.photographer}
-                </button>
-              ) : (
-                order.photographer
-              )
+          <Field label={(order.assignees ?? []).length > 1 ? 'Assignees' : 'Assignee'}>
+            {(order.assignees ?? []).length ? (
+              <span className="inline-flex flex-wrap justify-end gap-x-1">
+                {order.assignees.map((name, i) => (
+                  <span key={name}>
+                    {personLink(name) ? (
+                      <button
+                        type="button"
+                        onClick={personLink(name)}
+                        className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
+                      >
+                        {name}
+                      </button>
+                    ) : (
+                      name
+                    )}
+                    {i < order.assignees.length - 1 && ','}
+                  </span>
+                ))}
+              </span>
             ) : (
               <span className="text-slate-400">not assigned</span>
             )}

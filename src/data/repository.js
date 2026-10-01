@@ -15,6 +15,7 @@ import { studioLabel, studioColor } from './studios'
 import { createUnits } from './inventory'
 import { normalizeCallTimes, toHHMM } from '../lib/callTimes'
 import { normalizeCrew, crewFromLegacy, crewNameFor } from '../lib/crew'
+import { uniqueNames } from '../lib/peopleOptions'
 
 export const DATA_SOURCE = (import.meta.env.VITE_DATA_SOURCE || 'local').toLowerCase()
 export const usingSupabase = DATA_SOURCE === 'supabase' && isSupabaseConfigured
@@ -1453,6 +1454,18 @@ function mapLineRow(l) {
   }
 }
 
+// A job's people, in the order they were picked. A job with no rows but a
+// photographer_contact_id — written before 20261001130000, or by a tab still on
+// the old bundle — still has that one person; the newest rows win when present.
+function assigneeNames(o) {
+  const rows = [...(o.assignees || [])]
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((r) => r.contact?.full_name)
+    .filter(Boolean)
+  if (rows.length) return rows
+  return o.photographer?.full_name ? [o.photographer.full_name] : []
+}
+
 export async function getOrders() {
   // Layered: the epic-5 shape first, then the 4.5 shape, then the stub — so a
   // database that hasn't run the newer migrations still renders history.
@@ -1498,13 +1511,19 @@ export async function getOrders() {
   // by the same rule: the newest column is the first thing a database without
   // it has to drop.
   const withLocation = `${withNotes}, location`
+  // A job's ASSIGNEES (20261001130000) — several people, in the order picked.
+  // Outermost, by the same rule: without the table this layer fails and the one
+  // below still reads the single photographer_contact_id.
+  const withAssignees = `${withLocation},
+     assignees:order_assignees ( position, contact:contacts ( id, full_name ) )`
   const withKind = `id, order_number, status, ordered_at, kind, company_id,
      company:companies ( id, name ),
      order_lines ( quantity, item:inventory_items ( id, name ) ),
      sets ( id, title, date )`
   const withoutKind = withKind.replace('kind, ', '')
 
-  let { data, error } = await supabase.from('orders').select(withLocation).order('ordered_at')
+  let { data, error } = await supabase.from('orders').select(withAssignees).order('ordered_at')
+  if (error) ({ data, error } = await supabase.from('orders').select(withLocation).order('ordered_at'))
   if (error) ({ data, error } = await supabase.from('orders').select(withNotes).order('ordered_at'))
   if (error)
     ({ data, error } = await supabase.from('orders').select(withBrandType).order('ordered_at'))
@@ -1546,8 +1565,7 @@ export async function getOrders() {
     notes: o.notes ?? null,
     // null on a database without 20260929120000, and for every studio shoot.
     location: o.location ?? null,
-    photographerId: o.photographer?.id ?? null,
-    photographer: o.photographer?.full_name ?? null,
+    assignees: assigneeNames(o),
     createdBy: o.creator?.full_name ?? null,
     createdAt: o.created_at ?? null,
     // Who last touched this order's equipment (null on a pre-activity-log DB).
@@ -1567,7 +1585,6 @@ function orderColumns(o) {
   if (o.studioId !== undefined) row.studio_id = o.studioId || null
   if (o.startsOn !== undefined) row.starts_on = o.startsOn || null
   if (o.endsOn !== undefined) row.ends_on = o.endsOn || null
-  if (o.photographerId !== undefined) row.photographer_contact_id = o.photographerId || null
   if (o.poNumber !== undefined) row.po_number = o.poNumber?.trim() || null
   if (o.setLabel !== undefined) row.set_label = o.setLabel?.trim() || null
   // Only a PDP day has sets: a job moved to another type drops its set name,
@@ -1613,19 +1630,43 @@ const isMissingTable = (e) =>
   e?.code === 'PGRST205' ||
   /relation .* does not exist|could not find the table/i.test(e?.message || '')
 
-// The job's ASSIGNEE (the column is still `photographer_contact_id`: it named the
-// photographer when that was the only person a job had). The form sends a NAME;
-// the column holds a person, so the name is resolved here — and added to People
-// if it is new. ⚠️ This is the write that was MISSING: until now a photographer
-// picked in the form never reached the database at all.
-async function withAssignee(row, o) {
-  if (o.photographerId !== undefined || o.photographer === undefined) return row
-  const name = String(o.photographer ?? '').trim()
-  return { ...row, photographer_contact_id: name ? await resolveContactId(name) : null }
+// The job's ASSIGNEES. The form sends NAMES; the rows hold people, so each name
+// is resolved here — and added to People if it is new. The FIRST is mirrored
+// into `photographer_contact_id` (it named the photographer when that was the
+// only person a job had), so a reader that knows only the column still sees
+// somebody. `ids` is null when the caller didn't touch the field.
+async function withAssignees(row, o) {
+  if (o.assignees === undefined) return { row, ids: null }
+  const ids = []
+  for (const name of uniqueNames(o.assignees)) {
+    const id = await resolveContactId(name)
+    if (id && !ids.includes(id)) ids.push(id)
+  }
+  return { row: { ...row, photographer_contact_id: ids[0] ?? null }, ids }
+}
+
+// A job's people are its CONTENTS, replaced wholesale on save like its lines.
+// Tolerated on a database without 20261001130000: the first person is already
+// in photographer_contact_id, so the write degrades to the one-person shape.
+async function setOrderAssignees(orderId, contactIds) {
+  const del = await supabase.from('order_assignees').delete().eq('order_id', orderId)
+  if (del.error) {
+    if (isMissingTable(del.error)) return { stored: false }
+    throw del.error
+  }
+  if (!contactIds.length) return { stored: true }
+  const { error } = await supabase
+    .from('order_assignees')
+    .insert(contactIds.map((contact_id, position) => ({ order_id: orderId, contact_id, position })))
+  if (error) {
+    if (isMissingTable(error)) return { stored: false }
+    throw error
+  }
+  return { stored: true }
 }
 
 export async function createOrder(order) {
-  const row = await withAssignee(orderColumns(order), order)
+  const { row, ids } = await withAssignees(orderColumns(order), order)
   let { data, error } = await supabase.from('orders').insert(row).select('id').single()
   if (error && isUndefinedColumn(error))
     ({ data, error } = await supabase
@@ -1634,15 +1675,19 @@ export async function createOrder(order) {
       .select('id')
       .single())
   if (error) throw error
+  if (ids) await setOrderAssignees(data.id, ids)
   return data.id
 }
 
 export async function updateOrder(id, changes) {
-  const row = await withAssignee(orderColumns(changes), changes)
-  let { error } = await supabase.from('orders').update(row).eq('id', id)
-  if (error && isUndefinedColumn(error))
-    ({ error } = await supabase.from('orders').update(withoutNewestColumns(row)).eq('id', id))
-  if (error) throw error
+  const { row, ids } = await withAssignees(orderColumns(changes), changes)
+  if (Object.keys(row).length) {
+    let { error } = await supabase.from('orders').update(row).eq('id', id)
+    if (error && isUndefinedColumn(error))
+      ({ error } = await supabase.from('orders').update(withoutNewestColumns(row)).eq('id', id))
+    if (error) throw error
+  }
+  if (ids) await setOrderAssignees(id, ids)
 }
 
 // order_lines cascade; sets.order_id is ON DELETE SET NULL, so the shoot itself
@@ -1833,10 +1878,15 @@ export async function getPeople() {
   // card the way a call does. The outermost layer, by the usual rule.
   const withAssigned = `${withArchive},
      assigned:orders!photographer_contact_id ( sets ( id, title, date, studio_id, status ) )`
+  // …and every job they are one of SEVERAL assignees of (20261001130000).
+  // Outermost: without the table, the layer below still finds the first one.
+  const withAssignments = `${withAssigned},
+     assignments:order_assignees ( order:orders ( sets ( id, title, date, studio_id, status ) ) )`
   const enriched = stripArchive(withArchive)
   const basic = `id, full_name, email, phone, notes, company:companies ( id, name ), ${jobs}`
 
-  let { data, error } = await supabase.from('contacts').select(withAssigned).order('full_name')
+  let { data, error } = await supabase.from('contacts').select(withAssignments).order('full_name')
+  if (error) ({ data, error } = await supabase.from('contacts').select(withAssigned).order('full_name'))
   if (error) ({ data, error } = await supabase.from('contacts').select(withArchive).order('full_name'))
   if (error) ({ data, error } = await supabase.from('contacts').select(enriched).order('full_name'))
   if (error) ({ data, error } = await supabase.from('contacts').select(basic).order('full_name'))
@@ -1873,6 +1923,7 @@ function personJobs(p) {
   }
   for (const r of p.roster_entries || []) add(r.set, r.role)
   for (const o of p.assigned || []) for (const s of o.sets || []) add(s, 'Assignee')
+  for (const a of p.assignments || []) for (const s of a.order?.sets || []) add(s, 'Assignee')
   return [...out.values()].sort(newestFirst('date', 'setId'))
 }
 

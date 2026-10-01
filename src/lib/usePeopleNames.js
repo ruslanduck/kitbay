@@ -25,7 +25,7 @@ export function useAssigneeNames() {
   const people = useStore((s) => s.people)
   const orders = useStore((s) => s.orders)
   return useMemo(
-    () => peopleNames(people, { used: (orders ?? []).map((o) => o.photographer) }),
+    () => peopleNames(people, { used: (orders ?? []).flatMap((o) => o.assignees ?? []) }),
     [people, orders],
   )
 }
@@ -44,8 +44,8 @@ export function useCrewNameOptions() {
   return useMemo(() => {
     const used = [
       ...(bookings ?? []).flatMap((b) => crewNames(b.crew)),
-      // A job with no shoot of its own still carries its photographer's name.
-      ...(orders ?? []).map((o) => o.photographer),
+      // A job with no shoot of its own still carries its assignees' names.
+      ...(orders ?? []).flatMap((o) => o.assignees ?? []),
     ]
     const cache = new Map()
     return (role) => {

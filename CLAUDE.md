@@ -3077,6 +3077,55 @@
 > 01 Oct 2026, 10:40 · Demo user", #0805 "Back …", list row "1 out", "Out now · 1" → "1 of 44 items" with Filters 1,
 > the unit history "Out 01 Oct 2026, 10:40 · Demo user" under the right shoot, the item's Activity "Demo user checked
 > in · Aputure 300X · scanned". Reseeded, 0 console errors.
+> **CHANGE — a job has several ASSIGNEES, and "Other" is a choice with its detail beside it**
+> (`20261001130000_job_assignees.sql`, applied and verified on prod). Two reports against the job form.
+> **(1) "Просили ALL Crew — нужен множественный выбор."** The Assignee field took one person; the client's ticket
+> said "Photographer → add all crew". New `MultiComboField`: chips for who is on the job, a text box after them
+> that narrows People, the usual popover (portal, fixed, flips above, outside-click / Escape — Escape closes the
+> list, not the modal). A row TOGGLES and the list stays open; Enter adds what was typed (and never submits the
+> job); Backspace on an empty box takes the last chip off; a name People lacks is offered as `Add "…"` and said
+> under the field ("is not in People yet — added when you save"), then filed on save as before. `onChange` takes
+> an UPDATER (the stale-value rule). The text box is sized to its content (`size`) and the chevron is absolute,
+> so two names and the cursor share ONE 38px line — measured: with a `min-w-[6rem]` box the field was 68px
+> beside a 38px neighbour. Label "Assignees" (one person still reads "Assignee" on the card, peek, day view,
+> tooltip and both PDFs). The feed calls the field "assignees", on old events too (applied on read).
+> **Storage:** `order_assignees (order_id, contact_id, position)`, unique per job+person, contact RESTRICT, RLS
+> for authenticated, DELETE kept (a job's contents, replaced wholesale like its lines). `photographer_contact_id`
+> STAYS and is written as the FIRST assignee, so a tab on yesterday's bundle still shows somebody; a job with no
+> rows falls back to that column on read. The migration backfilled every job that had a person. The app holds
+> `order.assignees` (names, in order) everywhere `order.photographer` used to be; `booking.assignees` mirrors it
+> in local mode. Repository `withAssignees` resolves each name (filing new people) and `setOrderAssignees`
+> replaces the rows; `getOrders` and `getPeople` each got a new OUTERMOST layer (seventh time that rule held).
+> Search finds a job by ANY assignee. The dead `photographersIn` and the unused `photographer` search criterion
+> went. **persist v7 CONVERTS a v6 snapshot** (single `photographer` → `assignees`) instead of reseeding, and
+> Supabase mode now keeps its whole UI state across a bump — the earlier bumps reset theme and "where I was" for
+> nothing. Demo: the 3-day shoot has two assignees (Marcus Reed, Jonas Lind).
+> **(2) "Other каждый раз создаёт новую опцию — дать Other и рядом вводить что именно."** The shoot type's
+> in-menu "Other…" typed INSIDE the list and the typed value joined the list for everyone (`jobTypesIn` merged
+> every type a job carried; prod showed a one-off "Test"). Asked, and the same was applied to the call sheet's
+> roles (prod's role list offered a test "eee" forever). New `OtherSelectField` + pure `lib/otherChoice`: a FIXED
+> list plus Other, and picking Other puts a "Which one?" field beside it, focused. What is STORED is still the
+> typed detail ("Lookbook"; a bare Other is "Other"), so cards, PDFs and search read it unchanged and no
+> migration was needed. The mode is held in component state, not derived from the value: typing "PDP" into the
+> detail would otherwise flip the choice mid-word; it settles on blur, where a detail that names a fixed option
+> BECOMES it ("pdp" → PDP — `normalizeChoice`, also applied to the payload). The Jobs filter offers Editorial /
+> PDP / Other, and Other matches every typed type (found by text, never offered as an option). Roles: CALL_ROLES
+> + Other; `crewRoles` is gone, `crewRow` canonicalises a listed role's spelling ("photographer" → Photographer),
+> so two spellings of one call fold into one row. `SelectField` lost its `other` prop (dead plumbing removed).
+> ⚠️ In Other mode the wrapper's classes REPLACE the plain ones instead of adding to them: two `min-w-*` in one
+> class list are settled by stylesheet order, not intent.
+> **654 assertions.** Verified in local mode: v6 snapshot converted (14 jobs, 11 shoots); the seeded job's card
+> reads "Assignees · Marcus Reed, Ann Taylor" after an edit, the person histories re-resolved (Ann gained it,
+> Jonas lost it), feed "edited the job · set name, shoot type, assignees"; Other → "Lookbook" stored as typed,
+> list still Editorial / PDP / Other on reopen, filter Other → 1 of 14; "pdp" typed beside Other stays Other
+> while typing and becomes PDP on blur (Set name returns); roles list 10 + Other with "Gaffer" beside it on one
+> line at 1280 and wrapped cleanly at 375 (no page overflow); calendar tooltip, day view and the job peek list
+> both names, a name in the peek stacks the person card; a NEW job through both steps stored two assignees and
+> "Test type" and filed "Probe Person" into People. Chip text 6.65 light / 10.98 dark. 0 console errors.
+> On prod (service_role + anon only — no sign-in): predicted 14 backfilled rows from 14 jobs with a person, got
+> **14/14** at position 0; both new embeds answer 200; a duplicate is refused **23505**, an unknown person
+> **23503**; an anonymous read returns `[]`. ℹ️ The authenticated WRITE was not exercised by me (that needs a
+> sign-in); its policy is the same `for all to authenticated` as `packing_signoffs`.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

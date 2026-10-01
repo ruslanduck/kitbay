@@ -14,6 +14,10 @@ import { isValidTime, toHHMM, CALL_ROLES } from './callTimes.js'
 const clean = (s) => String(s ?? '').trim()
 const same = (a, b) => clean(a).toLowerCase() === clean(b).toLowerCase()
 
+// A role the studio's list has, in the list's own spelling ("photographer" is
+// Photographer); anything else is an Other's detail and is kept as typed.
+export const canonicalRole = (role) => CALL_ROLES.find((r) => same(r, role)) ?? clean(role)
+
 // A row as the app holds it. `contactId` is the person in People when the row
 // was read from the database; a changed name drops it (the form does that), so
 // the write resolves the name again.
@@ -21,7 +25,7 @@ export function crewRow(r = {}, i = 0) {
   const time = toHHMM(r?.time)
   return {
     id: r?.id ?? null,
-    role: clean(r?.role),
+    role: canonicalRole(r?.role),
     name: clean(r?.name) || null,
     contactId: r?.contactId ?? null,
     time: isValidTime(time) ? time : null,
@@ -113,22 +117,6 @@ export function crewRowProblem(r = {}) {
   if (!clean(r.role)) return 'Pick a role for this row — or remove it.'
   if (clean(r.time) && !isValidTime(toHHMM(r.time))) return 'The time should read as HH:MM.'
   return null
-}
-
-// The roles a picker offers: the studio's own list, then every role a sheet
-// already uses — a role typed once keeps being offered.
-export function crewRoles(bookings = []) {
-  const seen = new Set(CALL_ROLES.map((r) => r.toLowerCase()))
-  const extra = []
-  for (const b of bookings || [])
-    for (const r of b?.crew || []) {
-      const role = clean(r?.role)
-      if (role && !seen.has(role.toLowerCase())) {
-        seen.add(role.toLowerCase())
-        extra.push(role)
-      }
-    }
-  return [...CALL_ROLES, ...extra.sort((a, b) => a.localeCompare(b))]
 }
 
 // The two legacy lists → one sheet. The SAME rule migration 20260930120000

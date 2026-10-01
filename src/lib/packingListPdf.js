@@ -156,7 +156,8 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
           : est.order.startsOn
         : '—',
     ],
-    ['Assignee', est.order.photographer || '—'],
+    // Several people may be on a job; the row wraps like an address does.
+    [est.order.assignees?.length > 1 ? 'Assignees' : 'Assignee', est.order.assignees?.join(', ') || '—'],
     ['Client', est.order.companyName || '—'],
   ]
   doc.setFontSize(9)

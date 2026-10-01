@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew, hierarchyDrop, search, searchSynonyms] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew, hierarchyDrop, search, searchSynonyms, otherChoice] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -44,6 +44,7 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/lib/hierarchyDrop.js'),
     load('src/lib/search.js'),
     load('src/data/searchSynonyms.js'),
+    load('src/lib/otherChoice.js'),
   ])
 
 let n = 0
@@ -114,24 +115,46 @@ ok(orderSearch.searchOrders(jobs, { text: 'legacy' }).length === 1, 'but stays f
 // a brand, which read as a broken dropdown.
 eq(orderSearch.brandsIn(jobs), ['Ann Taylor', 'Loft', 'H&M', 'Nike'], 'brand options: offered + used')
 eq(orderSearch.brandsIn([]), ['Ann Taylor', 'Loft'], 'no jobs still offers the studio brands')
-// A style-out books a studio, has a call sheet and pulls gear like a shoot, so
-// it is a TYPE rather than a second kind of record — that is what lets the day
-// view list "all shoots + style-outs" without a parallel entity.
-eq(
-  orderSearch.jobTypesIn([]),
-  ['Editorial', 'PDP'],
-  'the types the studio names are offered from day one',
-)
-eq(
-  orderSearch.jobTypesIn([{ jobType: 'Lookbook' }]),
-  ['Editorial', 'PDP', 'Lookbook'],
-  'a new type joins',
-)
-eq(
-  orderSearch.jobTypesIn([{ jobType: 'PDP' }]),
-  ['Editorial', 'PDP'],
-  'and a used default is not duplicated',
-)
+// The shoot type is a FIXED list plus Other, with what the other is typed
+// beside it. Reported: the old "Other…" added every typed type to the list for
+// everyone, so a one-off "Test" became an option for good.
+eq(orderSearch.JOB_TYPES, ['Editorial', 'PDP'], 'the two types the studio runs')
+eq(orderSearch.JOB_TYPE_FILTERS, ['Editorial', 'PDP', 'Other'], 'the filter offers them plus Other — never what was typed')
+{
+  const typed = [
+    { id: 't1', jobType: 'Lookbook' },
+    { id: 't2', jobType: 'Other' },
+    { id: 't3', jobType: 'pdp' },
+    { id: 't4', jobType: null },
+    { id: 't5', jobType: 'Editorial' },
+  ]
+  const by = (jobType) => orderSearch.searchOrders(typed, { jobType }).map((o) => o.id).sort()
+  eq(by('Other'), ['t1', 't2'], '"Other" finds every typed type, and a bare Other')
+  eq(by('PDP'), ['t3'], 'a type stored in another case is still that type')
+  eq(by('Editorial'), ['t5'], 'and a fixed type filters exactly')
+  eq(orderSearch.searchOrders(typed, { text: 'lookbook' }).map((o) => o.id), ['t1'], 'what was typed beside Other is findable as text')
+}
+{
+  const { OTHER, choiceOf, otherDetail, normalizeChoice } = otherChoice
+  const JT = orderSearch.JOB_TYPES
+  eq(OTHER, 'Other', 'the choice reads Other')
+  eq(choiceOf('PDP', JT), 'PDP', 'a fixed option is itself')
+  eq(choiceOf('pdp', JT), 'PDP', 'in its canonical spelling')
+  eq(choiceOf('Lookbook', JT), 'Other', 'anything outside the list is an Other')
+  eq(choiceOf('other', JT), 'Other', 'and so is a bare Other, in any case')
+  eq(choiceOf('', JT), '', 'nothing is nothing')
+  eq(choiceOf(null, JT), '', 'and so is null')
+  eq(otherDetail('Lookbook', JT), 'Lookbook', 'the field beside Other shows what was typed')
+  eq(otherDetail(' Lookbook ', JT), 'Lookbook', 'trimmed')
+  eq(otherDetail('Other', JT), '', 'a bare Other has no detail')
+  eq(otherDetail('PDP', JT), '', 'and a fixed option has none either')
+  eq(normalizeChoice('pdp', JT), 'PDP', 'a detail that names a fixed option IS that option — no twin')
+  eq(normalizeChoice(' Lookbook ', JT), 'Lookbook', 'an Other is stored as what was typed')
+  eq(normalizeChoice('other', JT), 'Other', 'a bare Other is stored as Other')
+  eq(normalizeChoice('', JT), '', 'and nothing as nothing')
+  eq(normalizeChoice('photographer', callTimes.CALL_ROLES), 'Photographer', 'the roles follow the same rule')
+  eq(choiceOf('eee', callTimes.CALL_ROLES), 'Other', 'a typed role is an Other — not an option for everyone')
+}
 // the studio stays OUT of free text: a bare "2" would match every 2026 date
 eq(orderSearch.searchOrders(jobs, { text: 'studio' }).length, 0, 'studio is a dropdown, not a search term')
 
@@ -143,7 +166,7 @@ const inventory = [
 const job = {
   id: 'o1', number: 'CL-1', poNumber: 'PO-9', jobName: 'Nike SS26', setLabel: 'OMSet1',
   brand: 'Nike', jobType: 'Editorial', studioId: '2', status: 'confirmed',
-  startsOn: '2026-09-10', endsOn: '2026-09-10', photographer: 'Ann Taylor',
+  startsOn: '2026-09-10', endsOn: '2026-09-10', assignees: ['Ann Taylor'],
   lines: [{ itemId: 'i1', quantity: 2 }, { itemId: 'i2', quantity: 3 }],
 }
 const booking = { id: 's1', unitIds: ['u1'], roster: [] }
@@ -1478,10 +1501,16 @@ ok(
   eq(crew.crewRowProblem({}), null, 'an empty row is fine — it is dropped')
   eq(crew.normalizeCrew([]), [], 'an empty sheet is a real state')
   eq(crew.normalizeCrew(), [], 'and so is nothing at all')
-  const roles = crew.crewRoles([{ crew: [{ role: 'Gaffer' }, { role: 'photographer' }] }])
-  ok(roles.includes('Gaffer'), 'a typed role stays offered')
-  eq(roles.filter((r) => r.toLowerCase() === 'photographer').length, 1, 'and a case twin of an offered one is not added')
-  eq(crew.crewRoles([]), callTimes.CALL_ROLES, 'with no shoots, just the studio’s list')
+  // The roles are the studio's fixed list plus Other with the role typed
+  // beside it — a typed role is no longer offered to every other shoot.
+  eq(crew.canonicalRole('photographer'), 'Photographer', 'a listed role takes the list’s spelling')
+  eq(crew.canonicalRole(' Gaffer '), 'Gaffer', 'a typed one is kept as typed')
+  eq(crew.normalizeCrew([{ role: 'hair & makeup' }])[0].role, 'Hair & makeup', 'and the sheet stores the canonical one')
+  eq(
+    crew.normalizeCrew([{ role: 'photographer', name: 'Ann' }, { role: 'Photographer', name: 'Ann' }]).length,
+    1,
+    'so two spellings of one call fold into one row',
+  )
 }
 {
   // The MIGRATION's rule, written once in JS (20260930120000 applies the same
@@ -1548,10 +1577,24 @@ ok(
   eq(estimate.buildEstimate(job, { inventory }).roster, [], 'the assignee is not crew — no sheet, no crew rows')
   const noSheet = bytes(estimatePdf.buildEstimatePdf(estimate.buildEstimate(job, { inventory })))
   ok(noSheet.includes('(Assignee) Tj') && noSheet.includes('(Ann Taylor) Tj'), 'the assignee prints as its own row')
+  const pair = bytes(
+    estimatePdf.buildEstimatePdf(estimate.buildEstimate({ ...job, assignees: ['Ann Taylor', 'Jonas Lind'] }, { inventory })),
+  )
+  ok(pair.includes('(Assignees) Tj') && pair.includes('(Ann Taylor, Jonas Lind) Tj'), 'several assignees print on one row, named')
+  eq(estimate.buildEstimate({ ...job, assignees: undefined }, { inventory }).order.assignees, [], 'a job with nobody assigned carries an empty list')
   ok(!noSheet.includes('(Photographer) Tj'), 'and the meta row no longer says Photographer')
   const sheet2 = bytes(packingPdf.buildPackingListPdf(estimate.buildEstimate(job, { inventory }), { booking, inventory }))
   ok(sheet2.includes('(Assignee) Tj'), 'on the packing list too')
-  eq(activity.jobFieldWords(['photographer']), ['assignee'], 'the feed calls the field Assignee')
+  eq(activity.jobFieldWords(['assignees']), ['assignees'], 'the feed calls the field Assignees')
+  eq(activity.jobFieldWords(['photographer']), ['assignees'], 'and so do edits logged when it held one person')
+  // Several people on one job — the client asked for "all crew".
+  eq(peopleOptions.uniqueNames([' Ann Taylor', 'ann taylor', '', null, 'Jonas Lind']), ['Ann Taylor', 'Jonas Lind'], 'a name typed twice is kept once, first spelling wins')
+  eq(peopleOptions.uniqueNames(), [], 'no names is an empty list')
+  eq(
+    orderSearch.searchOrders([{ id: 'a', assignees: ['Ann Taylor', 'Jonas Lind'] }, { id: 'b', assignees: ['Ann Taylor'] }], { text: 'jonas' }).map((o) => o.id),
+    ['a'],
+    'the search finds a job by ANY of its assignees, not just the first',
+  )
   eq(activity.jobFieldWords(['crew']), ['call times'], 'the feed calls an edited sheet "call times"')
 }
 

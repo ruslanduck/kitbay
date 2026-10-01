@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Check, Plus } from 'lucide-react'
+import { ChevronDown, Check } from 'lucide-react'
 
 // One dropdown for the whole app.
 //
@@ -27,12 +27,6 @@ export default function SelectField({
   className,
   disabled = false,
   ariaLabel,
-  // A free-text choice typed INSIDE the menu: a last row ("Other…") that turns
-  // into a text box. For a list that is offered, not closed — a shoot type the
-  // studio hasn't run before must still be writable, and a combo box that
-  // quietly allowed typing read as two fixed choices. { label, placeholder,
-  // submitLabel }
-  other = null,
   // Extra classes for the trigger's label — e.g. `hidden sm:inline`, so a trigger
   // in the top bar is its icon alone on a phone.
   labelClassName = '',
@@ -43,21 +37,12 @@ export default function SelectField({
   // How far the popover has to slide left to stay on screen once it is WIDER
   // than its trigger (see the width note below).
   const [shiftX, setShiftX] = useState(0)
-  // "Other…": whether its row is a text box right now, and what is typed in it.
-  const [typing, setTyping] = useState(false)
-  const [draft, setDraft] = useState('')
   const btnRef = useRef(null)
   const popRef = useRef(null)
 
-  const given = options.map((o) => (typeof o === 'object' && o !== null ? o : { value: o, label: String(o) }))
-  // A value typed through "Other…" is not among the options the caller knows
-  // yet — it is still the value, so it is listed and ticked, rather than the
-  // trigger showing the placeholder over a filled field.
-  const custom =
-    other && value && !given.some((o) => String(o.value) === String(value))
-      ? [{ value, label: String(value) }]
-      : []
-  const opts = [...given, ...custom]
+  // "Other" with its detail typed beside the list is OtherSelectField's job —
+  // a row here that typed INSIDE the menu added every one-off to the list.
+  const opts = options.map((o) => (typeof o === 'object' && o !== null ? o : { value: o, label: String(o) }))
   const current = opts.find((o) => String(o.value) === String(value ?? ''))
   const CurrentIcon = current?.icon ?? null
 
@@ -66,7 +51,7 @@ export default function SelectField({
     if (!el) return
     const r = el.getBoundingClientRect()
     // Tall enough for the list, but never taller than the room available.
-    const wanted = Math.min((opts.length + (other ? 1 : 0)) * 34 + 10, 288)
+    const wanted = Math.min(opts.length * 34 + 10, 288)
     const below = window.innerHeight - r.bottom - 8
     const openUp = below < wanted && r.top > below
     setCoords({
@@ -142,18 +127,6 @@ export default function SelectField({
     btnRef.current?.focus()
   }
 
-  // What was typed becomes the value — or, typed in another case, the option it
-  // already is ("pdp" is PDP), so the list never grows a twin.
-  function commitOther() {
-    const v = draft.trim()
-    if (!v) return
-    const same = given.find((o) => String(o.label).toLowerCase() === v.toLowerCase())
-    onChange({ target: { value: same ? same.value : v } })
-    setTyping(false)
-    setOpen(false)
-    btnRef.current?.focus()
-  }
-
   function onTriggerKey(e) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -190,7 +163,6 @@ export default function SelectField({
         onClick={() => {
           if (disabled) return
           setActive(opts.findIndex((o) => String(o.value) === String(value ?? '')))
-          setTyping(false)
           setOpen((o) => !o)
         }}
         onKeyDown={onTriggerKey}
@@ -283,52 +255,6 @@ export default function SelectField({
                 </button>
               )
             })}
-            {other && (
-              <div className="mt-1 border-t border-slate-100 pt-1">
-                {typing ? (
-                  <div className="flex items-center gap-2 px-2 py-1">
-                    <input
-                      autoFocus
-                      type="text"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          commitOther()
-                        } else if (e.key === 'Escape') {
-                          // Back to the list, not out of the menu.
-                          e.stopPropagation()
-                          setTyping(false)
-                        }
-                      }}
-                      placeholder={other.placeholder || 'Type a name'}
-                      className="min-w-0 flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                    />
-                    <button
-                      type="button"
-                      onClick={commitOther}
-                      disabled={!draft.trim()}
-                      className="shrink-0 rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-white transition hover:bg-brand-strong disabled:opacity-40"
-                    >
-                      {other.submitLabel || 'Add'}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDraft('')
-                      setTyping(true)
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-violet-600 transition hover:bg-violet-50"
-                  >
-                    <Plus size={14} className="shrink-0" />
-                    <span className="min-w-0 flex-auto truncate">{other.label || 'Other…'}</span>
-                  </button>
-                )}
-              </div>
-            )}
           </div>,
           document.body,
         )}

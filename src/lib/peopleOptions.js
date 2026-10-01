@@ -37,6 +37,20 @@ export function peopleNames(people = [], { role = null, used = [] } = {}) {
     .sort(byName)
   return [...new Set([...first, ...rest, ...typed])]
 }
+// A list of typed names, tidied: trimmed, blanks dropped, and a name typed
+// twice (in any case) kept once, first spelling wins — the job's assignees.
+export function uniqueNames(names = []) {
+  const seen = new Set()
+  const out = []
+  for (const raw of names ?? []) {
+    const name = String(raw ?? '').trim()
+    if (!name || seen.has(name.toLowerCase())) continue
+    seen.add(name.toLowerCase())
+    out.push(name)
+  }
+  return out
+}
+
 // Which TRADES the People filter offers, given the category it is narrowed to.
 //
 // A person's category is Freelancer / Model / Rental company / Agency and their

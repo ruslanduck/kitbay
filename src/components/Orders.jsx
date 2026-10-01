@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import { useStore, notArchived, capacityError } from '../store'
 import { setSpanDays } from '../lib/setDays'
-import { crewRoles } from '../lib/crew'
 import { usePersisted } from '../lib/usePersisted'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
@@ -37,7 +36,7 @@ import {
   poCounts,
   studiosIn,
   brandsIn,
-  jobTypesIn,
+  JOB_TYPE_FILTERS,
   SORTS,
   rangeIsBackwards,
   showsSetName,
@@ -204,9 +203,8 @@ export default function Orders() {
 
   const studioOptions = useMemo(() => studiosIn(liveOrders), [liveOrders])
   const brandOptions = useMemo(() => brandsIn(liveOrders), [liveOrders])
-  // Roles already used on a shoot stay offered in the call-sheet picker.
-  const roleOptions = useMemo(() => crewRoles(bookings), [bookings])
-  const typeOptions = useMemo(() => jobTypesIn(liveOrders), [liveOrders])
+  // Editorial / PDP / Other — "Other" finds every type typed beside it.
+  const typeOptions = JOB_TYPE_FILTERS
 
   // A persisted filter whose value is no longer IN the data would hide every row
   // forever, with the dropdown showing its placeholder instead of a value — the
@@ -575,8 +573,6 @@ export default function Orders() {
         order={editor.order}
         studios={studios}
         brands={brandOptions}
-        jobTypes={typeOptions}
-        roleOptions={roleOptions}
         onClose={() => setEditor({ open: false, order: null })}
         onProceed={(payload) => {
           // The studio capacity is checked HERE, before the crew spends time
@@ -818,11 +814,18 @@ function OrderDetail({
           <Row icon={Briefcase} label="Shoot type">
             {order.jobType || <span className="text-slate-400">—</span>}
           </Row>
-          {/* Whose job it is — anyone in People. Not derived from the call sheet
-              above: that says who is called when. */}
-          <Row icon={UserRound} label="Assignee">
-            {order.photographer ? (
-              <PeekLink onClick={personLink(order.photographer)}>{order.photographer}</PeekLink>
+          {/* Whose job it is — anyone in People, and several of them. Not derived
+              from the call sheet above: that says who is called when. */}
+          <Row icon={UserRound} label={(order.assignees ?? []).length > 1 ? 'Assignees' : 'Assignee'}>
+            {(order.assignees ?? []).length ? (
+              <span className="flex flex-wrap gap-x-1">
+                {order.assignees.map((name, i) => (
+                  <span key={name}>
+                    <PeekLink onClick={personLink(name)}>{name}</PeekLink>
+                    {i < order.assignees.length - 1 && ','}
+                  </span>
+                ))}
+              </span>
             ) : (
               <span className="text-slate-400">not assigned</span>
             )}

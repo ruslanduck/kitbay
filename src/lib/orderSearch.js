@@ -2,6 +2,7 @@
 //
 // Pure functions — no React — so the matching rules can be tested directly and
 // the Orders view stays a thin shell over them.
+import { OTHER, choiceOf } from './otherChoice.js'
 //
 // The point of this search is fast access to job history: the crew knows one
 // thing (a PO from accounting, a job name, roughly when it shot, or who shot it)
@@ -34,7 +35,8 @@ function haystack(order) {
     // The hand-typed set designation ("OMSet1") — searchable on its own, which is
     // the point of pulling it out of the job name.
     order.setLabel,
-    order.photographer,
+    // Every assignee, not just the first: "jonas" finds the jobs Jonas is on.
+    ...(order.assignees ?? []),
     // Brand and shoot type are BOTH dropdowns AND free text: "nike editorial"
     // should answer without picking two fields first. Unlike the studio (which
     // was pulled OUT of the haystack because a bare "2" matched every 2026
@@ -76,7 +78,6 @@ export function matchesOrder(
   {
     text = '',
     status = 'All',
-    photographer = 'All',
     studio = 'All',
     brand = 'All',
     jobType = 'All',
@@ -85,10 +86,11 @@ export function matchesOrder(
   } = {},
 ) {
   if (status !== 'All' && order.status !== status) return false
-  if (photographer !== 'All' && (order.photographer ?? '') !== photographer) return false
   if (studio !== 'All' && (order.studioId ?? '') !== studio) return false
   if (brand !== 'All' && (order.brand ?? '') !== brand) return false
-  if (jobType !== 'All' && (order.jobType ?? '') !== jobType) return false
+  // "Other" is every type outside the fixed list — what was typed beside it is
+  // the job's own detail, findable in the text box, never a filter option.
+  if (jobType !== 'All' && choiceOf(order.jobType, JOB_TYPES) !== jobType) return false
   // A period that ends before it starts contains no days, so nothing can be in
   // it. Without this a job SPANNING both dates slipped through, because the two
   // one-sided tests below are each satisfied independently — measured: the
@@ -139,20 +141,19 @@ export const BRANDS = ['Ann Taylor', 'Loft']
 // Brands, offered before a job uses one. Built from the data ALONE the list was
 // empty on a register where nobody had typed a brand yet — reported as exactly
 // that — which reads as a broken dropdown rather than as an empty column.
-// (Consequence, deliberate and shared with `jobTypesIn`: the FILTER can offer a
-// brand that currently matches nothing.)
+// (Consequence, deliberate: the FILTER can offer a brand that currently matches
+// nothing.)
 export function brandsIn(orders) {
   const used = (orders ?? []).map((o) => o.brand).filter(Boolean)
   return [...new Set([...BRANDS, ...used.sort((a, b) => a.localeCompare(b))])]
 }
 
-// Shoot types present, with the ones the studio names offered even before a job
-// uses them — otherwise the filter is empty on day one and reads as broken.
-//
-// The two the studio actually runs. FREE TEXT still — `jobTypesIn` merges these
-// with every type the register already carries, so a third kind needs no code
-// and a job that already says something else keeps saying it.
+// The two shoot types the studio runs. A FIXED list now, plus Other with what
+// it is typed beside it (lib/otherChoice): the list used to merge in every type
+// a job carried, so one "Test" became an option for everybody, for good.
 export const JOB_TYPES = ['Editorial', 'PDP']
+// The filter offers the same choices — "Other" catches every typed type.
+export const JOB_TYPE_FILTERS = [...JOB_TYPES, OTHER]
 
 // A SET name is how a PDP day tells its sets apart ("OMSet1", "OMSet2"); an
 // editorial shoot has none. So the field belongs to PDP — and to a job with no
@@ -169,14 +170,3 @@ export function setNameApplies(jobType) {
 // only where a set name belongs.
 export const showsSetName = (order) => !!order?.setLabel || setNameApplies(order?.jobType)
 
-export function jobTypesIn(orders) {
-  const used = (orders ?? []).map((o) => o.jobType).filter(Boolean)
-  return [...new Set([...JOB_TYPES, ...used])]
-}
-
-// Distinct photographers present, for the filter dropdown.
-export function photographersIn(orders) {
-  return [...new Set((orders ?? []).map((o) => o.photographer).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
-  )
-}

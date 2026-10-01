@@ -18,7 +18,7 @@ import MatchText from './MatchText'
 import { availableCount, resolveUnitsForQuantities } from '../lib/availability'
 import { studioLabel } from '../data/studios'
 import { endsOnFor } from '../lib/setDays'
-import { normalizeCrew, crewRowProblem, crewRoles } from '../lib/crew'
+import { normalizeCrew, crewRowProblem } from '../lib/crew'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 import Modal from './Modal'
@@ -48,7 +48,6 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
   const inventory = useStore((s) => s.inventory)
   const kits = useStore((s) => s.kits)
   const scenarios = useStore((s) => s.scenarios)
-  const allBookings = useStore((s) => s.bookings)
   const createBooking = useStore((s) => s.createBooking)
   const updateBooking = useStore((s) => s.updateBooking)
   const archiveBooking = useStore((s) => s.archiveBooking)
@@ -131,7 +130,6 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
     setApplied({ name: list.name, ...res })
   }
 
-  const roleOptions = useMemo(() => crewRoles(allBookings), [allBookings])
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   // Units of an item that this booking may reserve (free + its own), minus any
   // already claimed by a staged kit.
@@ -307,7 +305,6 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
             <CrewField
               value={form.crew}
               onChange={(fn) => setForm((f) => ({ ...f, crew: fn(f.crew) }))}
-              roleOptions={roleOptions}
               wrapTime={form.wrapTime}
               onWrapChange={(wrapTime) => setForm((f) => ({ ...f, wrapTime }))}
             />

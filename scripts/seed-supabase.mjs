@@ -95,7 +95,9 @@ async function main() {
   // file was deleted with them, which left this script unable to start.)
   const seeded = new Set(PEOPLE_SEED.map((p) => p.name))
   const extras = [
-    ...new Set(BOOKING_TEMPLATES.flatMap((t) => [t.photographer, t.model]).filter(Boolean)),
+    ...new Set(
+      BOOKING_TEMPLATES.flatMap((t) => [t.photographer, t.model, ...(t.assignees ?? [])]).filter(Boolean),
+    ),
   ].filter((n) => !seeded.has(n))
   const { data: contactRows, error: ctErr } = await db.from('contacts')
     .insert([
@@ -307,7 +309,9 @@ async function main() {
     if (sErr) throw sErr
     sets++
     setByTitle[t.title] = {
-      id: set.id, date, endDate, studioId: t.studioId, photographer: t.photographer,
+      id: set.id, date, endDate, studioId: t.studioId,
+      // Whose job it is — several people, the photographer when nobody says.
+      assignees: t.assignees ?? (t.photographer ? [t.photographer] : []),
     }
 
     // Gear is NOT reserved here: a Set's reservations derive from its CONFIRMED
@@ -363,10 +367,15 @@ async function main() {
       // Demo content: the crew types the Set by hand, and their job names end in
       // that designation (…_OMSet1), so the seed reuses it.
       set_label: String(o.setTitle ?? '').split('_').slice(-1)[0] || null,
-      photographer_contact_id: set?.photographer ? contactId[set.photographer] ?? null : null,
+      // The first assignee, mirrored into the old single column (20261001130000).
+      photographer_contact_id: set?.assignees?.[0] ? contactId[set.assignees[0]] ?? null : null,
     }).select('id').single()
     if (oErr) throw oErr
     orders++
+    const assigneeRows = (set?.assignees ?? [])
+      .map((name, position) => ({ order_id: order.id, contact_id: contactId[name] ?? null, position }))
+      .filter((r) => r.contact_id)
+    if (assigneeRows.length) must('order_assignees', await db.from('order_assignees').insert(assigneeRows))
 
     const lineRows = o.lines
       .map(([slug, quantity, vendorSlug]) => {

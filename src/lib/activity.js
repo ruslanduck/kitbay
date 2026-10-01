@@ -140,8 +140,11 @@ const JOB_FIELD_WORDS = {
   studioId: 'location / studio',
   startsOn: 'shoot dates',
   endsOn: 'shoot dates',
-  photographer: 'assignee',
-  photographerContactId: 'assignee',
+  // The field holds several people now; edits logged when it held one read
+  // the same way.
+  assignees: 'assignees',
+  photographer: 'assignees',
+  photographerContactId: 'assignees',
   companyId: 'client',
   brand: 'brand',
   jobType: 'shoot type',

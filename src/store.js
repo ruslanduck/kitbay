@@ -89,6 +89,7 @@ import { endsOnFor, setSpanDays } from './lib/setDays'
 import { MAX_SETS_PER_DAY, setsUsedOn, capacityError } from './lib/capacity'
 import { setNameApplies } from './lib/orderSearch'
 import { normalizeCrew, crewFromLegacy, crewNameFor, crewNames } from './lib/crew'
+import { uniqueNames } from './lib/peopleOptions'
 import { CHECK_IN, VIA_MANUAL } from './lib/packing'
 import { resolveUnitCodes } from './lib/unitRows'
 import { newestFirst } from './lib/ordering'
@@ -190,9 +191,9 @@ function buildSeedData() {
         // A shoot runs for whole days and may run for several (`days`, default 1).
         endDate: format(addDays(weekStart, t.dayOffset + ((t.days || 1) - 1)), 'yyyy-MM-dd'),
         wrapTime: t.wrap || null,
-        // Whose job it is. Mirrors the job's own field (orders.photographer) so a
+        // Whose job it is — several people. Mirrors the job's own field so a
         // person's work history can say "as assignee" in local mode too.
-        assignee: t.photographer || null,
+        assignees: uniqueNames(t.assignees ?? [t.photographer]),
         unitIds: [],
         orderId: null,
         status: 'active',
@@ -326,8 +327,7 @@ function buildSeedData() {
       // The job's window IS its shoot's window — a multi-day set bills, holds
       // and packs for every one of those days.
       endsOn: set?.endDate ?? set?.date ?? orderedAt,
-      photographer: set?.photographer ?? null,
-      photographerId: null,
+      assignees: set?.assignees ?? [],
       createdBy: 'Ann Taylor',
       createdAt: orderedAt,
       companyId: o.company,
@@ -529,8 +529,8 @@ function resolveOrder(o, companies) {
     studioId: o.studioId || null,
     startsOn,
     endsOn: o.endsOn || startsOn,
-    photographer: trimmed(o.photographer),
-    photographerId: o.photographerId || null,
+    // The job's people, tidied once here so every reader sees one spelling.
+    assignees: uniqueNames(o.assignees),
     createdBy: o.createdBy ?? 'You',
     createdAt: o.createdAt ?? format(new Date(), 'yyyy-MM-dd'),
     companyId: o.companyId || null,
@@ -570,7 +570,9 @@ function resolvePerson(person, companies, bookings) {
       // Their role on the call sheet — or, failing that, the job is theirs.
       const role =
         (b.crew || []).find((r) => String(r.name ?? '').trim().toLowerCase() === me)?.role ??
-        (String(b.assignee ?? '').trim().toLowerCase() === me ? 'Assignee' : null)
+        ((b.assignees || []).some((n) => String(n ?? '').trim().toLowerCase() === me)
+          ? 'Assignee'
+          : null)
       return me && role
         ? {
             id: b.id,
@@ -622,7 +624,7 @@ function withCrew(booking, crew) {
 function withCrewPeople(people, crew, companies, bookings, extra = []) {
   const known = new Set(people.map((p) => String(p.name ?? '').trim().toLowerCase()))
   const next = [...people]
-  // `extra`: names typed outside the sheet (the job's assignee) — same rule.
+  // `extra`: names typed outside the sheet (the job's assignees) — same rule.
   const typed = (extra || []).map((n) => String(n ?? '').trim()).filter(Boolean)
   for (const name of [...crewNames(crew), ...typed]) {
     if (known.has(name.toLowerCase())) continue
@@ -2782,7 +2784,7 @@ export const useStore = create(
             date: startsOn,
             endDate: endsOn,
             wrapTime: order.wrapTime || null,
-            assignee: trimmed(order.photographer),
+            assignees: uniqueNames(order.assignees),
             unitIds: [],
             status: 'active',
             color: BOOKING_COLORS[state.bookings.length % BOOKING_COLORS.length],
@@ -2806,7 +2808,7 @@ export const useStore = create(
           bookings: nextBookings,
           orders: nextOrders,
           inventory: withReservations(state.inventory, nextBookings),
-          people: withCrewPeople(state.people, crew, state.companies, nextBookings, [order.photographer]),
+          people: withCrewPeople(state.people, crew, state.companies, nextBookings, order.assignees ?? []),
         })
         return { ok: true, id }
       },
@@ -2878,8 +2880,10 @@ export const useStore = create(
         const beforeShoot = get().bookings.find((b) => b.id === before?.setId) ?? null
         const sheet = (rows) =>
           JSON.stringify(normalizeCrew(rows).map((r) => [r.time, r.role, r.name, r.note]))
+        const people = (names) => JSON.stringify(uniqueNames(names).map((n) => n.toLowerCase()))
         const reallyChanged = Object.keys(changes).filter((k) => {
           if (k === 'crew') return sheet(changes.crew) !== sheet(beforeShoot?.crew)
+          if (k === 'assignees') return people(changes.assignees) !== people(before?.assignees)
           if (k === 'wrapTime')
             return String(changes.wrapTime ?? '') !== String(beforeShoot?.wrapTime ?? '')
           return !before || String(changes[k] ?? '') !== String(before[k] ?? '')
@@ -2958,7 +2962,7 @@ export const useStore = create(
                   date: target.startsOn ?? b.date,
                   endDate: endsOnFor(target.startsOn ?? b.date, target.endsOn ?? b.endDate),
                   wrapTime: changes.wrapTime !== undefined ? changes.wrapTime || null : b.wrapTime,
-                  assignee: target.photographer ?? null,
+                  assignees: target.assignees ?? [],
                 },
                 nextCrew ?? b.crew,
               )
@@ -2977,11 +2981,15 @@ export const useStore = create(
           inventory: withReservations(state.inventory, bookings),
           // A sheet or an assignee that names someone new files them in People,
           // and every history is re-read against the new shoots.
-          ...(nextCrew || changes.photographer !== undefined
+          ...(nextCrew || changes.assignees !== undefined
             ? {
-                people: withCrewPeople(state.people, nextCrew ?? [], state.companies, bookings, [
-                  target?.photographer,
-                ]),
+                people: withCrewPeople(
+                  state.people,
+                  nextCrew ?? [],
+                  state.companies,
+                  bookings,
+                  target?.assignees ?? [],
+                ),
               }
             : {}),
         })
@@ -3401,12 +3409,32 @@ export const useStore = create(
       // v5 adds the archive fields. A v4 snapshot's records have no `archivedAt`,
       // which reads as "live" — harmless in itself, but the seed also gains the
       // archive-aware projections, so it is reseeded like every bump before it.
-      version: 6,
+      // v7: a job's assignee became a LIST (`assignees`). A v6 snapshot is
+      // CONVERTED rather than reseeded — the one change is a field becoming an
+      // array, and wiping someone's demo data for that would be out of all
+      // proportion. Supabase mode persists only UI state, which no bump has
+      // changed shape, so it keeps all of it (theme and "where I was" included —
+      // the earlier bumps reset those for nothing).
+      version: 7,
       migrate: (persisted, version) => {
-        if (version >= 6) return persisted
-        return usingSupabase
-          ? { activeView: persisted?.activeView ?? 'calendar' }
-          : { ...buildSeedData(), activeView: persisted?.activeView ?? 'calendar' }
+        if (version >= 7) return persisted
+        if (usingSupabase) {
+          const { activeView, viewState, selectedDate, calendarMode, theme } = persisted || {}
+          return { activeView: activeView ?? 'calendar', viewState, selectedDate, calendarMode, theme }
+        }
+        if (version === 6)
+          return {
+            ...persisted,
+            orders: (persisted?.orders || []).map(({ photographer, photographerId: _photographerId, ...o }) => ({
+              ...o,
+              assignees: uniqueNames(o.assignees ?? [photographer]),
+            })),
+            bookings: (persisted?.bookings || []).map(({ assignee, ...b }) => ({
+              ...b,
+              assignees: uniqueNames(b.assignees ?? [assignee]),
+            })),
+          }
+        return { ...buildSeedData(), activeView: persisted?.activeView ?? 'calendar' }
       },
       // An explicit ADDRESS beats what was remembered: opening /inventory shows
       // Inventory even though localStorage says you were last on Jobs — which

@@ -5,6 +5,8 @@ import ErrorNote from './ErrorNote'
 import DateRangeField from './DateRangeField'
 import SelectField from './SelectField'
 import ComboField from './ComboField'
+import MultiComboField from './MultiComboField'
+import OtherSelectField from './OtherSelectField'
 import { studioLabel } from '../data/studios'
 import {
   ORDER_FLOW,
@@ -17,7 +19,9 @@ import { isValidTime } from '../lib/callTimes'
 import { normalizeCrew, crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
 import CrewField from './CrewField'
 import { useAssigneeNames } from '../lib/usePeopleNames'
-import { setNameApplies } from '../lib/orderSearch'
+import { JOB_TYPES, setNameApplies } from '../lib/orderSearch'
+import { normalizeChoice } from '../lib/otherChoice'
+import { uniqueNames } from '../lib/peopleOptions'
 
 // Order (Estimate) creation form — epic #5, 5.1 + 5.2.
 //
@@ -56,7 +60,7 @@ const blank = {
   endsOn: '',
   crew: [],
   wrapTime: '',
-  photographer: '',
+  assignees: [],
   poNumber: '',
   status: 'hold',
 }
@@ -67,8 +71,6 @@ export default function OrderEditorModal({
   prefill,
   studios,
   brands = [],
-  jobTypes = [],
-  roleOptions = [],
   onClose,
   onProceed,
   onSave,
@@ -99,7 +101,7 @@ export default function OrderEditorModal({
             // edits it, so the caller hands it in alongside the order.
             crew: (order.crew ?? []).map((c) => ({ ...c })),
             wrapTime: order.wrapTime ?? '',
-            photographer: order.photographer ?? '',
+            assignees: [...(order.assignees ?? [])],
             poNumber: order.poNumber ?? '',
             status: order.status ?? 'hold',
           }
@@ -140,12 +142,13 @@ export default function OrderEditorModal({
     const payload = {
       ...form,
       jobName: form.jobName.trim(),
-      photographer: (form.photographer ?? '').trim(),
+      assignees: uniqueNames(form.assignees),
       // A set name belongs to a PDP day. Any other type sends it empty, which
       // clears one left over from before the type changed (the Location rule).
-      setLabel: setNameApplies(form.jobType) ? form.setLabel.trim() : '',
+      setLabel: setNameApplies(normalizeChoice(form.jobType, JOB_TYPES)) ? form.setLabel.trim() : '',
       brand: form.brand.trim(),
-      jobType: form.jobType.trim(),
+      // "pdp" typed beside Other IS PDP; anything else is stored as typed.
+      jobType: normalizeChoice(form.jobType, JOB_TYPES),
       notes: form.notes.trim(),
       // Written only while the job is on L; any other studio sends it empty,
       // which clears an address left over from before a move.
@@ -228,18 +231,21 @@ export default function OrderEditorModal({
                 className={field}
               />
             </div>
-            {/* The job's ASSIGNEE — back where the photographer was, and open to
-                anyone in People, not only photographers. It is not a call-sheet
-                row: the sheet says who is called WHEN, this says whose job it
-                is. A name People doesn't have is added there on save. */}
+            {/* The job's ASSIGNEES — where the photographer was, open to anyone
+                in People, and SEVERAL of them: the client asked for "all crew".
+                Not call-sheet rows: the sheet says who is called WHEN, this
+                says whose job it is. A name People doesn't have is added there
+                on save. */}
             <div>
-              <label className={label}>Assignee</label>
-              <ComboField
-                value={form.photographer}
-                onChange={(e) => set({ photographer: e.target.value })}
+              <label className={label}>Assignees</label>
+              <MultiComboField
+                value={form.assignees}
+                // An updater, applied against the CURRENT form — two picks in a
+                // row would otherwise both start from the same list.
+                onChange={(fn) => setForm((f) => ({ ...f, assignees: fn(f.assignees) }))}
                 options={assignees}
                 placeholder="Select or type…"
-                className={field}
+                ariaLabel="Assignees"
               />
             </div>
           </div>
@@ -293,21 +299,17 @@ export default function OrderEditorModal({
                 // The field hands back an updater, applied against the CURRENT
                 // form — see the note on CrewField.
                 onChange={(fn) => setForm((f) => ({ ...f, crew: fn(f.crew) }))}
-                roleOptions={roleOptions}
                 wrapTime={form.wrapTime}
                 onWrapChange={(wrapTime) => set({ wrapTime })}
               />
             </div>
           )}
 
-          {/* Brand + shoot type (20260908120000). Neither is a closed list: a
-              new client arrives and a third kind of shoot appears, and refusing
-              to book either is absurd. Brand is free text with suggestions; the
-              shoot type is a list with an "Other…" row that opens a text box in
-              the menu (asked for — typing into the combo was never obvious). Both
-              lists are built from what the register already uses, so a typed
-              value is offered the next time, and the filters on the list can only
-              ever offer values that match something. */}
+          {/* Brand + shoot type (20260908120000). Brand is free text with
+              suggestions. The shoot type is Editorial / PDP / Other, with what
+              the other IS typed beside it — asked for: the old "Other…" row added
+              every typed type to the list for everyone, so a one-off "Test"
+              became a permanent option. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={label}>Brand</label>
@@ -321,13 +323,16 @@ export default function OrderEditorModal({
             </div>
             <div>
               <label className={label}>Shoot type</label>
-              <SelectField
+              <OtherSelectField
                 value={form.jobType}
                 onChange={(e) => set({ jobType: e.target.value })}
-                options={jobTypes}
+                options={JOB_TYPES}
                 placeholder="Pick a shoot type"
-                other={{ label: 'Other…', placeholder: 'Name the shoot type', submitLabel: 'Add' }}
-                className={field}
+                ariaLabel="Shoot type"
+                detailPlaceholder="Which shoot type?"
+                detailAriaLabel="Which shoot type"
+                selectClassName={field}
+                detailClassName={field}
               />
             </div>
           </div>

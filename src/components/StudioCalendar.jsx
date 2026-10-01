@@ -30,9 +30,9 @@ import {
   setYear,
 } from 'date-fns'
 import { useStore } from '../store'
-import { brandsIn, jobTypesIn } from '../lib/orderSearch'
+import { brandsIn } from '../lib/orderSearch'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
-import { earliestCrewCall, crewSummary, crewRoles, normalizeCrew } from '../lib/crew'
+import { earliestCrewCall, crewSummary, normalizeCrew } from '../lib/crew'
 import { studioLabel } from '../data/studios'
 import {
   ORDER_STATUS_CHOICES,
@@ -99,7 +99,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
     b.studioId === 'L' && b.location,
     meta ? meta.label : 'no job attached',
     b.setLabel && `Set name ${b.setLabel}`,
-    b.assignee && `Assignee ${b.assignee}`,
+    b.assignees?.length > 0 && `${b.assignees.length > 1 ? 'Assignees' : 'Assignee'} ${b.assignees.join(', ')}`,
     spanSummary(b.date, b.endDate),
     b.spanDays > 1 && `day ${b.dayIndex} of ${b.spanDays}`,
     // The whole call sheet on hover; the chip has room for one number, and
@@ -202,10 +202,6 @@ export default function StudioCalendar() {
   // a shared modal's new props have to be fed from every call site — forgetting
   // that is exactly how `companies={companies}` white-screened this view.
   const brandOptions = useMemo(() => brandsIn(orders), [orders])
-  const typeOptions = useMemo(() => jobTypesIn(orders), [orders])
-  // Roles already used on any shoot stay offered, so a typed one doesn't vanish
-  // from the list that suggested it.
-  const roleOptions = useMemo(() => crewRoles(bookings), [bookings])
   const openOrderDraft = useStore((s) => s.openOrderDraft)
   const updateOrder = useStore((s) => s.updateOrder)
   const peek = useStore((s) => s.peek)
@@ -257,7 +253,7 @@ export default function StudioCalendar() {
           brand: order?.brand || null,
           jobType: order?.jobType || null,
           location: order?.location || null,
-          assignee: order?.photographer || null,
+          assignees: order?.assignees ?? [],
           poNumber: order?.poNumber || null,
           lineCount: (order?.lines || []).length,
           spanDays: days.length,
@@ -624,8 +620,6 @@ export default function StudioCalendar() {
         prefill={orderEditor.prefill}
         studios={studios}
         brands={brandOptions}
-        jobTypes={typeOptions}
-        roleOptions={roleOptions}
         onClose={() => setOrderEditor({ open: false, prefill: null })}
         onProceed={(payload) => {
           openOrderDraft(payload, { view: 'calendar', label: 'Calendar', focus: {} })
@@ -777,11 +771,11 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
         {/* Labelled, not just an icon: right under the call sheet a bare name
             reads as one more person on it. */}
-        {b.assignee && (
+        {b.assignees?.length > 0 && (
           <span className="inline-flex items-center gap-1">
             <UserRound size={12} className="text-slate-400" />
-            <span className="text-slate-400">Assignee</span>
-            <span className="font-medium text-slate-700">{b.assignee}</span>
+            <span className="text-slate-400">{b.assignees.length > 1 ? 'Assignees' : 'Assignee'}</span>
+            <span className="font-medium text-slate-700">{b.assignees.join(', ')}</span>
           </span>
         )}
         {/* What the job actually HOLDS, which is not the length of the unit

@@ -1,10 +1,10 @@
 import { useRef } from 'react'
 import { Plus, X, Clock, AlertTriangle } from 'lucide-react'
 import TimeField from './TimeField'
-import SelectField from './SelectField'
+import OtherSelectField from './OtherSelectField'
 import ComboField from './ComboField'
 import { crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
-import { isValidTime, toHHMM } from '../lib/callTimes'
+import { CALL_ROLES, isValidTime, toHHMM } from '../lib/callTimes'
 import { useCrewNameOptions } from '../lib/usePeopleNames'
 
 // The call sheet, the studio's own design: every row is TIME · ROLE · PERSON —
@@ -16,6 +16,10 @@ import { useCrewNameOptions } from '../lib/usePeopleNames'
 // is typed; a typed name is filed into People on save. Time and person are
 // optional (a role can be listed before anyone is booked); the role is not.
 //
+// The roles are the studio's fixed list plus Other, with the role typed beside
+// it: a role typed through the old in-menu "Other…" joined the list for every
+// shoot, and prod's list still offered a test "eee".
+//
 // Shared by the job form and the legacy shoot editor, so both have one control.
 // `onChange` takes an UPDATER, not a value: two edits before a re-render would
 // otherwise both compute from the same `value` prop and the second would drop
@@ -23,7 +27,6 @@ import { useCrewNameOptions } from '../lib/usePeopleNames'
 export default function CrewField({
   value = [],
   onChange,
-  roleOptions = [],
   wrapTime = '',
   onWrapChange,
 }) {
@@ -82,17 +85,19 @@ export default function CrewField({
                         ].join(' ')}
                       />
                     </div>
-                    <div className="min-w-[8rem] flex-1">
-                      <SelectField
-                        value={r.role ?? ''}
-                        onChange={(e) => patch(i, { role: e.target.value })}
-                        options={roleOptions}
-                        placeholder="Role"
-                        ariaLabel="Role"
-                        other={{ label: 'Other…', placeholder: 'Name the role', submitLabel: 'Add' }}
-                        className={small}
-                      />
-                    </div>
+                    <OtherSelectField
+                      value={r.role ?? ''}
+                      onChange={(e) => patch(i, { role: e.target.value })}
+                      options={CALL_ROLES}
+                      placeholder="Role"
+                      ariaLabel="Role"
+                      detailPlaceholder="Which role?"
+                      detailAriaLabel="Which role"
+                      className="min-w-[8rem] flex-1"
+                      otherClassName="min-w-[14rem] flex-[1.5]"
+                      selectClassName={small}
+                      detailClassName={small}
+                    />
                     <div className="min-w-[10rem] flex-[2]">
                       {/* A changed name is a different person: the contact the
                           row was read with no longer applies, and the save
