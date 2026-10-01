@@ -3126,6 +3126,43 @@
 > **14/14** at position 0; both new embeds answer 200; a duplicate is refused **23505**, an unknown person
 > **23503**; an anonymous read returns `[]`. ℹ️ The authenticated WRITE was not exercised by me (that needs a
 > sign-in); its policy is the same `for all to authenticated` as `packing_signoffs`.
+> **RENAME — the position is INVENTORY and a physical piece is an ITEM** (frontend only, no migration). Asked
+> against the Add Inventory window's "Its units / Add another unit": "Если поменяли в одном месте Units на Items,
+> то так должно быть везде" — the card's "+ Add unit" had become "+ Add item" at the studio's request (732a9d4),
+> and nothing else followed. ⚠️ The collision had to be settled first and was ASKED: "item" already named the
+> position ("44 items", the Items tab, "Edit item", "Furniture still holds 4 items" — ~90 strings), so pieces
+> becoming items left the position without a name. Offered Product / Inventory / Item type with previews; the
+> studio first floated "Equipment" (assessed: uncountable, and it collides with the job's own "Edit equipment"
+> button), then chose **Inventory — the client's word**. This SUPERSEDES the earlier "one word for a physical
+> piece: UNIT" pass.
+> The rule now: **Inventory** for the position — the tab, "Add Inventory" → "Create", "Edit inventory" →
+> "Save", "Search inventory…", "New inventory “…”", "Category › Subcategory › Inventory", the peek card's type
+> label; English has no countable form, so a COUNT in compact places reads "44 inventory" (the header, the
+> filter footer, the hierarchy's "5 subcategories · 11 inventory") and in a SENTENCE "inventory entry/entries"
+> ("Grip still holds 11 inventory entries in 5 subcategories", "added this inventory entry", the drag ghost,
+> the bulk-file note). **Item** for the piece — "Add item", "Its items", "Add another item", the ITEM column,
+> "3 items · 1 available", "Item history", "Edit item #0802", "Choose / scan an item", "Choose item",
+> "3 slots still need an item", "Sub-rented from them (4 items)", the feed's "registered an item" / "sent an
+> item for repair", the store's refusals. A kit counts its slots as items, which is now exactly right; the
+> packing list's "Equipment item" column was already the client's word for a piece and stays.
+> 157 replacements across 24 files, each asserted with its count (one comment twin caught that way). The
+> scanner MISSES one-word literals handed to a plural helper (`pieces(n, 'item', 'items')`, `'units'`) — it
+> reads them as identifiers — so those were found with a separate grep: the hierarchy counts, the taxonomy
+> refusals, the drag label and `ARCHIVE_KINDS` (item → "inventory entry", unit → "item"). "Added a ${kind}" /
+> "Renamed a ${kind}" now pick their article (`withArticle`), or "an item" would have read "a item".
+> Identifiers, tables, file names (`UnitEditorModal`, `units`, `inventory_items`) keep their words.
+> ⚠️ **The vocabulary scan now RETIRES `unit(s)`** (`test:lib`, 659 assertions incl. 5 new feed titles), so a
+> screen written tomorrow cannot bring the old word back; "item" can't be retired — it is the piece now.
+> Verified in local mode by reading every surface back out of the DOM: Inventory header "44 inventory · 3 kits
+> · 4 lists · 314 items", tabs Inventory / Kits (3) / Lists (4), card buttons Add item · Work history · Edit
+> inventory, column Item, "3 items · 1 available · 1 reserved · 1 in repair"; windows Add items ("Adding items
+> to Aputure 600D Pro", "Add another item"), Edit inventory ("3 items — managed individually", Save), Add
+> Inventory ("Its items · How many? · Add another item", Create), Edit item #0802, Item history, the hierarchy's
+> refusal; the job card, the equipment window (row label Items, "Choose / scan an item", Add inventory,
+> "Search inventory…", "New inventory"), kit staging ("Add A-Clamp 2\" (Medium) — pick an item"), the packing
+> list, the inventory peek ("3 items · 2 free", "ITEMS (3)"), People, and Calendar week / month / day — **zero**
+> "unit" in text, titles, placeholders or aria-labels anywhere. 375px: no overflow, the header wraps to two
+> lines, no tab clipped. 0 console errors; demo data untouched.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

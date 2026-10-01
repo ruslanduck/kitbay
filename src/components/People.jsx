@@ -1001,7 +1001,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
         {heldGear.length > 0 && (
           <section>
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Sub-rented from them ({heldUnitCount} unit{heldUnitCount === 1 ? '' : 's'})
+              Sub-rented from them ({heldUnitCount} item{heldUnitCount === 1 ? '' : 's'})
             </h4>
             <ul className="space-y-1.5">
               {heldGear.map((g) => (
@@ -1013,7 +1013,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
                   <button
                     type="button"
                     onClick={() => peek({ type: 'item', id: g.itemId })}
-                    title="Open this item — units, history, where it is"
+                    title="Open this inventory — items, history, where they are"
                     className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-800 hover:text-violet-700 hover:underline focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-400"
                   >
                     {g.name}

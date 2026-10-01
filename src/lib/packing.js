@@ -131,7 +131,7 @@ export function packingRows(estimate, { inventory = [], booking = null } = {}) {
           unitId: null,
           barcode: null,
           quantity: short,
-          why: 'no unit reserved',
+          why: 'no item reserved',
         })
     }
     if (rows.length) out.push({ ...g, lines: rows })

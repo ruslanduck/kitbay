@@ -56,8 +56,8 @@ export const EVENT = {
 export const ARCHIVE_KINDS = {
   order: 'job',
   booking: 'shoot',
-  item: 'item',
-  unit: 'unit',
+  item: 'inventory entry',
+  unit: 'item',
   person: 'person',
   company: 'company',
   kit: 'kit',
@@ -68,6 +68,8 @@ export const ARCHIVE_KINDS = {
 }
 
 export const archiveKindLabel = (what) => ARCHIVE_KINDS[what] ?? 'record'
+// "an item", "an inventory entry", "a category" — the labels start with either.
+const withArticle = (word) => `${/^[aeiou]/i.test(word) ? 'an' : 'a'} ${word}`
 
 // Reservations are written per unit by the DB trigger, and the reservation sync
 // rewrites every row of a set on each confirm — so they are noise on an ORDER
@@ -257,21 +259,21 @@ export function describeEvent(ev) {
         detail: [d.itemName, d.barcode ? `#${d.barcode}` : null].filter(Boolean).join(' · '),
       }
     case EVENT.ITEM_CREATED:
-      return { icon: 'boxes', title: 'Added this item', detail: d.name ?? null }
+      return { icon: 'boxes', title: 'Added this inventory entry', detail: d.name ?? null }
     case EVENT.ITEM_UPDATED:
       return {
         icon: 'pencil',
-        title: 'Edited the item',
+        title: 'Edited the inventory entry',
         detail: d.changed?.length ? d.changed.join(', ') : null,
       }
     case EVENT.ITEM_DELETED:
-      return { icon: 'trash', title: 'Wrote off the item', detail: d.name ?? null }
+      return { icon: 'trash', title: 'Wrote off the inventory entry', detail: d.name ?? null }
     case EVENT.ITEM_FILED:
       return {
         icon: 'pencil',
         // Says where it went AND where it came from: "filed under X" alone
         // doesn't tell you whether anything actually moved.
-        title: d.to ? 'Filed the item' : 'Took the item out of its subcategory',
+        title: d.to ? 'Filed the inventory entry' : 'Took the inventory entry out of its subcategory',
         detail: [d.from ? `was ${d.from}` : null, d.to ? `now ${d.to}` : null]
           .filter(Boolean)
           .join(' · ') || null,
@@ -279,13 +281,13 @@ export function describeEvent(ev) {
     case EVENT.TAXONOMY_ADDED:
       return {
         icon: 'plus',
-        title: `Added a ${archiveKindLabel(d.what)}`,
+        title: `Added ${withArticle(archiveKindLabel(d.what))}`,
         detail: d.path || d.name || null,
       }
     case EVENT.TAXONOMY_RENAMED:
       return {
         icon: 'pencil',
-        title: `Renamed a ${archiveKindLabel(d.what)}`,
+        title: `Renamed ${withArticle(archiveKindLabel(d.what))}`,
         detail: [d.from, d.to].filter(Boolean).join(' → ') || null,
       }
     case EVENT.ARCHIVED:
@@ -314,7 +316,7 @@ export function describeEvent(ev) {
     case EVENT.UNIT_ADDED:
       return {
         icon: 'plus',
-        title: 'Registered a unit',
+        title: 'Registered an item',
         detail: [d.barcode ? `#${d.barcode}` : null, d.serial].filter(Boolean).join(' · '),
       }
     case EVENT.UNIT_UPDATED: {
@@ -324,19 +326,19 @@ export function describeEvent(ev) {
         if (d.from.barcode !== d.to.barcode) bits.push(`#${d.from.barcode} → #${d.to.barcode}`)
         if (d.from.serial !== d.to.serial) bits.push(`serial ${d.to.serial ?? '—'}`)
         if (d.from.placement !== d.to.placement)
-          bits.push(`stored: ${d.from.placement || 'item default'} → ${d.to.placement || 'item default'}`)
+          bits.push(`stored: ${d.from.placement || 'inventory default'} → ${d.to.placement || 'inventory default'}`)
       }
       const moved = d.from && d.to && d.from.placement !== d.to.placement
       return {
         icon: moved ? 'tag' : 'pencil',
-        title: moved && bits.length === 1 ? 'Moved a unit' : 'Corrected a unit',
+        title: moved && bits.length === 1 ? 'Moved an item' : 'Corrected an item',
         detail: bits.length ? bits.join(' · ') : d.to?.barcode ? `#${d.to.barcode}` : null,
       }
     }
     case EVENT.UNIT_WRITTEN_OFF:
       return {
         icon: 'trash',
-        title: 'Wrote off a unit',
+        title: 'Wrote off an item',
         detail: d.barcode ? `#${d.barcode}` : null,
       }
     case EVENT.UNIT_BARCODE_SET:
@@ -358,13 +360,13 @@ export function describeEvent(ev) {
     case EVENT.UNIT_REPAIR_OUT:
       return {
         icon: 'wrench',
-        title: 'Sent a unit for repair',
+        title: 'Sent an item for repair',
         detail: [d.vendor, d.issue, d.barcode ? `#${d.barcode}` : null].filter(Boolean).join(' · '),
       }
     case EVENT.UNIT_REPAIR_BACK:
       return {
         icon: 'wrench',
-        title: 'Took a unit back from repair',
+        title: 'Took an item back from repair',
         detail: [d.resolution, d.barcode ? `#${d.barcode}` : null].filter(Boolean).join(' · '),
       }
     // Legacy bare verbs from the set_units trigger — these predate the app-side

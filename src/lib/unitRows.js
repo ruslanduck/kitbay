@@ -56,9 +56,9 @@ export function resolveUnitCodes(rows, { taken = new Set(), nextBarcode = '0001'
 
   for (const s of specs) {
     if (!s.barcode) continue
-    if (taken.has(s.barcode)) return { error: `#${s.barcode} is already used by another unit.` }
+    if (taken.has(s.barcode)) return { error: `#${s.barcode} is already used by another item.` }
     if (claimed.has(s.barcode))
-      return { error: `#${s.barcode} is listed twice — each unit needs its own barcode.` }
+      return { error: `#${s.barcode} is listed twice — each item needs its own barcode.` }
     claimed.add(s.barcode)
   }
 

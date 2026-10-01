@@ -315,7 +315,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
             <label className={labelClass}>
               Equipment{' '}
               <span className="font-normal text-slate-400">
-                · {totalUnits - shortage} of {totalUnits} unit
+                · {totalUnits - shortage} of {totalUnits} item
                 {totalUnits === 1 ? '' : 's'} reserved
               </span>
               {shortage > 0 && (
@@ -370,7 +370,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                       <Check size={14} className="mt-0.5 shrink-0 text-violet-600" />
                       <p className="min-w-0 flex-1 text-xs text-violet-900">
                         <span className="font-semibold">{applied.name}</span> applied —{' '}
-                        {applied.applied.units} unit
+                        {applied.applied.units} item
                         {applied.applied.units === 1 ? '' : 's'} reserved
                         {applied.applied.kits > 0 &&
                           `, ${applied.applied.kits} kit${applied.applied.kits === 1 ? '' : 's'} staged`}
@@ -527,7 +527,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                 type="text"
                 value={invSearch}
                 onChange={(e) => setInvSearch(e.target.value)}
-                placeholder="Search items to add…"
+                placeholder="Search inventory to add…"
                 className={fieldClass + ' pl-9'}
               />
               {searchResults.length > 0 && (

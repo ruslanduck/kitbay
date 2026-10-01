@@ -156,13 +156,13 @@ export function categoryRemovalBlock(categoryId, tax, items) {
   const subs = liveSubcategories(tax, categoryId)
   const stock = itemsInCategory(items, tax, categoryId)
   if (stock.length && subs.length)
-    return `${norm(cat.name)} still holds ${pieces(stock.length, 'item', 'items')} in ${pieces(
+    return `${norm(cat.name)} still holds ${pieces(stock.length, 'inventory entry', 'inventory entries')} in ${pieces(
       subs.length,
       'subcategory',
       'subcategories',
     )}. Move them elsewhere first.`
   if (stock.length)
-    return `${norm(cat.name)} still holds ${pieces(stock.length, 'item', 'items')}. Move them elsewhere first.`
+    return `${norm(cat.name)} still holds ${pieces(stock.length, 'inventory entry', 'inventory entries')}. Move them elsewhere first.`
   if (subs.length)
     return `${norm(cat.name)} still has ${pieces(
       subs.length,
@@ -179,8 +179,8 @@ export function subcategoryRemovalBlock(subcategoryId, tax, items) {
   if (stock.length)
     return `${norm(sub.name)} still holds ${pieces(
       stock.length,
-      'item',
-      'items',
+      'inventory entry',
+      'inventory entries',
     )}. Reassign them first.`
   return null
 }
@@ -189,7 +189,7 @@ export function subcategoryRemovalBlock(subcategoryId, tax, items) {
 // name stays readable for those records after the subcategory is gone.
 export function subcategoryRemovalNote(subcategoryId, items) {
   const n = archivedItemsInSubcategory(items, subcategoryId).length
-  return n ? `${pieces(n, 'archived item', 'archived items')} keep it for their history.` : null
+  return n ? `${pieces(n, 'archived inventory entry', 'archived inventory entries')} keep it for their history.` : null
 }
 
 // ---------------------------------------------------------------------------

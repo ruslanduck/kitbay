@@ -137,7 +137,7 @@ export default function KitEditorModal({
     if (form.slots.length === 0) return setError('Add at least one slot.')
     const unpinned = form.slots.findIndex((s) => s.slotType === 'fixed' && !s.fixedUnitId)
     if (unpinned !== -1)
-      return setError(`Slot ${unpinned + 1} is FIXED — pick the unit it's pinned to.`)
+      return setError(`Slot ${unpinned + 1} is FIXED — pick the item it's pinned to.`)
 
     const payload = { name, notes: form.notes, slots: form.slots }
     if (isEdit) onSave(kit.id, payload)
@@ -185,7 +185,7 @@ export default function KitEditorModal({
                 Slots ({form.slots.length})
               </span>
               <span className="text-[11px] text-slate-400">
-                FIXED = always the same unit · GENERIC = scanned at pull
+                FIXED = always the same item · GENERIC = scanned at pull
               </span>
             </div>
 
@@ -204,7 +204,7 @@ export default function KitEditorModal({
                         {i + 1}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
-                        {item?.name ?? 'Unknown item'}
+                        {item?.name ?? 'Unknown inventory'}
                       </span>
                       <div className="flex shrink-0 items-center gap-0.5">
                         <button
@@ -281,7 +281,7 @@ export default function KitEditorModal({
                           <SelectField
                             value={s.fixedUnitId ?? ''}
                             onChange={(e) => setSlot(i, { fixedUnitId: e.target.value || null })}
-                            placeholder="pick a unit…"
+                            placeholder="pick an item…"
                             options={units.map((u) => ({
                               value: u.id,
                               label: `#${u.barcode}${u.status !== 'available' ? ' (out)' : ''}`,
@@ -290,12 +290,12 @@ export default function KitEditorModal({
                           />
                         ) : (
                           <span className="text-[11px] font-medium text-amber-600">
-                            no free unit to pin
+                            no free item to pin
                           </span>
                         )
                       ) : (
                         <span className="text-[11px] text-slate-400">
-                          {(item?.units || []).length} unit
+                          {(item?.units || []).length} item
                           {(item?.units || []).length === 1 ? '' : 's'} to scan from
                         </span>
                       )}
@@ -324,7 +324,7 @@ export default function KitEditorModal({
                     type="text"
                     value={pickerSearch}
                     onChange={(e) => setPickerSearch(e.target.value)}
-                    placeholder="Search barcoded items…"
+                    placeholder="Search barcoded inventory…"
                     className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                   />
                 </div>
@@ -341,7 +341,7 @@ export default function KitEditorModal({
                             <MatchText text={item.name} spans={pickerSpans.get(item.id)} />
                           </span>
                           <span className="shrink-0 text-xs text-slate-400">
-                            {item.units.length} units
+                            {item.units.length} items
                           </span>
                         </button>
                       </li>
@@ -349,7 +349,7 @@ export default function KitEditorModal({
                   </ul>
                 ) : (
                   <p className="px-1 py-3 text-center text-xs text-slate-400">
-                    No barcoded item matches.
+                    No barcoded inventory matches.
                   </p>
                 )}
                 <div className="mt-1 flex justify-end">

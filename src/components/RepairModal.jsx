@@ -152,7 +152,7 @@ export default function RepairModal({ open, onClose, unit, itemName, canManage, 
             <form onSubmit={handleSend} className="mb-5 rounded-xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-700">
                 <Wrench size={15} className="text-violet-500" />
-                Send this unit out for repair
+                Send this item out for repair
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
@@ -207,7 +207,7 @@ export default function RepairModal({ open, onClose, unit, itemName, canManage, 
 
         {repairs.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">
-            This unit has never been sent for repair.
+            This item has never been sent for repair.
           </p>
         ) : (
           <ul className="space-y-2">

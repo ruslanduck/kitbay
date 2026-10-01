@@ -55,7 +55,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
   }, [open, unit, bookings])
 
   return (
-    <Modal open={open} onClose={onClose} size="lg" title="Unit history">
+    <Modal open={open} onClose={onClose} size="lg" title="Item history">
       <div className="min-h-0 flex-1 overflow-auto px-5 py-4">
         {unit && (
           <div className="mb-4 flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3">
@@ -78,7 +78,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
           </div>
         ) : rows.length === 0 ? (
           <p className="py-10 text-center text-sm text-slate-400">
-            This unit hasn’t been reserved for any shoot yet.
+            This item hasn’t been reserved for any shoot yet.
           </p>
         ) : (
           <ul className="space-y-2">

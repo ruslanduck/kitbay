@@ -30,7 +30,7 @@ import UnitPickList from './UnitPickList'
 //                  slot to generic behaviour (this add only).
 //   GENERIC slot → starts EMPTY and is assigned a concrete unit by scanning a
 //                  barcode, or by picking one from the copies free for these
-//                  dates ("Choose unit").
+//                  dates ("Choose item").
 //
 // 3.4 adds, when filling slots:
 //   • Replace a filled unit with an explicit reason — "Return to stock" (back to
@@ -95,7 +95,7 @@ export default function KitStagingModal({
         slotType,
         label: slot.label,
         itemId: slot.itemId,
-        itemName: slot.itemName || item?.name || 'Unknown item',
+        itemName: slot.itemName || item?.name || 'Unknown inventory',
         unitId: null,
         barcode: null,
         source: null,
@@ -111,7 +111,7 @@ export default function KitStagingModal({
       if (slotType !== 'fixed') return base // generic → empty, awaiting a scan
 
       const unit = item?.units.find((u) => u.id === slot.fixedUnitId) || null
-      if (!unit) return { ...base, state: 'conflict', conflictReason: 'pinned unit missing' }
+      if (!unit) return { ...base, state: 'conflict', conflictReason: 'pinned item missing' }
       const pinnedFree = isUnitFree(unit, {
         claimed: used,
         alsoFree: ownUnitIds,
@@ -236,7 +236,7 @@ export default function KitStagingModal({
     const candidates = fills.filter((f) => isOpenSlot(f) && f.itemId === item.id)
     if (candidates.length === 0)
       return setScanError(
-        `#${code} is a unit of ${item.name} — no open slot needs that item. Scan a different unit, or add the item below.`,
+        `#${code} belongs to ${item.name} — no open slot needs it. Scan a different item, or add it below.`,
       )
     const target = candidates.find((f) => f.key === targetKey) || candidates[0]
 
@@ -257,7 +257,7 @@ export default function KitStagingModal({
     if (!slot) return setPendingScan(null)
     const unit = freeUnitsFor(slot.itemId)[0]
     if (!unit) {
-      setScanError(`No free unit of ${slot.itemName} to register #${pendingScan.code} onto.`)
+      setScanError(`No free item of ${slot.itemName} to register #${pendingScan.code} onto.`)
       return setPendingScan(null)
     }
     const res = onSetBarcode?.(slot.itemId, unit.id, pendingScan.code)
@@ -316,7 +316,7 @@ export default function KitStagingModal({
     setScanError(null)
     setLastAction({
       tone: 'plain',
-      text: `#${f?.barcode} went back to stock — pick another unit for this slot.`,
+      text: `#${f?.barcode} went back to stock — pick another item for this slot.`,
     })
   }
 
@@ -333,7 +333,7 @@ export default function KitStagingModal({
       setBroken(null)
       return setLastAction({
         tone: 'bad',
-        text: "This window can't send units for repair — do it from the item's card in Inventory.",
+        text: "This window can't send items for repair — do it from their card in Inventory.",
       })
     }
     onMarkBroken(f.itemId, f.unitId, {
@@ -351,7 +351,7 @@ export default function KitStagingModal({
     setScanError(null)
     setLastAction({
       tone: 'good',
-      text: `#${f.barcode} sent for repair${broken.vendor.trim() ? ` to ${broken.vendor.trim()}` : ''} — it's out of the pool everywhere and logged on the item.`,
+      text: `#${f.barcode} sent for repair${broken.vendor.trim() ? ` to ${broken.vendor.trim()}` : ''} — it's out of the pool everywhere and logged on its card.`,
     })
   }
 
@@ -547,7 +547,7 @@ export default function KitStagingModal({
           <div className="mb-3 flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-xs ring-1 ring-violet-200">
             <ScanLine size={14} className="shrink-0 text-violet-600" />
             <span className="min-w-0 text-violet-900">
-              No unit has <span className="font-mono font-semibold">#{pendingScan.code}</span>.
+              No item has <span className="font-mono font-semibold">#{pendingScan.code}</span>.
               Register it onto an available {pendingScan.itemName}?
             </span>
             <button
@@ -599,7 +599,7 @@ export default function KitStagingModal({
         {needCount > 0 ? (
           <div className="mb-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
             <AlertTriangle size={13} />
-            {needCount} slot{needCount === 1 ? '' : 's'} still need a unit.
+            {needCount} slot{needCount === 1 ? '' : 's'} still need an item.
           </div>
         ) : (
           fills.length > 0 && (
@@ -668,7 +668,7 @@ export default function KitStagingModal({
                   {/* Right side: state */}
                   {f.counted ? (
                     <span className="shrink-0 text-right text-[11px] text-slate-400">
-                      counted stock · no unit to pick
+                      counted stock · no item to pick
                     </span>
                   ) : filled ? (
                     <div className="flex shrink-0 flex-col items-end">
@@ -696,7 +696,7 @@ export default function KitStagingModal({
                           e.stopPropagation()
                           overrideFixed(f.key)
                         }}
-                        title="Substitute another unit for this pull only"
+                        title="Substitute another item for this pull only"
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
                       >
                         <RefreshCw size={13} />
@@ -712,10 +712,10 @@ export default function KitStagingModal({
                           else openUnitPicker(f.key)
                         }}
                         disabled={free === 0}
-                        title="Show the units free for these dates and pick one"
+                        title="Show the items free for these dates and pick one"
                         className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        Choose unit
+                        Choose item
                       </button>
                     )}
                     {filled && !f.counted && f.source !== 'fixed' && (
@@ -727,7 +727,7 @@ export default function KitStagingModal({
                             setEditing({ key: f.key, value: f.barcode ?? '', error: null })
                             setReplacing(null)
                           }}
-                          title="Correct this unit's barcode (a worn label) — to swap the unit, use Replace"
+                          title="Correct this item's barcode (a worn label) — to swap the item, use Replace"
                           className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                         >
                           <Pencil size={14} />
@@ -739,7 +739,7 @@ export default function KitStagingModal({
                             setReplacing((k) => (k === f.key ? null : f.key))
                             setEditing(null)
                           }}
-                          title="Replace this unit"
+                          title="Replace this item"
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
                         >
                           <RefreshCw size={13} />
@@ -912,7 +912,7 @@ export default function KitStagingModal({
         {unitPicker && !unitPicker.slotKey && (
           <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
             <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Add {inventory.find((i) => i.id === unitPicker.itemId)?.name} — pick a unit
+              Add {inventory.find((i) => i.id === unitPicker.itemId)?.name} — pick an item
             </div>
             <UnitPickList
               bare
@@ -941,7 +941,7 @@ export default function KitStagingModal({
                 type="text"
                 value={pickerSearch}
                 onChange={(e) => setPickerSearch(e.target.value)}
-                placeholder="Search items…"
+                placeholder="Search inventory…"
                 className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
               />
             </div>
@@ -966,7 +966,7 @@ export default function KitStagingModal({
               </ul>
             ) : (
               <p className="px-1 py-3 text-center text-xs text-slate-400">
-                No item with free units matches.
+                Nothing with free items matches.
               </p>
             )}
             <div className="mt-1 flex justify-end">

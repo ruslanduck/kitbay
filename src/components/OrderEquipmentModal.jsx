@@ -504,7 +504,7 @@ export default function OrderEquipmentModal({
       }
       return next
     })
-    setScanNote({ bad: false, text: `#${code} → ${item.name} · unit pinned` })
+    setScanNote({ bad: false, text: `#${code} → ${item.name} · item pinned` })
   }
 
   // A brand-new item type, created here and added straight to the order. The
@@ -515,7 +515,7 @@ export default function OrderEquipmentModal({
     const res = await addInventoryItem(payload)
     if (res?.error || !res?.id) {
       // The actual reason — a clashing barcode says so instead of "could not".
-      setError(res?.error || 'The item could not be created.')
+      setError(res?.error || 'It could not be created.')
       return
     }
     const id = res.id
@@ -650,7 +650,7 @@ export default function OrderEquipmentModal({
     const line = stagedUnits.find((u) => u.unitId === unitId)
     const item = itemsById[line?.itemId]
     const next = freeUnitsOf(item, avCtx)[0]
-    if (!next) return setError(`No other ${item?.name ?? 'unit'} is free.`)
+    if (!next) return setError(`No other ${item?.name ?? 'item'} is free.`)
     setStagedUnits((prev) =>
       prev.map((u) => (u.unitId === unitId ? { ...u, unitId: next.id, barcode: next.barcode } : u)),
     )
@@ -780,7 +780,7 @@ export default function OrderEquipmentModal({
                 <AlertTriangle size={14} className="mt-0.5 shrink-0" />
                 <span>
                   <strong>{blocked.name}</strong> has 0 available for these dates. Raise it as a
-                  sub-rental, pick a different item — or put it on the job anyway and settle the
+                  sub-rental, pick something else — or put it on the job anyway and settle the
                   shortfall later.
                 </span>
               </div>
@@ -866,7 +866,7 @@ export default function OrderEquipmentModal({
                     <button
                       type="button"
                       onClick={() => replaceStaged(u.unitId)}
-                      title="Swap for another free unit"
+                      title="Swap for another free item"
                       className="shrink-0 rounded-md p-1 text-slate-400 transition hover:bg-violet-50 hover:text-violet-600"
                     >
                       <RefreshCw size={13} />
@@ -900,7 +900,7 @@ export default function OrderEquipmentModal({
                       <div className="flex items-center gap-2">
                         <Package size={14} className="shrink-0 text-slate-400" />
                         <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
-                          {item?.name ?? 'Item'}
+                          {item?.name ?? 'Unknown inventory'}
                         </span>
                         {(() => {
                           const over = isSub ? 0 : overFor(item)
@@ -1017,7 +1017,7 @@ export default function OrderEquipmentModal({
                             title={
                               isSub
                                 ? "What the vendor charges per day for this line"
-                                : "Rate per day for this line — leave empty to use the item's own rate"
+                                : "Rate per day for this line — leave empty to use the inventory rate"
                             }
                             className={[
                               'w-16 rounded-md border px-1.5 py-1 text-right text-xs outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100',
@@ -1031,7 +1031,7 @@ export default function OrderEquipmentModal({
                             <button
                               type="button"
                               onClick={() => setLineRate(i, '')}
-                              title="Back to the item's own rate"
+                              title="Back to the inventory rate"
                               className="rounded px-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                             >
                               reset
@@ -1063,7 +1063,7 @@ export default function OrderEquipmentModal({
                           are resolved when the order is confirmed. */}
                       {!isSub && item?.kind === 'barcoded' && (
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-6">
-                          <span className="text-[11px] text-slate-400">Units</span>
+                          <span className="text-[11px] text-slate-400">Items</span>
                           {(l.units ?? []).map((u) => (
                             <span
                               key={u.unitId}
@@ -1073,7 +1073,7 @@ export default function OrderEquipmentModal({
                               <button
                                 type="button"
                                 onClick={() => unpinUnit(i, u.unitId)}
-                                title="Back to any free unit"
+                                title="Back to any free item"
                                 className="rounded text-violet-400 transition hover:text-rose-500"
                               >
                                 <X size={11} />
@@ -1085,7 +1085,7 @@ export default function OrderEquipmentModal({
                               className="text-[11px] text-slate-400"
                               title="Resolved from what's free when the job is confirmed"
                             >
-                              {l.quantity - (l.units ?? []).length} × any free unit
+                              {l.quantity - (l.units ?? []).length} × any free item
                             </span>
                           )}
                           <button
@@ -1094,7 +1094,7 @@ export default function OrderEquipmentModal({
                             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-violet-600 transition hover:bg-violet-50"
                           >
                             <ScanLine size={11} />
-                            {copyPicker === i ? 'Close' : 'Choose / scan a unit'}
+                            {copyPicker === i ? 'Close' : 'Choose / scan an item'}
                           </button>
                         </div>
                       )}
@@ -1120,7 +1120,7 @@ export default function OrderEquipmentModal({
 
           {lines.length === 0 && (
             <p className="rounded-lg border border-dashed border-slate-300 py-6 text-center text-sm text-slate-400">
-              No equipment yet — add items, a kit, or start from a scenario list.
+              No equipment yet — add inventory, a kit, or start from a scenario list.
             </p>
           )}
 
@@ -1136,7 +1136,7 @@ export default function OrderEquipmentModal({
                   type="text"
                   value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
-                  placeholder="Search items…"
+                  placeholder="Search inventory…"
                   className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                 />
               </div>
@@ -1182,7 +1182,7 @@ export default function OrderEquipmentModal({
                   className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
                 >
                   <Plus size={12} />
-                  {pickerSearch.trim() ? `New item “${pickerSearch.trim()}”` : 'New item'}
+                  {pickerSearch.trim() ? `New inventory “${pickerSearch.trim()}”` : 'New inventory'}
                 </button>
                 <button
                   type="button"
@@ -1204,7 +1204,7 @@ export default function OrderEquipmentModal({
                 className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
               >
                 <Plus size={15} />
-                Add item
+                Add inventory
               </button>
               {/* Scan the gear onto the order. A hardware reader ends with Enter;
                   a code pasted with Ctrl+V does not, so a value that IS a known
@@ -1274,7 +1274,7 @@ export default function OrderEquipmentModal({
             )}
             {overCapacity > 0 && (
               <span
-                title="These pieces exceed what's free, so no unit will be held for them"
+                title="These pieces exceed what's free, so no item will be held for them"
                 className="ml-1 font-medium text-amber-600"
               >
                 · {overCapacity} over capacity

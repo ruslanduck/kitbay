@@ -127,7 +127,7 @@ function VendorPicker({ unit, vendors, disabled, onChange }) {
     <SelectField
       value={unit.subRentalVendorId ?? ''}
       onChange={(e) => onChange(e.target.value || null)}
-      ariaLabel="Which company we rent this unit from"
+      ariaLabel="Which company we rent this item from"
       options={[{ value: '', label: 'no vendor' }, ...vendors.map((c) => ({ value: c.id, label: c.name }))]}
       className={[
         'w-[11rem] rounded-md border px-1.5 py-1 text-xs outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100',
@@ -408,7 +408,7 @@ export default function Inventory() {
     const res = await assignItemsSubcategory(ids, subcategoryId)
     if (res?.error) return setFileNote({ bad: true, text: res.error })
     const n = res.count
-    const many = n === 1 ? 'item' : 'items'
+    const many = n === 1 ? 'inventory entry' : 'inventory entries'
     setFileNote({
       bad: false,
       text: !n
@@ -589,8 +589,8 @@ export default function Inventory() {
             Inventory
           </h2>
           <p className="text-sm text-slate-500">
-            {liveInventory.length} items · {liveKits.length} kits · {liveLists.length} lists ·{' '}
-            {totalUnits} units
+            {liveInventory.length} inventory · {liveKits.length} kits · {liveLists.length} lists ·{' '}
+            {totalUnits} items
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -663,7 +663,7 @@ export default function Inventory() {
                 predefined scenario lists (3.5). */}
             <div className="flex rounded-lg border border-slate-300 p-0.5">
               {[
-                ['items', 'Items'],
+                ['items', 'Inventory'],
                 ['kits', 'Kits'],
                 ['lists', 'Lists'],
               ].map(([val, lbl]) => (
@@ -723,7 +723,7 @@ export default function Inventory() {
                     ? liveLists.length
                     : liveInventory.length
               }
-              noun={entryType === 'kits' ? 'kits' : entryType === 'lists' ? 'lists' : 'items'}
+              noun={entryType === 'kits' ? 'kits' : entryType === 'lists' ? 'lists' : 'inventory'}
             >
               {entryType === 'items' && (
                 <div className="grid grid-cols-2 gap-2">
@@ -766,7 +766,7 @@ export default function Inventory() {
                     type="button"
                     onClick={() => setOutNow(!outNow)}
                     aria-pressed={outNow}
-                    title="Only items with a piece checked out on a job and not back yet"
+                    title="Only inventory with an item checked out on a job and not back yet"
                     className={[
                       FILTER_FIELD,
                       'text-left transition',
@@ -807,7 +807,7 @@ export default function Inventory() {
             ) : filtered.length === 0 ? (
               <div className="px-3 py-10 text-center">
                 <p className="text-sm text-slate-400">
-                  No items match your filters.
+                  No inventory matches your filters.
                 </p>
                 {filtersActive && (
                   <button
@@ -872,7 +872,7 @@ export default function Inventory() {
                             { value: UNFILE, label: '— take out of its subcategory —' },
                           ]}
                           placeholder={
-                            picked.size ? `File ${picked.size} under…` : 'Pick items first…'
+                            picked.size ? `File ${picked.size} under…` : 'Pick inventory first…'
                           }
                           className={FILTER_FIELD}
                         />
@@ -893,7 +893,7 @@ export default function Inventory() {
                         onClick={() => setSelecting(true)}
                         className="text-[11px] font-medium text-violet-600 transition hover:underline"
                       >
-                        Select items to file under a subcategory…
+                        Select inventory to file under a subcategory…
                       </button>
                     )}
                   </div>
@@ -1051,7 +1051,7 @@ export default function Inventory() {
                 className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-violet-600 lg:hidden"
               >
                 <ChevronLeft size={16} />
-                Back to items
+                Back to inventory
               </button>
               <UnitDetail
                 item={selected}
@@ -1089,7 +1089,7 @@ export default function Inventory() {
             <div className="flex h-full flex-col items-center justify-center text-center">
               <PackageOpen size={36} className="mb-3 text-slate-300" />
               <p className="text-sm text-slate-400">
-                Select an item to see its units.
+                Select an inventory entry to see its items.
               </p>
             </div>
           )}
@@ -1252,7 +1252,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
             {isBarcoded ? (
               <>
                 <span>
-                  {units.length} unit{units.length === 1 ? '' : 's'}
+                  {units.length} item{units.length === 1 ? '' : 's'}
                 </span>
                 <span className="text-emerald-600">{available} available</span>
                 <span className="text-orange-600">{reserved} reserved</span>
@@ -1300,11 +1300,11 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
             <button
               type="button"
               onClick={onEdit}
-              title="Edit the item — name, category, brand, storage location, price"
+              title="Edit this inventory — name, category, brand, storage location, price"
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
             >
               <Pencil size={14} />
-              Edit item
+              Edit inventory
             </button>
           )}
         </div>
@@ -1339,7 +1339,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
               <th className="px-3 py-2.5 font-medium">Status</th>
               <th
                 className="px-3 py-2.5 font-medium"
-                title="Where the unit is: the job or repair it's out on, otherwise its storage location"
+                title="Where the item is: the job or repair it's out on, otherwise its storage location"
               >
                 Location
               </th>
@@ -1347,7 +1347,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
               <th className="px-3 py-2.5 font-medium">Vendor</th>
               <th className="px-3 py-2.5 font-medium">History</th>
               <th className="px-3 py-2.5 font-medium">Repair</th>
-              <th className="px-5 py-2.5 font-medium">Unit</th>
+              <th className="px-5 py-2.5 font-medium">Item</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -1410,7 +1410,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                     </span>
                   ) : item.placement ? (
                     <span
-                      title="Inherited from the item's storage location — set this unit's own with the pencil"
+                      title="Inherited from the inventory's storage location — set this item's own with the pencil"
                       className="text-slate-400"
                     >
                       {item.placement}
@@ -1438,7 +1438,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                   <button
                     type="button"
                     onClick={() => onShowHistory(unit)}
-                    title="Every shoot this unit went out on"
+                    title="Every shoot this item went out on"
                     className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
                   >
                     <History size={14} />
@@ -1476,7 +1476,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                           setConfirmDeleteId(null)
                           onDeleteUnit(unit)
                         }}
-                        title="Archives the unit — the register keeps its barcode and history"
+                        title="Archives the item — the register keeps its barcode and history"
                         className="rounded-md bg-danger px-2 py-1 font-medium text-white transition hover:bg-danger-strong"
                       >
                         Write off
@@ -1495,7 +1495,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                         <button
                           type="button"
                           onClick={() => onEditUnit(unit)}
-                          title="Correct this unit's barcode / serial"
+                          title="Correct this item's barcode / serial"
                           className="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-violet-600"
                         >
                           <Pencil size={13} />
@@ -1505,7 +1505,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteId(unit.id)}
-                          title="Write off / remove this unit"
+                          title="Write off / remove this item"
                           className="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                         >
                           <Trash2 size={13} />
@@ -1555,7 +1555,7 @@ function ItemActivity({ item }) {
         events={events}
         loading={loading}
         limit={5}
-        emptyText="No changes recorded for this item yet."
+        emptyText="No changes recorded yet."
       />
     </section>
   )
@@ -1816,12 +1816,12 @@ function KitDetail({ kit, inventory, canManage, onEdit, onSelectItem }) {
                     disabled={!item}
                     className="mt-0.5 block max-w-full truncate text-left text-sm font-medium text-slate-800 transition hover:text-violet-700 disabled:cursor-default disabled:hover:text-slate-800"
                   >
-                    {slot.itemName || 'Unknown item'}
+                    {slot.itemName || 'Unknown inventory'}
                   </button>
                 </div>
                 {slot.slotType === 'fixed' ? (
                   <span className="shrink-0 font-mono text-xs text-slate-500">
-                    {slot.fixedBarcode ? `#${slot.fixedBarcode}` : 'unit unset'}
+                    {slot.fixedBarcode ? `#${slot.fixedBarcode}` : 'item unset'}
                   </span>
                 ) : (
                   <span className={['shrink-0 text-xs font-medium', avail.tone].join(' ')}>
@@ -1923,7 +1923,7 @@ function ScenarioDetail({ list, inventory, kits, canManage, onEdit, onSelectItem
             </span>
             <span>
               {list.entries.length} line{list.entries.length === 1 ? '' : 's'} · ~{totals.units}{' '}
-              unit{totals.units === 1 ? '' : 's'}
+              item{totals.units === 1 ? '' : 's'}
               {totals.kits > 0 && ` · ${totals.kits} kit${totals.kits === 1 ? '' : 's'}`}
             </span>
           </div>
@@ -1996,7 +1996,7 @@ function ScenarioDetail({ list, inventory, kits, canManage, onEdit, onSelectItem
                   >
                     {isKit
                       ? kit?.name || entry.kitName || 'Unknown kit'
-                      : item?.name || entry.itemName || 'Unknown item'}
+                      : item?.name || entry.itemName || 'Unknown inventory'}
                   </button>
                 </div>
                 {isKit ? (

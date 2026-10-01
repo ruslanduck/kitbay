@@ -94,7 +94,7 @@ export default function UnitRowsField({
               <button
                 type="button"
                 onClick={() => onChange((cur) => cur.filter((_, idx) => idx !== i))}
-                title="Remove this unit"
+                title="Remove this item"
                 className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-rose-600"
               >
                 <X size={14} />
@@ -111,7 +111,7 @@ export default function UnitRowsField({
             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-50"
           >
             <Plus size={13} />
-            Add another unit
+            Add another item
           </button>
         )}
       </div>

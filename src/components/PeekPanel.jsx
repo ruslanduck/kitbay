@@ -92,7 +92,7 @@ export default function PeekPanel() {
 
 const TYPE_META = {
   order: { icon: ClipboardList, label: 'Job' },
-  item: { icon: Boxes, label: 'Item' },
+  item: { icon: Boxes, label: 'Inventory' },
   person: { icon: User, label: 'Person' },
   company: { icon: Building2, label: 'Company' },
   // The SHOOT, not the job: the job is the record (the `orders` row), and two
@@ -472,7 +472,7 @@ function ItemPeek({ id, unitId }) {
   const focusInventory = useStore((s) => s.focusInventory)
 
   const item = inventory.find((i) => i.id === id) ?? null
-  if (!item) return <div className="p-4"><Empty text="This item is gone." /></div>
+  if (!item) return <div className="p-4"><Empty text="This inventory entry is gone." /></div>
 
   const isBarcoded = item.kind === 'barcoded'
   const available = availableCount(item)
@@ -497,7 +497,7 @@ function ItemPeek({ id, unitId }) {
             </span>
             {isBarcoded ? (
               <span className="text-xs text-slate-500">
-                {item.units.length} units · <span className="text-emerald-600">{available} free</span>
+                {item.units.length} items · <span className="text-emerald-600">{available} free</span>
                 {inRepair > 0 && <span className="text-amber-600"> · {inRepair} in repair</span>}
               </span>
             ) : (
@@ -520,7 +520,7 @@ function ItemPeek({ id, unitId }) {
       )}
 
       {isBarcoded && (
-        <Section title="Units" count={item.units.length}>
+        <Section title="Items" count={item.units.length}>
           <div className="space-y-1.5">
             {item.units.map((u) => {
               const b = bookingForUnit(u.id)
@@ -614,7 +614,7 @@ function ItemActivitySection({ itemId, unitIds }) {
         loading={loading}
         limit={5}
         dense
-        emptyText="No changes recorded for this item yet."
+        emptyText="No changes recorded yet."
       />
     </Section>
   )
@@ -963,7 +963,7 @@ function JobPeek({ id }) {
 
       <Section title="Equipment" count={gear.length}>
         {gear.length === 0 ? (
-          <Empty text="No units reserved." />
+          <Empty text="No items reserved." />
         ) : (
           <div className="space-y-1.5">
             {gear.map((g) => (

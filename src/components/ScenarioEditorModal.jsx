@@ -133,7 +133,7 @@ export default function ScenarioEditorModal({
     e?.preventDefault()
     const name = form.name.trim()
     if (!name) return setError('Give the list a name.')
-    if (form.entries.length === 0) return setError('Add at least one kit or item.')
+    if (form.entries.length === 0) return setError('Add at least one kit or inventory.')
 
     const payload = {
       name,
@@ -214,10 +214,10 @@ export default function ScenarioEditorModal({
                       ].join(' ')}
                     >
                       {isKit ? <Layers size={9} /> : <Package size={9} />}
-                      {isKit ? 'Kit' : 'Item'}
+                      {isKit ? 'Kit' : 'Inventory'}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
-                      {target?.name ?? (isKit ? 'Deleted kit' : 'Deleted item')}
+                      {target?.name ?? (isKit ? 'Deleted kit' : 'Deleted inventory')}
                     </span>
 
                     {isKit ? (
@@ -272,7 +272,7 @@ export default function ScenarioEditorModal({
 
             {form.entries.length === 0 && (
               <p className="rounded-lg border border-dashed border-slate-300 py-5 text-center text-sm text-slate-400">
-                Nothing listed yet — add kits and items below.
+                Nothing listed yet — add kits and inventory below.
               </p>
             )}
 
@@ -280,7 +280,7 @@ export default function ScenarioEditorModal({
             {picker ? (
               <div className="mt-2 rounded-xl border border-slate-200 p-3">
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  {picker === 'kit' ? 'Add a kit' : 'Add an item'}
+                  {picker === 'kit' ? 'Add a kit' : 'Add inventory'}
                 </div>
                 <div className="relative">
                   <Search
@@ -312,7 +312,7 @@ export default function ScenarioEditorModal({
                             {picker === 'kit'
                               ? `${t.slots?.length ?? 0} slots`
                               : t.kind === 'barcoded'
-                                ? `${t.units?.length ?? 0} units`
+                                ? `${t.units?.length ?? 0} items`
                                 : `${t.quantity ?? 0} on hand`}
                           </span>
                         </button>
@@ -321,7 +321,7 @@ export default function ScenarioEditorModal({
                   </ul>
                 ) : (
                   <p className="px-1 py-3 text-center text-xs text-slate-400">
-                    {picker === 'kit' ? 'No kits left to add.' : 'No matching items left to add.'}
+                    {picker === 'kit' ? 'No kits left to add.' : 'No matching inventory left to add.'}
                   </p>
                 )}
                 <div className="mt-1 flex justify-end">
@@ -356,7 +356,7 @@ export default function ScenarioEditorModal({
                   className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
                 >
                   <Plus size={15} />
-                  Add item
+                  Add inventory
                 </button>
               </div>
             )}

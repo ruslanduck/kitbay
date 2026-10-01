@@ -901,7 +901,7 @@ function OrderDetail({
                             <button
                               type="button"
                               onClick={() => peek({ type: 'item', id: l.itemId, unitId: l.unitId })}
-                              title="Open this item — units, history, where it is"
+                              title="Open this inventory — items, history, where they are"
                               className="min-w-0 truncate text-left text-sm font-medium text-slate-800 hover:text-violet-700 hover:underline focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-400"
                             >
                               {l.itemName}
@@ -950,7 +950,7 @@ function OrderDetail({
                           {l.rateOverridden && (
                             <span
                               className="ml-1 text-violet-500"
-                              title="Priced on this line, not from the item's own rate"
+                              title="Priced on this line, not from the inventory rate"
                             >
                               set here
                             </span>
@@ -1032,7 +1032,7 @@ function OrderDetail({
                       about this sheet, not an explanation of the feature. */}
                   {estimate.lineCount > 0 && order.status !== 'confirmed' && !isClosedStatus(order.status) && (
                     <span className="text-xs text-amber-600">
-                      not confirmed — no units reserved yet
+                      not confirmed — no items reserved yet
                     </span>
                   )}
                 </span>

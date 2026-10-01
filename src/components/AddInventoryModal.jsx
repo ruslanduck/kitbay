@@ -134,7 +134,7 @@ export default function AddInventoryModal({
       // Caught next to the field; the store checks it too and that one is the
       // guarantee (lib/unitRows).
       const dup = duplicateTypedBarcode(unitRows)
-      if (dup) return setCreateError(`#${dup} is listed twice — each unit needs its own barcode.`)
+      if (dup) return setCreateError(`#${dup} is listed twice — each item needs its own barcode.`)
     }
     const price = form.replacementPrice.trim()
     const base = {
@@ -190,7 +190,7 @@ export default function AddInventoryModal({
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
 
   return (
-    <Modal open={open} onClose={onClose} size="lg" title={isEdit ? 'Edit item' : 'New item'}>
+    <Modal open={open} onClose={onClose} size="lg" title={isEdit ? 'Edit inventory' : 'Add Inventory'}>
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
           <div>
@@ -361,7 +361,7 @@ export default function AddInventoryModal({
                   </>
                 ) : (
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                    {item.units.length} units — managed individually.
+                    {item.units.length} items — managed individually.
                   </div>
                 )}
               </div>
@@ -374,7 +374,7 @@ export default function AddInventoryModal({
               "Add unit" uses, so the question is asked one way. */}
           {creatingUnits && (
             <div className="space-y-3 rounded-xl border border-slate-200 p-3">
-              <p className="text-sm font-medium text-slate-700">Its units</p>
+              <p className="text-sm font-medium text-slate-700">Its items</p>
               <UnitRowsField
                 rows={unitRows}
                 onChange={setUnitRows}
@@ -395,7 +395,7 @@ export default function AddInventoryModal({
             confirmArchive ? (
               <span className="flex items-center gap-2 text-xs">
                 <span className="text-slate-600">
-                  Archive it? It and all its units leave the app.
+                  Archive it? It and all its items leave the app.
                 </span>
                 <button
                   type="button"
@@ -442,7 +442,7 @@ export default function AddInventoryModal({
               disabled={!canSubmit}
               className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isEdit ? 'Save item' : 'Create item'}
+              {isEdit ? 'Save' : 'Create'}
             </button>
           </div>
         </div>

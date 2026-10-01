@@ -96,7 +96,7 @@ export default function UnitPickList({
         <p className="px-3 py-3 text-center text-xs text-slate-400">
           {units.length === 0
             ? `No ${itemName} is free for these dates.`
-            : `No unit matches “${q.trim()}”.`}
+            : `No item matches “${q.trim()}”.`}
         </p>
       ) : (
         <ul className="max-h-44 overflow-auto">

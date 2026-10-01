@@ -1305,7 +1305,7 @@ export const useStore = create(
         const clash = state.inventory.some((item) =>
           item.units?.some((u) => u.id !== unitId && u.barcode === code),
         )
-        if (clash) return { error: `#${code} is already used by another unit.` }
+        if (clash) return { error: `#${code} is already used by another item.` }
         const wasCode = state.inventory
           .find((i) => i.id === itemId)
           ?.units?.find((u) => u.id === unitId)?.barcode ?? null
@@ -1364,9 +1364,9 @@ export const useStore = create(
       addUnits: async (itemId, { units: rows, count = 1, placement = '' } = {}) => {
         const state = get()
         const item = state.inventory.find((i) => i.id === itemId)
-        if (!item) return { error: 'Item not found.' }
+        if (!item) return { error: 'Inventory not found.' }
         if (item.kind !== 'barcoded')
-          return { error: 'Only barcoded items track individual units — edit the quantity instead.' }
+          return { error: 'Only barcoded inventory tracks individual items — edit the quantity instead.' }
 
         // The rule lives in lib/unitRows: a typed barcode must be free, no two
         // rows may claim one, and blank rows take the next free numbers,
@@ -1437,7 +1437,7 @@ export const useStore = create(
         const clash = state.inventory.some((it) =>
           (it.units || []).some((u) => u.id !== unitId && u.barcode === code),
         )
-        if (clash) return { error: `#${code} is already used by another unit.` }
+        if (clash) return { error: `#${code} is already used by another item.` }
 
         const was = state.inventory
           .find((i) => i.id === itemId)
@@ -1494,7 +1494,7 @@ export const useStore = create(
         const state = get()
         const item = state.inventory.find((i) => i.id === itemId)
         const unit = item?.units?.find((u) => u.id === unitId)
-        if (!unit) return { error: 'Unit not found.' }
+        if (!unit) return { error: 'Item not found.' }
         if (unit.status === 'checked_out')
           return { error: `#${unit.barcode} is out on “${unit.location}”. Free it from that job first.` }
         if (unit.status === 'in_repair')
@@ -1504,7 +1504,7 @@ export const useStore = create(
         )
         if (pinnedBy)
           return {
-            error: `#${unit.barcode} is the fixed unit of kit “${pinnedBy.name}”. Change that slot first.`,
+            error: `#${unit.barcode} is the fixed item of kit “${pinnedBy.name}”. Change that slot first.`,
           }
 
         const logWriteOff = () =>
@@ -1555,7 +1555,7 @@ export const useStore = create(
         const state = get()
         const item = state.inventory.find((i) => i.id === itemId)
         const unit = item?.units?.find((u) => u.id === unitId)
-        if (!unit) return { error: 'Unit not found.' }
+        if (!unit) return { error: 'Item not found.' }
         get().logActivity({
           type: EVENT.RESTORED,
           entityType: 'item',
@@ -1790,7 +1790,7 @@ export const useStore = create(
           } catch (e) {
             // A barcode that slipped through between the check and the insert
             // lands here as the DB's unique violation. Reported, not swallowed.
-            return { error: e?.message || 'The item could not be created.' }
+            return { error: e?.message || 'The inventory could not be created.' }
           }
         }
         const state = get()
@@ -1826,9 +1826,9 @@ export const useStore = create(
       // Barcoded items have unit rows, so they use addUnits/deleteUnit instead.
       adjustStock: async (itemId, { delta } = {}) => {
         const item = get().inventory.find((i) => i.id === itemId)
-        if (!item) return { error: 'Item not found.' }
+        if (!item) return { error: 'Inventory not found.' }
         if (item.kind === 'barcoded')
-          return { error: 'This item is tracked per unit — add or write off units instead.' }
+          return { error: 'This inventory is tracked per item — add or write off items instead.' }
         const n = Math.trunc(Number(delta) || 0)
         if (!n) return { error: 'Enter how many.' }
 
@@ -1949,7 +1949,7 @@ export const useStore = create(
       archiveInventoryItem: async (id) => {
         const state = get()
         const item = state.inventory.find((i) => i.id === id)
-        if (!item) return { error: 'Item not found.' }
+        if (!item) return { error: 'Inventory not found.' }
         const live = (item.units || []).filter((u) => !u.archivedAt)
         const out = live.find((u) => u.status === 'checked_out')
         if (out)
@@ -2003,7 +2003,7 @@ export const useStore = create(
       restoreInventoryItem: async (id) => {
         const state = get()
         const item = state.inventory.find((i) => i.id === id)
-        if (!item) return { error: 'Item not found.' }
+        if (!item) return { error: 'Inventory not found.' }
         const stamp = item.archivedAt
         get().logActivity({
           type: EVENT.RESTORED,
@@ -2526,7 +2526,7 @@ export const useStore = create(
       assignItemsSubcategory: async (itemIds, subcategoryId) => {
         const state = get()
         const ids = [...new Set((itemIds || []).filter(Boolean))]
-        if (!ids.length) return { error: 'Pick at least one item.' }
+        if (!ids.length) return { error: 'Pick some inventory first.' }
         if (subcategoryId && !subcategoryById(state.taxonomy, subcategoryId))
           return { error: 'That subcategory no longer exists.' }
         // Only the pieces that actually move: re-filing an item where it already

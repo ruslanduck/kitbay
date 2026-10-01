@@ -50,7 +50,7 @@ export default function UnitEditorModal({
       // Caught next to the field rather than after a round trip; the store
       // checks it too, and that one is the guarantee (lib/unitRows).
       const dup = duplicateTypedBarcode(rows)
-      if (dup) return setError(`#${dup} is listed twice — each unit needs its own barcode.`)
+      if (dup) return setError(`#${dup} is listed twice — each item needs its own barcode.`)
     }
     setBusy(true)
     const res = isEdit
@@ -70,12 +70,12 @@ export default function UnitEditorModal({
       open={open}
       onClose={onClose}
       size="md"
-      title={isEdit ? `Edit unit #${unit?.barcode ?? ''}` : 'Add units'}
+      title={isEdit ? `Edit item #${unit?.barcode ?? ''}` : 'Add items'}
     >
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
           <p className="text-sm text-slate-500">
-            {isEdit ? 'Correcting the identifiers on ' : 'Adding units to '}
+            {isEdit ? 'Correcting the identifiers on ' : 'Adding items to '}
             <span className="font-medium text-slate-700">{itemName}</span>.
           </p>
 
@@ -142,7 +142,7 @@ export default function UnitEditorModal({
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-strong disabled:opacity-50"
           >
             {isEdit ? <Check size={15} /> : <Plus size={15} />}
-            {isEdit ? 'Save unit' : rows.length === 1 ? 'Add unit' : `Add ${rows.length} units`}
+            {isEdit ? 'Save item' : rows.length === 1 ? 'Add item' : `Add ${rows.length} items`}
           </button>
         </div>
       </form>

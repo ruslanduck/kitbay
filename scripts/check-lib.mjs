@@ -615,7 +615,7 @@ ok(
   eq(tree.find((c) => c.id === 'c-empty').subs.length, 0, 'a category with no subcategories still shows')
 
   // RULE: a category goes only when it has no stock AND no subcategories.
-  ok(taxonomy.categoryRemovalBlock('c-strobes', tax, items)?.includes('2 items'),
+  ok(taxonomy.categoryRemovalBlock('c-strobes', tax, items)?.includes('2 inventory entries'),
     'a category holding stock cannot be removed, and says how much')
   ok(taxonomy.categoryRemovalBlock('c-strobes', tax, items)?.includes('2 subcategories'),
     'and names the subcategories in the way')
@@ -629,14 +629,14 @@ ok(
   }
 
   // RULE: a subcategory goes only when it has no stock.
-  ok(taxonomy.subcategoryRemovalBlock('s-pro-strobe', tax, items)?.includes('1 item'),
+  ok(taxonomy.subcategoryRemovalBlock('s-pro-strobe', tax, items)?.includes('1 inventory entry'),
     'a subcategory holding stock cannot be removed')
   eq(taxonomy.subcategoryRemovalBlock('s-bron', tax, items.filter((i) => i.id !== 'i2')), null,
     'once empty it can')
   // Retired stock does not block it — but it is said out loud.
   eq(taxonomy.subcategoryRemovalBlock('s-pro-strobe', tax, items.filter((i) => i.id !== 'i1')), null,
     'archived stock alone does not block removal')
-  ok(taxonomy.subcategoryRemovalNote('s-pro-strobe', items)?.includes('1 archived item'),
+  ok(taxonomy.subcategoryRemovalNote('s-pro-strobe', items)?.includes('1 archived inventory entry'),
     'and the archived record is reported instead')
   eq(taxonomy.subcategoryRemovalNote('s-bron', items), null, 'no note when there is nothing to say')
 
@@ -854,7 +854,7 @@ ok(
     'an archived category takes nothing')
 
   eq(hierarchyDrop.dragLabel(item(['a']), items, tax), 'B10', 'one carried item reads as its name')
-  eq(hierarchyDrop.dragLabel(item(['a', 'b', 'c']), items, tax), '3 items', 'several read as a count')
+  eq(hierarchyDrop.dragLabel(item(['a', 'b', 'c']), items, tax), '3 inventory entries', 'several read as a count')
   eq(hierarchyDrop.dragLabel(sub, items, tax), 'Strobes', 'a subcategory reads as its name')
 
   const move = v(item(['a', 'b', 'c']), { kind: 'sub', id: 's-led' }).move
@@ -871,7 +871,7 @@ ok(
   eq(hierarchyDrop.undoPlan(v(sub, { kind: 'cat', id: 'c-grip' }).move, items),
     { type: 'sub', id: 's-strobe', categoryId: 'c-light' },
     'and a subcategory back to its category')
-  eq(hierarchyDrop.moveSummary(move, items, tax), 'Moved 3 items to Lighting / LED',
+  eq(hierarchyDrop.moveSummary(move, items, tax), 'Moved 3 inventory entries to Lighting / LED',
     'the summary counts several')
   eq(hierarchyDrop.moveSummary(v(item(['a']), { kind: 'sub', id: 's-clamp' }).move, items, tax),
     'Moved “B10” to Grip / Clamps', 'and names one')
@@ -940,12 +940,12 @@ ok(
   // physical piece of gear.
   eq(
     unitRows.resolveUnitCodes([{ barcode: '0700' }], { taken }).error,
-    '#0700 is already used by another unit.',
+    '#0700 is already used by another item.',
     'a barcode the register already holds is refused',
   )
   eq(
     unitRows.resolveUnitCodes([{ barcode: '0900' }, { barcode: '0900' }], { taken }).error,
-    '#0900 is listed twice — each unit needs its own barcode.',
+    '#0900 is listed twice — each item needs its own barcode.',
     'two rows claiming one barcode are refused',
   )
   ok(!unitRows.resolveUnitCodes([{ barcode: '0900' }, {}], { taken }).error,
@@ -1257,7 +1257,10 @@ ok(
     [/\borders?\b/i, 'the record is a Job on screen (the table keeps its name)'],
     [/\bbookings?\b/i, 'the day is a Shoot'],
     [/\bcontacts\b/i, 'people are People — "Contact" alone means contact details'],
-    [/\bcop(y|ies)\b/i, 'a physical piece is a unit'],
+    [/\bcop(y|ies)\b/i, 'a physical piece is an item'],
+    // The client's own words (1 Oct): the position is "Inventory" and a physical
+    // piece is an "item". The `units` TABLE keeps its name — this is the screen.
+    [/\bunits?\b/i, 'a physical piece is an item'],
     [/\bpresets?\b/i, 'a preset is a scenario list'],
     [/\bpc\(s\)/, 'pieces are "pcs"'],
     [/\b(pull sheet|packing checklist|digital checklist)\b/i, 'the document is the packing list'],
@@ -1596,6 +1599,12 @@ ok(
     'the search finds a job by ANY of its assignees, not just the first',
   )
   eq(activity.jobFieldWords(['crew']), ['call times'], 'the feed calls an edited sheet "call times"')
+  // One word per level: the position is Inventory, a physical piece an item.
+  eq(activity.describeEvent({ type: activity.EVENT.UNIT_ADDED, data: { barcode: '0851' } }).title, 'Registered an item', 'a new piece is an item')
+  eq(activity.describeEvent({ type: activity.EVENT.ITEM_CREATED, data: { name: 'C-Stand' } }).title, 'Added this inventory entry', 'a new position is an inventory entry')
+  eq(activity.describeEvent({ type: activity.EVENT.ARCHIVED, data: { what: 'unit' } }).title, 'Archived this item', 'a written-off piece reads as an item')
+  eq(activity.describeEvent({ type: activity.EVENT.ARCHIVED, data: { what: 'item' } }).title, 'Archived this inventory entry', 'and an archived position as an inventory entry')
+  eq(activity.describeEvent({ type: activity.EVENT.TAXONOMY_ADDED, data: { what: 'category' } }).title, 'Added a category', 'the article follows the word')
 }
 
 console.log(`OK — ${n} assertions passed`)

@@ -319,7 +319,7 @@ export default function TaxonomyModal({ open, onClose }) {
         {/* The order the levels nest in — the key to the tree below. */}
         <div className="flex items-center justify-between gap-2">
           <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            Category <ChevronRight size={10} /> Subcategory <ChevronRight size={10} /> Item
+            Category <ChevronRight size={10} /> Subcategory <ChevronRight size={10} /> Inventory
           </p>
           {tree.length > 0 && (
             <button
@@ -369,7 +369,7 @@ export default function TaxonomyModal({ open, onClose }) {
               Not filed
             </span>
             <span className={['text-[11px]', unfiledCount ? 'text-amber-700' : 'text-slate-400'].join(' ')}>
-              {unfiledCount ? plural(unfiledCount, 'item', 'items') : 'nothing here'}
+              {unfiledCount ? `${unfiledCount} inventory` : 'nothing here'}
             </span>
           </button>
           {unfiledOpen && unfiledCount > 0 && (
@@ -445,7 +445,7 @@ export default function TaxonomyModal({ open, onClose }) {
                       <span className="text-sm font-semibold text-slate-800">{cat.name}</span>
                       <span className="text-[11px] text-slate-400">
                         {plural(cat.subs.length, 'subcategory', 'subcategories')} ·{' '}
-                        {plural(cat.itemCount, 'item', 'items')}
+                        {cat.itemCount} inventory
                       </span>
                       {mayEdit && (
                         <div className="ml-auto flex items-center gap-1">
@@ -553,7 +553,7 @@ export default function TaxonomyModal({ open, onClose }) {
                                   type="button"
                                   onClick={() => toggleIn(setOpenSubs, sub.id)}
                                   aria-expanded={subOpen}
-                                  aria-label={subOpen ? `Hide the items in ${sub.name}` : `Show the items in ${sub.name}`}
+                                  aria-label={subOpen ? `Hide the inventory in ${sub.name}` : `Show the inventory in ${sub.name}`}
                                   className="rounded p-0.5 text-slate-400 transition hover:bg-slate-100"
                                 >
                                   <ChevronRight
@@ -565,7 +565,7 @@ export default function TaxonomyModal({ open, onClose }) {
                                   {sub.name}
                                 </span>
                                 <span className="shrink-0 text-[11px] text-slate-400">
-                                  {plural(sub.itemCount, 'item', 'items')}
+                                  {sub.itemCount} inventory
                                 </span>
                                 {mayEdit && (
                                   <div className="ml-auto flex shrink-0 items-center gap-1">
@@ -604,7 +604,7 @@ export default function TaxonomyModal({ open, onClose }) {
                           {subOpen && (
                             <div className="mb-1 ml-6 space-y-px border-l border-slate-200 pb-1 pl-2">
                               {list.length === 0 ? (
-                                <p className="px-1 py-0.5 text-[11px] text-slate-400">No items yet.</p>
+                                <p className="px-1 py-0.5 text-[11px] text-slate-400">No inventory yet.</p>
                               ) : (
                                 list.map(renderItem)
                               )}
@@ -685,14 +685,14 @@ export default function TaxonomyModal({ open, onClose }) {
         {selected.size > 0 ? (
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-slate-700">
-              {plural(selected.size, 'item', 'items')} selected
+              {selected.size} selected
             </span>
             <SelectField
               value=""
               onChange={(e) => moveSelectedTo(e.target.value)}
               options={moveOptions}
               placeholder="Move to…"
-              ariaLabel="Move the selected items to"
+              ariaLabel="Move the selected inventory to"
               className="w-52 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs outline-none transition"
             />
             <button
@@ -791,7 +791,7 @@ function ItemRow({ item, mayEdit, selected, dimmed, onToggle, onRowDown, onHandl
         {item.name}
       </span>
       <span className="shrink-0 text-[11px] tabular-nums text-slate-400">
-        {item.kind === 'barcoded' ? plural(n, 'unit', 'units') : `${n} on hand`}
+        {item.kind === 'barcoded' ? plural(n, 'item', 'items') : `${n} on hand`}
       </span>
     </div>
   )

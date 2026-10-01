@@ -30,7 +30,7 @@ function resolveKit(kit, inventory, ctx) {
   const unresolved = []
   for (const slot of kit.slots || []) {
     const item = inventory.find((i) => i.id === slot.itemId)
-    const name = slot.itemName || item?.name || 'Unknown item'
+    const name = slot.itemName || item?.name || 'Unknown inventory'
     const push = (unit) => {
       ctx.claimed.add(unit.id)
       units.push({
@@ -46,8 +46,8 @@ function resolveKit(kit, inventory, ctx) {
 
     if ((slot.slotType || 'generic') === 'fixed') {
       const pinned = (item?.units || []).find((u) => u.id === slot.fixedUnitId)
-      if (!pinned) unresolved.push(`${name} — pinned unit missing`)
-      else if (ctx.claimed.has(pinned.id)) unresolved.push(`${name} — pinned unit already taken`)
+      if (!pinned) unresolved.push(`${name} — pinned item missing`)
+      else if (ctx.claimed.has(pinned.id)) unresolved.push(`${name} — pinned item already taken`)
       // Judged for the requested dates, like every other availability question:
       // the pinned camera may be out today and free on the day we're pulling.
       else if (
@@ -58,7 +58,7 @@ function resolveKit(kit, inventory, ctx) {
         })
       )
         unresolved.push(
-          `${name} — pinned unit #${pinned.barcode} is ${
+          `${name} — pinned item #${pinned.barcode} is ${
             pinned.status === 'in_repair' ? 'in repair' : 'booked for those dates'
           }`,
         )
@@ -67,7 +67,7 @@ function resolveKit(kit, inventory, ctx) {
     }
 
     const free = takeableUnits(item, ctx)[0]
-    if (!free) unresolved.push(`${name} — no free unit`)
+    if (!free) unresolved.push(`${name} — no free item`)
     else push(free)
   }
   return { units, unresolved }

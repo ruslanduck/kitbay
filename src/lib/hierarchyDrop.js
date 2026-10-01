@@ -32,8 +32,8 @@ function placeName(target, tax) {
 export function dragLabel(payload, items, tax) {
   if (payload?.kind === 'sub') return name(subcategoryById(tax, payload.id)?.name) || 'Subcategory'
   const ids = payload?.ids ?? []
-  if (ids.length === 1) return name((items ?? []).find((i) => i.id === ids[0])?.name) || '1 item'
-  return plural(ids.length, 'item', 'items')
+  if (ids.length === 1) return name((items ?? []).find((i) => i.id === ids[0])?.name) || '1 inventory entry'
+  return plural(ids.length, 'inventory entry', 'inventory entries')
 }
 
 // The verdict for dropping `payload` on `target`:
@@ -45,8 +45,8 @@ export function dropVerdict(payload, target, tax, items) {
 
   if (payload.kind === 'item') {
     const carried = (items ?? []).filter((i) => (payload.ids ?? []).includes(i.id) && !i.archivedAt)
-    if (!carried.length) return { ok: false, reason: 'Those items are no longer in the register.' }
-    if (target.kind === 'cat') return { ok: false, reason: 'Items go in a subcategory — drop on one.' }
+    if (!carried.length) return { ok: false, reason: 'That inventory is no longer in the register.' }
+    if (target.kind === 'cat') return { ok: false, reason: 'Inventory goes in a subcategory — drop it on one.' }
     let subcategoryId
     if (target.kind === 'unfiled') subcategoryId = null
     else if (target.kind === 'sub') {
@@ -125,8 +125,8 @@ export function moveSummary(move, items, tax) {
   if (move?.type === 'items') {
     const what =
       move.ids.length === 1
-        ? `“${name((items ?? []).find((i) => i.id === move.ids[0])?.name) || '1 item'}”`
-        : plural(move.ids.length, 'item', 'items')
+        ? `“${name((items ?? []).find((i) => i.id === move.ids[0])?.name) || '1 inventory entry'}”`
+        : plural(move.ids.length, 'inventory entry', 'inventory entries')
     return `Moved ${what} to ${move.to}`
   }
   if (move?.type === 'sub') {

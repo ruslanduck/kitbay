@@ -313,7 +313,7 @@ export default function ItemAvailability({ item }) {
           </ul>
         ) : (
           <p className="mt-2 text-xs text-slate-400">
-            Nothing of this item is booked on that day.
+            None of this inventory is booked on that day.
           </p>
         )}
 
