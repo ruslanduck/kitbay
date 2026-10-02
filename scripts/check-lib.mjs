@@ -1851,7 +1851,15 @@ ok(
   eq(activity.jobFieldWords(['crew']), ['call times'], 'the feed calls an edited sheet "call times"')
   eq(activity.jobFieldWords(['callTime']), ['general call time'], 'and a changed general call by its own name')
   // The calendar's filter: every job, PDP only, or Editorial only.
-  eq(orderSearch.CALENDAR_TYPE_FILTERS, ['all', 'PDP', 'Editorial'], 'the three choices asked for, in that order')
+  eq(orderSearch.CALENDAR_TYPE_FILTERS, ['all', 'PDP', 'Editorial', 'Other'], 'the choices asked for, Other last')
+  ok(orderSearch.matchesTypeFilter('Lookbook', 'Other') && orderSearch.matchesTypeFilter('test', 'Other'), 'Other gathers every typed type at once')
+  ok(!orderSearch.matchesTypeFilter('PDP', 'Other') && !orderSearch.matchesTypeFilter('editorial', 'Other'), 'but never the two fixed types, however spelled')
+  ok(!orderSearch.matchesTypeFilter(null, 'Other') && !orderSearch.matchesTypeFilter('', 'Other'), 'and a job with no type is not Other — it shows under All only')
+  eq(
+    orderSearch.otherTypesIn([{ jobType: 'test' }, { jobType: 'Lookbook' }, { jobType: 'PDP' }, { jobType: 'lookbook' }, { jobType: null }]),
+    ['Lookbook', 'test'],
+    'the Other button can name what it holds, once each',
+  )
   ok(['PDP', 'Editorial', null, '', 'Lookbook'].every((t) => orderSearch.matchesTypeFilter(t, 'all')), 'All shows every job, typed or not')
   ok(orderSearch.matchesTypeFilter('PDP', 'PDP') && orderSearch.matchesTypeFilter('pdp', 'PDP'), 'PDP shows PDP, however it was spelled')
   ok(!orderSearch.matchesTypeFilter('Editorial', 'PDP') && !orderSearch.matchesTypeFilter(null, 'PDP'), 'and nothing else — an untyped job is not PDP')

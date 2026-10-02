@@ -13,7 +13,8 @@
 // `setTitle` links the order to its booking (the shoot); `dayOffset` (days from
 // this week's Monday, negative = earlier) sets the order date. `type` is the
 // shoot type — mostly PDP (their names end in the set, …_OMSet1), with three
-// Editorial so the calendar's type filter has something to tell apart.
+// Editorial and one Lookbook (a type typed beside Other) so every choice of the
+// calendar's type filter has something to show.
 export const ORDER_SEED = [
   // ---- This week's equipment pulls — these DRIVE the inventory reservations.
   {
@@ -50,7 +51,7 @@ export const ORDER_SEED = [
     lines: [['canon-r5', 1], ['sony-2470', 1], ['aputure-600d', 1], ['kbd-magic', 2]],
   },
   {
-    number: 'CL-26057', po: 'PO-4517', company: 'vantage-mgmt', kind: 'client', type: 'PDP',
+    number: 'CL-26057', po: 'PO-4517', company: 'vantage-mgmt', kind: 'client', type: 'Lookbook',
     status: 'confirmed', dayOffset: 4, setTitle: '20260706_AT_MAIN_SepBOM_Missy_OMSet1',
     lines: [['arri-750', 2], ['stinger-25', 2], ['director-chair', 2], ['applebox-half', 2]],
   },

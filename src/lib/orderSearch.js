@@ -166,13 +166,26 @@ export const JOB_TYPES = ['Editorial', 'PDP']
 // The filter offers the same choices — "Other" catches every typed type.
 export const JOB_TYPE_FILTERS = [...JOB_TYPES, OTHER]
 
-// The CALENDAR's filter: every job, or only one of the two types the studio
-// works in — asked for as exactly these three ("все джобы, только PDP или только
-// Editorial"). A job typed anything else, or not typed yet, shows under All only.
-export const CALENDAR_TYPE_FILTERS = ['all', 'PDP', 'Editorial']
+// The CALENDAR's filter: every job, one of the two types the studio works in,
+// or Other — every type typed beside Other ("Lookbook", "test"…), all of them at
+// once. Asked for as "все джобы, только PDP или только Editorial", then "и Other
+// все варианты". A job with no type at all is not Other: it shows under All only.
+export const CALENDAR_TYPE_FILTERS = ['all', 'PDP', 'Editorial', OTHER]
 export function matchesTypeFilter(jobType, filter) {
   if (!filter || filter === 'all') return true
   return choiceOf(jobType, JOB_TYPES) === filter
+}
+
+// The typed types Other gathers — once each whatever the spelling, in name
+// order — so the Other button can say what it holds.
+export function otherTypesIn(orders = []) {
+  const seen = new Map()
+  for (const o of orders) {
+    if (choiceOf(o?.jobType, JOB_TYPES) !== OTHER) continue
+    const t = String(o.jobType).trim()
+    if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t)
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b))
 }
 
 // A SET name is how a PDP day tells its sets apart ("OMSet1", "OMSet2"); an

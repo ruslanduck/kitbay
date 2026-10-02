@@ -3394,6 +3394,23 @@
 > • the peeks and the unit history as above.
 > A sweep of 14 job cards, 32 people, the companies, 80 inventory entries and all three calendar modes found 0 ISO and
 > 0 day-first dates. Reseeded, 0 console errors.
+> **CHANGE — the calendar's type filter gains Other: every typed type at once** (frontend only, no migration).
+> Asked about the PDP / Editorial filter: "а можно добавить что бы еще и Other все варианты были?". The control is
+> now **All jobs · PDP · Editorial · Other**, and Other means exactly what it means in the Jobs filter: every type
+> typed beside Other ("Lookbook", "test"…), all of them together. It is one button rather than one per variant,
+> because those variants are free text — a list of them would grow with every typo. Nothing new in the rule:
+> `matchesTypeFilter` already compared `choiceOf(jobType, JOB_TYPES)`, which answers `OTHER` for any typed type,
+> so the fourth choice is one entry in `CALENDAR_TYPE_FILTERS`. A job with NO type is not Other: it still shows
+> under All jobs only.
+> The button's tooltip names what Other holds right now ("Every other shoot type: Lookbook"), from the pure
+> `otherTypesIn(orders)` (case-folded, once each, name order, live jobs only). Demo content: seeded CL-26057 is a
+> Lookbook, so every choice has something to show.
+> +4 assertions (**795**): the four choices in order; Other gathers "Lookbook" and "test", never PDP or a lowercase
+> "editorial", and never an untyped job; `otherTypesIn` names each variant once.
+> Verified in local mode by measurement: the week reads All 14 = PDP 9 + Editorial 4 + Other 1, each filter showing
+> only its own type; the tooltip reads as above; the toolbar still fits one line at 1024 (the group is 264px) and the
+> four buttons fit unclipped at 375. 0 console errors.
+> ℹ️ On prod, Other currently holds one job (typed "test"); 16 jobs have no type at all and show under All jobs only.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

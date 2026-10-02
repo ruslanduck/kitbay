@@ -30,7 +30,8 @@ import {
   setYear,
 } from 'date-fns'
 import { useStore } from '../store'
-import { brandsIn, CALENDAR_TYPE_FILTERS, matchesTypeFilter } from '../lib/orderSearch'
+import { brandsIn, CALENDAR_TYPE_FILTERS, matchesTypeFilter, otherTypesIn } from '../lib/orderSearch'
+import { OTHER } from '../lib/otherChoice'
 import { usePersisted } from '../lib/usePersisted'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
 import { earliestCrewCall, crewSummary, scheduleLines } from '../lib/crew'
@@ -206,6 +207,8 @@ export default function StudioCalendar() {
   // a shared modal's new props have to be fed from every call site — forgetting
   // that is exactly how `companies={companies}` white-screened this view.
   const brandOptions = useMemo(() => brandsIn(orders), [orders])
+  // What the Other filter gathers right now, for its tooltip.
+  const otherTypes = useMemo(() => otherTypesIn(orders.filter((o) => !o.archivedAt)), [orders])
   const openOrderDraft = useStore((s) => s.openOrderDraft)
   const updateOrder = useStore((s) => s.updateOrder)
   const peek = useStore((s) => s.peek)
@@ -493,7 +496,7 @@ export default function StudioCalendar() {
               </span>
             ))}
           </div>
-          <TypeFilter value={typeFilter} onChange={setTypeFilter} />
+          <TypeFilter value={typeFilter} onChange={setTypeFilter} otherTypes={otherTypes} />
           <ModeToggle mode={calendarMode} setMode={pickMode} />
           {canCreate && (
             <button
@@ -657,7 +660,7 @@ export default function StudioCalendar() {
 // the week grid open the day they name instead, which is the other half of it.
 // Which jobs the grid shows. Same shape as the Day / Week / Month toggle beside
 // it: one tap, and the choice in effect is always visible.
-function TypeFilter({ value, onChange }) {
+function TypeFilter({ value, onChange, otherTypes = [] }) {
   return (
     <div className="flex rounded-lg border border-slate-300 bg-surface p-0.5" role="group" aria-label="Shoot type">
       {CALENDAR_TYPE_FILTERS.map((t) => (
@@ -666,6 +669,14 @@ function TypeFilter({ value, onChange }) {
           type="button"
           aria-pressed={value === t}
           onClick={() => onChange(t)}
+          // Other gathers every type typed beside it; the tooltip says which.
+          title={
+            t === OTHER
+              ? otherTypes.length
+                ? `Every other shoot type: ${otherTypes.join(', ')}`
+                : 'Every shoot type outside PDP and Editorial'
+              : undefined
+          }
           className={[
             'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition',
             value === t ? 'bg-brand text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100',
