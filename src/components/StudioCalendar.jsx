@@ -35,7 +35,7 @@ import { useStore } from '../store'
 import { brandsIn, CALENDAR_TYPE_FILTERS, matchesTypeFilter } from '../lib/orderSearch'
 import { usePersisted } from '../lib/usePersisted'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
-import { earliestCrewCall, crewSummary, scheduleLines } from '../lib/crew'
+import { chipCallLabel, crewSummary, scheduleLines } from '../lib/crew'
 import { formatDate, formatDateRange, formatTime } from '../lib/clock'
 import { assigneeLabel, normalizeAssignees } from '../lib/peopleOptions'
 import { studioLabel } from '../data/studios'
@@ -152,10 +152,10 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
       ) : (
         <>
           <div className="truncate pr-4 text-xs font-semibold leading-tight">{b.title}</div>
-          {(b.spanDays > 1 || b.setLabel || earliestCrewCall(b.crew, b.callTime)) && (
+          {(b.spanDays > 1 || b.setLabel || chipCallLabel(b.crew, b.callTime)) && (
             <div className="truncate text-[10px] font-medium opacity-80">
               {[
-                formatTime(earliestCrewCall(b.crew, b.callTime)),
+                chipCallLabel(b.crew, b.callTime),
                 b.spanDays > 1 && `Day ${b.dayIndex}/${b.spanDays}`,
                 b.setLabel,
               ]

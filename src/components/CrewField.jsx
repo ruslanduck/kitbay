@@ -3,9 +3,9 @@ import { Plus, X, Clock, AlertTriangle } from 'lucide-react'
 import TimeField from './TimeField'
 import OtherSelectField from './OtherSelectField'
 import MultiComboField from './MultiComboField'
-import { crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
+import { canonicalRole, crewRowProblem, wrapBeforeFirstCrewCall } from '../lib/crew'
 import { CALL_ROLES, isValidTime, toHHMM } from '../lib/callTimes'
-import { useCrewNameOptions } from '../lib/usePeopleNames'
+import { useCrewNameOptions, usePersonTrades } from '../lib/usePeopleNames'
 
 // The call sheet, the studio's own design: every line is TIME · ROLE · PEOPLE —
 // "10AM · Model · Hailey Halter, Valery Kaufman" — and a line may call several
@@ -41,6 +41,9 @@ export default function CrewField({
   // one gets a local uid (dropped by normalizeCrew on save).
   const uid = useRef(0)
   const namesFor = useCrewNameOptions()
+  // What People says each person does — so picking the person can fill the
+  // line's role, the way an assignee's does.
+  const trades = usePersonTrades()
   const rows = value
 
   const patch = (i, changes) =>
@@ -106,6 +109,41 @@ export default function CrewField({
                         ].join(' ')}
                       />
                     </div>
+                    {/* The PERSON first: picking them fills the line's role from
+                        what People says they do (a role already chosen is kept).
+                        A person kept keeps the contact the line was read with; a
+                        new name is resolved again on save. */}
+                    <div className="min-w-[10rem] flex-[2]">
+                      <MultiComboField
+                        size="sm"
+                        value={(r.people ?? []).map((p) => p.name)}
+                        onChange={(fn) =>
+                          onChange((cur) =>
+                            cur.map((line, n) => {
+                              if (n !== i) return line
+                              const had = line.people ?? []
+                              const names = fn(had.map((p) => p.name))
+                              const people = names.map(
+                                (name) =>
+                                  had.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? {
+                                    name,
+                                    contactId: null,
+                                  },
+                              )
+                              if (String(line.role ?? '').trim()) return { ...line, people }
+                              // The first person with a trade decides an empty role.
+                              const trade = people
+                                .map((p) => trades.get(p.name.trim().toLowerCase()))
+                                .find(Boolean)
+                              return { ...line, people, role: trade ? canonicalRole(trade) : line.role }
+                            }),
+                          )
+                        }
+                        options={namesFor(r.role)}
+                        placeholder="People"
+                        ariaLabel="People"
+                      />
+                    </div>
                     <OtherSelectField
                       value={r.role ?? ''}
                       onChange={(e) => patch(i, { role: e.target.value })}
@@ -119,36 +157,6 @@ export default function CrewField({
                       selectClassName={small}
                       detailClassName={small}
                     />
-                    <div className="min-w-[10rem] flex-[2]">
-                      {/* A person kept keeps the contact the line was read with;
-                          a new name is resolved again on save. */}
-                      <MultiComboField
-                        size="sm"
-                        value={(r.people ?? []).map((p) => p.name)}
-                        onChange={(fn) =>
-                          onChange((cur) =>
-                            cur.map((line, n) => {
-                              if (n !== i) return line
-                              const had = line.people ?? []
-                              const names = fn(had.map((p) => p.name))
-                              return {
-                                ...line,
-                                people: names.map(
-                                  (name) =>
-                                    had.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? {
-                                      name,
-                                      contactId: null,
-                                    },
-                                ),
-                              }
-                            }),
-                          )
-                        }
-                        options={namesFor(r.role)}
-                        placeholder="People"
-                        ariaLabel="People"
-                      />
-                    </div>
                     <button
                       type="button"
                       onClick={() => remove(i)}

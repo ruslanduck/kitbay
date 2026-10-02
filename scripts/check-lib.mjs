@@ -1666,6 +1666,14 @@ ok(
     'the general call takes its place in the day: an earlier row stays above it, a row with no time of its own is called with it',
   )
   eq(day(crew.scheduleLines(sheet)), ['07:30 Producer', '08:00 Photographer', '10:00 Model', '- Client'], 'without one the sheet is unchanged')
+  // The chip names every time it shows: the general call first, then an earlier
+  // individual call — a bare "6AM" read as nothing in particular.
+  eq(crew.chipCallLabel([{ role: 'Producer', time: '06:00' }], '08:00'), 'General 8AM · First 6AM', 'an earlier call is shown AFTER the general one, both named')
+  eq(crew.chipCallLabel([{ role: 'Model', time: '10:00' }], '08:00'), 'General 8AM', 'a later call adds nothing — the general call is the first')
+  eq(crew.chipCallLabel([], '08:00'), 'General 8AM', 'a general call alone')
+  eq(crew.chipCallLabel([{ role: 'Producer', time: '07:30' }, { role: 'Model', time: '10:00' }]), 'First call 7:30AM', 'no general call: the earliest one, named')
+  eq(crew.chipCallLabel([{ role: 'Client' }], null), '', 'no times at all: nothing on the chip')
+  eq(crew.chipCallLabel([{ role: 'Crew', time: '08:00' }], '08:00'), 'General 8AM', 'a row at the general hour is not "first"')
   eq(crew.scheduleLines([], '07:00').length, 1, 'a general call alone is a sheet of one line')
   eq(day(crew.scheduleLines(sheet, '8:5')), day(crew.scheduleLines(sheet)), 'a half-typed general call adds nothing')
   eq(

@@ -3479,6 +3479,31 @@
 > closes; on 8AM, 9 → "9AM" (still open), PM → "9PM" (closed), ArrowDown → "9:05PM" with the columns on 9 / :05 / PM.
 > The list is 178×268, fully on screen at 375 with 40px rows. The filter reads All jobs / PDP / Editorial / Other with
 > no extra text. Nothing saved, 0 console errors.
+> **CHANGE — every time on a calendar chip is NAMED, and a call-sheet row picks the PERSON first** (frontend only).
+> Two reports. (1) With a screenshot of a chip reading "6AM": "Добавлен general call time, но тянет сюда первый,
+> который не general … просто время тут не оч понятно что значит … может выводить первый и general и помечать если
+> они разные". Fair: the chip printed `earliestCrewCall` bare, so a shoot with an 8AM general call showed somebody's
+> 6AM, and nothing said what the number was. `chipCallLabel(crew, generalCall)` in `lib/crew` (pure, +6 assertions,
+> **800**) names it:
+> • "General 8AM" — the general call comes first, because it is when everyone comes;
+> • "General 8AM · First 6AM" — when an individual call is earlier than that;
+> • "First call 7:30AM" — when there is no general call;
+> • nothing, when there are no times at all.
+> A row AT the general hour is not "first". The tooltip still carries the whole sheet.
+> (2) "Логичнее будет тогда сначала давать выбрать человека, чтобы подтянуло его роль, а не роль и потом человека".
+> A call-sheet row is now TIME · PEOPLE · ROLE in the form, and picking the first person with a trade fills an EMPTY
+> role from People — `canonicalRole(trade)`, the rule the assignees list already uses, so a trade outside the list
+> arrives as Other + its name. A role already chosen is never overwritten, and removing the person leaves the role
+> alone. The call sheet as it is READ keeps time · role · people.
+> Verified in local mode: chips read "First call 7:30AM · Day 1/3 · OMSet1", "General 8AM · OMSet1", "First call 9AM"
+> and "First call 6:45AM · Day 1/2". Setting a general call of 8AM on the 3-day job (saved, then reseeded) made its
+> chip "General 8AM · First 7:30AM · Day 1/3 · OMSet1". In the form, a new row's fields run Call time → People → Role;
+> picking "Jonas Lind · Stylist" filled the role with Stylist, and adding Marcus Reed (a photographer) to the 7:30AM
+> Producer row left it Producer. At 375 the row wraps field by field with no overflow. 0 console errors.
+> ⚠️ My own test slip, worth keeping: a multi-person picker stays OPEN after a pick, by design. A second
+> `querySelector` for an option then found "Marcus Reed" in the PREVIOUS row's still-open list and put him there,
+> which made the "a chosen role is kept" check pass vacuously. Redone with exactly one list open. When driving a
+> picker that stays open, close it, or scope the option search to the popover you just opened.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

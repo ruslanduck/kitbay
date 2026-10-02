@@ -77,8 +77,8 @@ export function crewNames(crew = []) {
   return [...new Set((crew || []).map((r) => clean(r?.name)).filter(Boolean))]
 }
 
-// The earliest call — what a calendar chip has room for: "when do I have to be
-// there". The shoot's GENERAL call (everyone, no role) is a call too.
+// The earliest call: "when does anybody have to be there". The shoot's GENERAL
+// call (everyone, no role) is a call too.
 export function earliestCrewCall(crew = [], generalCall = null) {
   const general = toHHMM(generalCall)
   const times = [
@@ -178,6 +178,26 @@ export function scheduleLines(crew = [], generalCall = null) {
 
 // A wrap before the first call is a typo, not a shoot. Reported, never clamped —
 // clamping would invent an hour nobody typed.
+// What a calendar chip says about call times. A bare "6AM" read as nothing in
+// particular — it was somebody's early call while the shoot had a general call
+// of 8AM — so every time on the chip is NAMED: the general call first (it is
+// when everyone comes), then the earliest individual call when it is earlier
+// than that ("General 8AM · First 6AM"). With no general call, the earliest call
+// is the one there is ("First call 6AM"); with neither, nothing.
+export function chipCallLabel(crew = [], generalCall = null) {
+  const g = toHHMM(generalCall)
+  const general = isValidTime(g) ? g : null
+  const first = normalizeCrew(crew)
+    .map((r) => r.time)
+    .filter(Boolean)
+    .sort()[0] ?? null
+  if (general)
+    return first && first < general
+      ? `General ${formatTime(general)} · First ${formatTime(first)}`
+      : `General ${formatTime(general)}`
+  return first ? `First call ${formatTime(first)}` : ''
+}
+
 export function wrapBeforeFirstCrewCall(crew = [], wrapTime = null, generalCall = null) {
   const first = earliestCrewCall(crew, generalCall)
   const wrap = toHHMM(wrapTime)
