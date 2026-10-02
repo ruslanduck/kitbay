@@ -30,7 +30,8 @@ import {
   setYear,
 } from 'date-fns'
 import { useStore } from '../store'
-import { brandsIn } from '../lib/orderSearch'
+import { brandsIn, CALENDAR_TYPE_FILTERS, matchesTypeFilter } from '../lib/orderSearch'
+import { usePersisted } from '../lib/usePersisted'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
 import { earliestCrewCall, crewSummary, scheduleLines } from '../lib/crew'
 import { formatTime } from '../lib/clock'
@@ -225,6 +226,10 @@ export default function StudioCalendar() {
   const [statusError, setStatusError] = useState(null)
 
   const refDate = useMemo(() => parseISO(selectedDate), [selectedDate])
+  // Which jobs the grid shows — all of them, PDP only or Editorial only. Kept
+  // like every other screen's filter, so it is still set after a round trip
+  // through Jobs or a reload.
+  const [typeFilter, setTypeFilter] = usePersisted('calendar', 'jobType', 'all')
 
   // All active bookings grouped by ISO date, sorted by studio then job name.
   // Each chip also carries its order's hand-typed Set designation — with several
@@ -235,9 +240,12 @@ export default function StudioCalendar() {
   // only on its first day would read as free for the rest. `dayIndex` /
   // `spanDays` are what let a chip say "Day 2/3" instead of pretending each
   // cell is a separate booking.
-  const byDay = useMemo(() => {
+  const { byDay, hiddenByDay } = useMemo(() => {
     const orderById = new Map(orders.map((o) => [o.id, o]))
     const map = new Map()
+    // What the type filter took off the grid, per day and studio — so the day
+    // view can't call a studio "free" when its shoot is only filtered out.
+    const hidden = new Map()
     for (const b of bookings) {
       if (b.status !== 'active') continue
       // An archived shoot is off the calendar — it lives in the Archive until
@@ -245,6 +253,14 @@ export default function StudioCalendar() {
       if (b.archivedAt) continue
       const order = b.orderId ? orderById.get(b.orderId) : null
       const days = setDays(b.date, b.endDate)
+      if (!matchesTypeFilter(order?.jobType, typeFilter)) {
+        for (const iso of days) {
+          if (!hidden.has(iso)) hidden.set(iso, new Map())
+          const perStudio = hidden.get(iso)
+          perStudio.set(b.studioId, (perStudio.get(b.studioId) ?? 0) + 1)
+        }
+        continue
+      }
       days.forEach((iso, i) => {
         if (!map.has(iso)) map.set(iso, [])
         map.get(iso).push({
@@ -271,8 +287,8 @@ export default function StudioCalendar() {
           (a.title || '').localeCompare(b.title || ''),
       )
     }
-    return map
-  }, [bookings, orders])
+    return { byDay: map, hiddenByDay: hidden }
+  }, [bookings, orders, typeFilter])
 
   // Whether the month/year chooser is open, and where to draw it.
   const [jumping, setJumping] = useState(false)
@@ -477,6 +493,7 @@ export default function StudioCalendar() {
               </span>
             ))}
           </div>
+          <TypeFilter value={typeFilter} onChange={setTypeFilter} />
           <ModeToggle mode={calendarMode} setMode={pickMode} />
           {canCreate && (
             <button
@@ -549,6 +566,7 @@ export default function StudioCalendar() {
           iso={selectedDate}
           studios={studios}
           byDay={byDay}
+          hidden={hiddenByDay.get(selectedDate)}
           onOpenCreate={canCreate ? openCreate : null}
           onOpenEdit={openEdit}
           onStatus={openStatus}
@@ -637,6 +655,29 @@ export default function StudioCalendar() {
 // "текущий по дефолту" — because a day view opened on last month's Tuesday is
 // not what anyone means by it. A day cell in the month grid and a day header in
 // the week grid open the day they name instead, which is the other half of it.
+// Which jobs the grid shows. Same shape as the Day / Week / Month toggle beside
+// it: one tap, and the choice in effect is always visible.
+function TypeFilter({ value, onChange }) {
+  return (
+    <div className="flex rounded-lg border border-slate-300 bg-surface p-0.5" role="group" aria-label="Shoot type">
+      {CALENDAR_TYPE_FILTERS.map((t) => (
+        <button
+          key={t}
+          type="button"
+          aria-pressed={value === t}
+          onClick={() => onChange(t)}
+          className={[
+            'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition',
+            value === t ? 'bg-brand text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100',
+          ].join(' ')}
+        >
+          {t === 'all' ? 'All jobs' : t}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function ModeToggle({ mode, setMode }) {
   return (
     <div className="flex rounded-lg border border-slate-300 bg-surface p-0.5">
@@ -813,35 +854,41 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
 // Every set on ONE day, grouped by studio — including Studio L, which is where
 // the location shoots sit, and including every studio with nothing on it,
 // because "what is free today" is half of what this view answers.
-function DayView({ iso, studios, byDay, onOpenCreate, onOpenEdit, onStatus, canManage, flip = '' }) {
+function DayView({ iso, studios, byDay, hidden = null, onOpenCreate, onOpenEdit, onStatus, canManage, flip = '' }) {
   const all = byDay.get(iso) ?? []
+  // Shoots the type filter took off this day, per studio. A studio holding only
+  // those is NOT free — saying so would invite a booking on a day it's taken.
+  const hiddenIn = (studioId) => hidden?.get(studioId) ?? 0
+  const hiddenTotal = [...(hidden?.values() ?? [])].reduce((sum, n) => sum + n, 0)
   const groups = studios.map((studioId) => ({
     studioId,
     sets: all.filter((b) => b.studioId === studioId),
+    hidden: hiddenIn(studioId),
   }))
   // A set in a studio this app doesn't list (legacy data) still has to appear.
   for (const b of all)
     if (!studios.includes(b.studioId) && !groups.some((g) => g.studioId === b.studioId))
-      groups.push({ studioId: b.studioId, sets: all.filter((x) => x.studioId === b.studioId) })
-  const free = groups.filter((g) => g.sets.length === 0).length
+      groups.push({ studioId: b.studioId, sets: all.filter((x) => x.studioId === b.studioId), hidden: 0 })
+  const free = groups.filter((g) => g.sets.length === 0 && g.hidden === 0).length
 
   return (
     <div className={`min-h-0 flex-1 overflow-auto ${flip}`}>
       <p className="mb-3 text-sm text-slate-500">
-        {all.length === 0 ? (
+        {all.length === 0 && hiddenTotal === 0 ? (
           'Nothing booked on this day.'
         ) : (
           <>
             <span className="font-medium text-slate-700">
               {all.length} shoot{all.length === 1 ? '' : 's'}
             </span>
+            {hiddenTotal > 0 && ` · ${hiddenTotal} hidden by the filter`}
             {free > 0 && ` · ${free} studio${free === 1 ? '' : 's'} free`}
           </>
         )}
       </p>
 
       <div className="space-y-3 pb-4">
-        {groups.map(({ studioId, sets }) => (
+        {groups.map(({ studioId, sets, hidden: hiddenHere }) => (
           <section key={studioId} className="rounded-xl border border-slate-200 bg-slate-50/60">
             <header className="flex items-center justify-between gap-2 px-3 py-2">
               <span className="inline-flex items-center gap-2">
@@ -851,7 +898,12 @@ function DayView({ iso, studios, byDay, onOpenCreate, onOpenEdit, onStatus, canM
                 <span className="text-sm font-medium text-slate-700">{studioLabel(studioId)}</span>
                 {sets.length > 1 && <span className="text-xs text-slate-400">{sets.length} shoots</span>}
               </span>
-              {sets.length === 0 && (
+              {sets.length === 0 && hiddenHere > 0 && (
+                <span className="text-xs text-slate-400">
+                  {hiddenHere} shoot{hiddenHere === 1 ? '' : 's'} hidden by the filter
+                </span>
+              )}
+              {sets.length === 0 && hiddenHere === 0 && (
                 <span className="inline-flex items-center gap-2">
                   <span className="text-xs text-slate-400">free</span>
                   {onOpenCreate && (

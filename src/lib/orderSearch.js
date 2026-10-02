@@ -156,6 +156,15 @@ export const JOB_TYPES = ['Editorial', 'PDP']
 // The filter offers the same choices — "Other" catches every typed type.
 export const JOB_TYPE_FILTERS = [...JOB_TYPES, OTHER]
 
+// The CALENDAR's filter: every job, or only one of the two types the studio
+// works in — asked for as exactly these three ("все джобы, только PDP или только
+// Editorial"). A job typed anything else, or not typed yet, shows under All only.
+export const CALENDAR_TYPE_FILTERS = ['all', 'PDP', 'Editorial']
+export function matchesTypeFilter(jobType, filter) {
+  if (!filter || filter === 'all') return true
+  return choiceOf(jobType, JOB_TYPES) === filter
+}
+
 // A SET name is how a PDP day tells its sets apart ("OMSet1", "OMSet2"); an
 // editorial shoot has none. So the field belongs to PDP — and to a job with no
 // type yet, which is where every job predating shoot types sits: 13 of the 20

@@ -1763,6 +1763,12 @@ ok(
   )
   eq(activity.jobFieldWords(['crew']), ['call times'], 'the feed calls an edited sheet "call times"')
   eq(activity.jobFieldWords(['callTime']), ['general call time'], 'and a changed general call by its own name')
+  // The calendar's filter: every job, PDP only, or Editorial only.
+  eq(orderSearch.CALENDAR_TYPE_FILTERS, ['all', 'PDP', 'Editorial'], 'the three choices asked for, in that order')
+  ok(['PDP', 'Editorial', null, '', 'Lookbook'].every((t) => orderSearch.matchesTypeFilter(t, 'all')), 'All shows every job, typed or not')
+  ok(orderSearch.matchesTypeFilter('PDP', 'PDP') && orderSearch.matchesTypeFilter('pdp', 'PDP'), 'PDP shows PDP, however it was spelled')
+  ok(!orderSearch.matchesTypeFilter('Editorial', 'PDP') && !orderSearch.matchesTypeFilter(null, 'PDP'), 'and nothing else — an untyped job is not PDP')
+  ok(orderSearch.matchesTypeFilter('Editorial', 'Editorial') && !orderSearch.matchesTypeFilter('Lookbook', 'Editorial'), 'Editorial shows Editorial only, a typed Other is neither')
   // One word per level: the position is Inventory, a physical piece an item.
   eq(activity.describeEvent({ type: activity.EVENT.UNIT_ADDED, data: { barcode: '0851' } }).title, 'Registered an item', 'a new piece is an item')
   eq(activity.describeEvent({ type: activity.EVENT.ITEM_CREATED, data: { name: 'C-Stand' } }).title, 'Added this inventory entry', 'a new position is an inventory entry')

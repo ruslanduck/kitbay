@@ -318,7 +318,10 @@ function buildSeedData() {
       // DEMO CONTENT ONLY. The field is hand-typed by the crew; the studio's job
       // names happen to end in their set designation (…_OMSet1), so the seed
       // takes it from there instead of repeating it in every seed row.
-      setLabel: setLabelFromJobName(o.setTitle),
+      // Set name belongs to PDP (and to a job with no type yet) — an editorial
+      // shoot has none, the same rule the form applies (setNameApplies).
+      setLabel: setNameApplies(o.type) ? setLabelFromJobName(o.setTitle) : null,
+      jobType: o.type ?? null,
       location: o.location ?? null,
       status: o.status,
       kind: o.kind,

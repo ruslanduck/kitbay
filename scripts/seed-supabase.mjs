@@ -375,7 +375,9 @@ async function main() {
       po_number: o.po ?? null,
       // Demo content: the crew types the Set by hand, and their job names end in
       // that designation (…_OMSet1), so the seed reuses it.
-      set_label: String(o.setTitle ?? '').split('_').slice(-1)[0] || null,
+      // Set name only for PDP or an untyped job (lib/orderSearch setNameApplies).
+      set_label: !o.type || o.type === 'PDP' ? String(o.setTitle ?? '').split('_').slice(-1)[0] || null : null,
+      job_type: o.type ?? null,
       // The first assignee, mirrored into the old single column (20261001130000).
       photographer_contact_id: set?.assignees?.[0] ? contactId[set.assignees[0].name] ?? null : null,
     }).select('id').single()

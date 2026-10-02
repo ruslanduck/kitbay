@@ -32,6 +32,79 @@ ROOTS.forEach(walk)
 const HOOK = /\b(useMemo|useCallback)\s*\(/g
 let findings = 0
 
+// Comments and string contents are not code. A comment inside a hook that said
+// a studio isn't "free" once matched a `const free` in ANOTHER function and was
+// reported as a read — the cry-wolf this tool must not do. Template literals
+// keep their `${…}` expressions, because those ARE reads. A tiny state machine,
+// not a parser: a regex literal holding `//` can still fool it, which only ever
+// HIDES identifiers (a missed suspect), never invents one.
+function codeOnly(text) {
+  let out = ''
+  const modes = ['code'] // 'code' | 'tpl'; a 'code' above the base came from `${`
+  const depth = [0] // open braces per mode, so `}` knows when a `${…}` ends
+  let i = 0
+  while (i < text.length) {
+    const c = text[i]
+    const next = text[i + 1]
+    if (modes[modes.length - 1] === 'tpl') {
+      if (c === '\\') {
+        i += 2
+      } else if (c === '`') {
+        modes.pop()
+        depth.pop()
+        out += ' '
+        i++
+      } else if (c === '$' && next === '{') {
+        modes.push('code')
+        depth.push(0)
+        out += ' '
+        i += 2
+      } else {
+        i++
+      }
+      continue
+    }
+    if (c === '/' && next === '/') {
+      while (i < text.length && text[i] !== '\n') i++
+      continue
+    }
+    if (c === '/' && next === '*') {
+      const close = text.indexOf('*/', i + 2)
+      i = close < 0 ? text.length : close + 2
+      out += ' '
+      continue
+    }
+    if (c === "'" || c === '"') {
+      i++
+      while (i < text.length && text[i] !== c && text[i] !== '\n') i += text[i] === '\\' ? 2 : 1
+      i++
+      out += ' '
+      continue
+    }
+    if (c === '`') {
+      modes.push('tpl')
+      depth.push(0)
+      out += ' '
+      i++
+      continue
+    }
+    if (c === '{') depth[depth.length - 1]++
+    if (c === '}') {
+      if (depth[depth.length - 1] === 0 && modes.length > 1) {
+        modes.pop()
+        depth.pop()
+        out += ' '
+        i++
+        continue
+      }
+      depth[depth.length - 1]--
+    }
+    out += c
+    i++
+  }
+  return out
+}
+
 for (const file of files) {
   const src = readFileSync(file, 'utf8')
   const lines = src.split('\n')
@@ -68,7 +141,7 @@ for (const file of files) {
     // dead zone, only a bare `units` can. Stripping `.name` (and `?.name`)
     // before scanning removes a whole class of false alarm — and a tool whose
     // job is to be believed cannot cry wolf.
-    const body = src.slice(m.index, end + 1).replace(/\??\.\s*[A-Za-z_$][\w$]*/g, ' ')
+    const body = codeOnly(src.slice(m.index, end + 1)).replace(/\??\.\s*[A-Za-z_$][\w$]*/g, ' ')
     // The hook call's own last line. A const declared INSIDE the callback is a
     // local — the overwhelming majority of matches — and only a declaration
     // BELOW the whole call can be the outer-scope one that has not run yet.

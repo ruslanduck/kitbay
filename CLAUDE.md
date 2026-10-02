@@ -3305,6 +3305,36 @@
 > tooltips. 375px: every field fits, the picker stays on screen, no overflow. Reseeded, 0 console errors.
 > ℹ️ **Dates did not change** — "01 Oct 2026" and the ISO "2026-09-30" on the cards are a separate format the request
 > didn't mention; asked rather than switched.
+> **FEATURE — the calendar filters by shoot type: All jobs / PDP / Editorial** (frontend only, no migration).
+> Requested: "Добавить фильтр на страницу Календаря, чтобы можно было видеть все джобы, только PDP или только
+> Editorial". A segmented control beside Day / Week / Month — same shape, one tap, the choice in effect always
+> visible — with exactly the three choices asked for. A job typed anything else (Other → "Lookbook") or not typed at
+> all shows under **All jobs** only. The rule is pure, `matchesTypeFilter(jobType, filter)` in `lib/orderSearch`
+> beside `JOB_TYPES`, so a stored "pdp" still counts as PDP (it goes through `choiceOf`).
+> The filter is applied ONCE, where the calendar lays its shoots out by day (`byDay`), so the week grid, the month
+> grid and the day view can't disagree. It is kept like every other screen's filter (`usePersisted('calendar',
+> 'jobType')`), so it survives a trip to Jobs and a reload.
+> ⚠️ **The day view had to stay honest about capacity.** A studio holding only filtered-out shoots used to read
+> "free · Book it" — an invitation to book a day that is taken. The layout now also counts what the filter HID, per
+> day and studio (`hiddenByDay`): such a studio reads "1 shoot hidden by the filter", the summary says
+> "2 shoots · 1 hidden by the filter · 3 studios free", and only a truly empty studio is free. The week and month
+> grids simply hide the chips: there a filter is expected to.
+> **Demo content:** the 11 client jobs in the seed carry a type now (8 PDP, 3 Editorial, both seed paths). Without
+> one, PDP and Editorial both showed an empty grid. The Editorial ones get no Set name, by the form's own rule
+> (`setNameApplies`).
+> ℹ️ **On prod only 4 of 21 live jobs have a type** (1 PDP, 3 Editorial; 16 untyped, 1 "test"). Until the rest
+> are typed they show under All jobs only. The data is the studio's, so no types were guessed.
+> **Fixed while here — `audit:tdz` cried wolf.** It read IDENTIFIERS out of a hook's raw text, comments and
+> strings included, so the word "free" in a comment inside `byDay` matched a `const free` declared in another
+> function and was reported as a read before its declaration. A small state machine now drops comments and string
+> contents before the scan, and keeps template literals' `${…}` expressions, which ARE reads. Proved both ways with a
+> throwaway file: a real read before the declaration and one inside `${…}` are flagged, the same words in a comment
+> and in a string are not.
+> +5 assertions (**739**). Verified in local mode by measurement: the week shows 14 chips under All, 10 under PDP and
+> 4 under Editorial (10 + 4 = 14, with no PDP chip under Editorial and none the other way); the month grid gives the
+> same split; on Sep 29 with PDP the day view reads as above. The choice survives Jobs → Calendar and a reload. The
+> toolbar fits on one line at 1440 and 1024, wraps to three lines at 375 with nothing clipped and no overflow.
+> Reseeded, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

@@ -11,66 +11,68 @@
 //   [itemId, qty, vendorCompanyId] → sub-rental from that vendor (reserves nothing)
 //
 // `setTitle` links the order to its booking (the shoot); `dayOffset` (days from
-// this week's Monday, negative = earlier) sets the order date.
+// this week's Monday, negative = earlier) sets the order date. `type` is the
+// shoot type — mostly PDP (their names end in the set, …_OMSet1), with three
+// Editorial so the calendar's type filter has something to tell apart.
 export const ORDER_SEED = [
   // ---- This week's equipment pulls — these DRIVE the inventory reservations.
   {
-    number: 'CL-26051', po: 'PO-4511', company: 'vantage-mgmt', kind: 'client',
+    number: 'CL-26051', po: 'PO-4511', company: 'vantage-mgmt', kind: 'client', type: 'PDP',
     status: 'confirmed', dayOffset: 0, setTitle: '20260624_AT_MAIN_SepBOM_Missy_OMSet1',
     // No loose MacBook here: the only non-fixed 16" MacBook goes to Nike below
     // (the other two are pinned to the capture-cart kits), so stock stays honest.
     lines: [['kbd-magic', 2], ['mouse-magic', 2], ['cstand-40', 3], ['sandbag-25', 4]],
   },
   {
-    number: 'CL-26052', po: 'PO-4512', company: 'atlas-models', kind: 'client',
+    number: 'CL-26052', po: 'PO-4512', company: 'atlas-models', kind: 'client', type: 'Editorial',
     status: 'confirmed', dayOffset: 1, setTitle: '20260629_AT_MAIN_SepBOM_Missy_OMSet1',
     // one sub-rental line (extra tubes from Northlight) alongside the in-house pull
     lines: [['arri-2k', 2], ['stinger-25', 3], ['sandbag-25', 3], ['flag-24x36', 2], ['astera-titan', 2, 'northlight-rentals']],
   },
   {
-    number: 'CL-26053', po: 'PO-4513', company: 'vantage-mgmt', kind: 'client',
+    number: 'CL-26053', po: 'PO-4513', company: 'vantage-mgmt', kind: 'client', type: 'PDP',
     status: 'confirmed', dayOffset: 1, setTitle: '20260629_AT_MAIN_SepBOM_Missy_OMSet2',
     lines: [['aputure-600d', 1], ['aputure-300x', 2], ['cstand-40', 2], ['kbd-magic', 1]],
   },
   {
-    number: 'CL-26054', po: 'PO-4514', company: 'atlas-models', kind: 'client',
+    number: 'CL-26054', po: 'PO-4514', company: 'atlas-models', kind: 'client', type: 'PDP',
     status: 'confirmed', dayOffset: 2, setTitle: '20260625_AT_MAIN_SepBOM_Missy_OMSet1',
     lines: [['quasar-4ft', 4], ['astera-titan', 2], ['smallhd-702', 1]],
   },
   {
-    number: 'CL-26055', po: 'PO-4515', company: 'vantage-mgmt', kind: 'client',
+    number: 'CL-26055', po: 'PO-4515', company: 'vantage-mgmt', kind: 'client', type: 'PDP',
     status: 'confirmed', dayOffset: 3, setTitle: '20260630_AT_MAIN_SepBOM_Missy_OMSet1',
     lines: [['kbd-magic', 3], ['mouse-magic', 2], ['macbook-16', 1], ['sony-fx6', 1], ['sony-2470', 1]],
   },
   {
-    number: 'CL-26056', po: 'PO-4516', company: 'atlas-models', kind: 'client',
+    number: 'CL-26056', po: 'PO-4516', company: 'atlas-models', kind: 'client', type: 'Editorial',
     status: 'confirmed', dayOffset: 3, setTitle: '20260630_AT_MAIN_SepBOM_Missy_OMSet2', location: 'Pier 59 / Studio 101 · Chelsea Piers, New York, NY 10011',
     lines: [['canon-r5', 1], ['sony-2470', 1], ['aputure-600d', 1], ['kbd-magic', 2]],
   },
   {
-    number: 'CL-26057', po: 'PO-4517', company: 'vantage-mgmt', kind: 'client',
+    number: 'CL-26057', po: 'PO-4517', company: 'vantage-mgmt', kind: 'client', type: 'PDP',
     status: 'confirmed', dayOffset: 4, setTitle: '20260706_AT_MAIN_SepBOM_Missy_OMSet1',
     lines: [['arri-750', 2], ['stinger-25', 2], ['director-chair', 2], ['applebox-half', 2]],
   },
   {
     // The visible HOLD example — nothing committed, so its gear (incl. the Canon)
     // stays available.
-    number: 'CL-26058', po: 'PO-4503', company: 'atlas-models', kind: 'client',
+    number: 'CL-26058', po: 'PO-4503', company: 'atlas-models', kind: 'client', type: 'PDP',
     status: 'hold', dayOffset: 5, setTitle: '20260701_AT_MAIN_SepBOM_Missy_OMSet1',
     lines: [['canon-r5', 1], ['wireless-go-2', 1], ['sandbag-25', 2], ['cstand-40', 2]],
   },
   {
-    number: 'CL-26059', po: 'PO-4519', company: 'vantage-mgmt', kind: 'client',
+    number: 'CL-26059', po: 'PO-4519', company: 'vantage-mgmt', kind: 'client', type: 'PDP',
     status: 'confirmed', dayOffset: 5, setTitle: '20260701_AT_MAIN_SepBOM_Missy_OMSet2',
     lines: [['zoom-h6', 1], ['wireless-go-2', 1], ['astera-titan', 1]],
   },
   {
-    number: 'CL-26060', po: 'PO-4520', company: 'atlas-models', kind: 'client',
+    number: 'CL-26060', po: 'PO-4520', company: 'atlas-models', kind: 'client', type: 'PDP',
     status: 'confirmed', dayOffset: 6, setTitle: '20260715_AT_MAIN_SepMM_Missy_OMSet1',
     lines: [['mkh-416', 2], ['zoom-h6', 1], ['wireless-go-2', 2], ['director-chair', 2]],
   },
   {
-    number: 'CL-26061', po: 'PO-4521', company: 'vantage-mgmt', kind: 'client',
+    number: 'CL-26061', po: 'PO-4521', company: 'vantage-mgmt', kind: 'client', type: 'Editorial',
     status: 'confirmed', dayOffset: 6, setTitle: '20260716_AT_MAIN_SepMM_Missy_OMSet1',
     lines: [['sony-fx6', 1], ['smallhd-702', 1], ['mixpre-6', 1], ['mkh-416', 1]],
   },
