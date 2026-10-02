@@ -12,6 +12,7 @@ import {
   MapPin,
   UserRound,
   ListFilter,
+  CalendarRange,
 } from 'lucide-react'
 import {
   startOfWeek,
@@ -691,25 +692,24 @@ function TypeFilter({ value, onChange, otherTypes = [] }) {
   )
 }
 
+// The view, as a dropdown too: the toolbar is one row of the same kind of
+// control instead of two segmented strips that read as one. Picking Day jumps to
+// today (`pickMode`).
+const VIEW_MODES = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+]
 function ModeToggle({ mode, setMode }) {
   return (
-    <div className="flex rounded-lg border border-slate-300 bg-surface p-0.5">
-      {['day', 'week', 'month'].map((m) => (
-        <button
-          key={m}
-          type="button"
-          onClick={() => setMode(m)}
-          className={[
-            'rounded-md px-3 py-1.5 text-sm font-medium capitalize transition',
-            mode === m
-              ? 'bg-brand text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100',
-          ].join(' ')}
-        >
-          {m}
-        </button>
-      ))}
-    </div>
+    <SelectField
+      value={mode}
+      onChange={(e) => setMode(e.target.value)}
+      options={VIEW_MODES}
+      icon={CalendarRange}
+      ariaLabel={`View: ${VIEW_MODES.find((m) => m.value === mode)?.label ?? 'Week'}`}
+      className="min-w-[7.5rem] whitespace-nowrap rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+    />
   )
 }
 

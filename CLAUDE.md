@@ -3426,6 +3426,32 @@
 > nothing clipped. Its tint reads 10.98 dark / 6.65 light. PDP shows 9 chips, All jobs 14, and the choice persists.
 > The toolbar fits one line at 1440 and 1024; at 375 it is two lines instead of three, with the list opening on
 > screen. No overflow, 0 console errors.
+> **UI — selectors are dropdowns, app-wide, by one rule** (frontend only). Requested after the calendar filter: "Это
+> касается всех упрощений UI где ты можешь сделай дропдаун, чтобы выглядело красиво". Audited every button group
+> and segmented strip in the components and applied a rule rather than converting everything:
+> • **Choosing one value from 3+ options → dropdown.** The calendar's view (Day / Week / Month) is a `SelectField`
+>   with a calendar icon beside the type filter. The toolbar is now one row of the same kind of control instead of
+>   two segmented strips that read as one, and Day still jumps to today. The job form's **Status** is a field-shaped
+>   dropdown whose options carry each state's own dot — the card pill's and the chips' colours, through a per-status
+>   icon component made once (`statusDot`). A new job still offers Hold and Confirmed only, and Hold is preselected.
+> • **The same switch repeated in every row of a list → dropdown.** In the equipment window each line's In-house /
+>   Sub-rental is a small dropdown beside its vendor picker, amber while it is a sub-rental. Before, it was a
+>   column of pill pairs. In the kit editor each slot's Generic / Fixed is a dropdown beside its item picker.
+> • **Kept on purpose:** the section TABS (Inventory / Kits / Lists, People / Companies — a dropdown would hide the
+>   other sections) and the single primary two-way switches that ARE the form's first question: Barcoded /
+>   Non-barcoded when adding inventory, Received / Went out in the stock window, and the packing list's Check in /
+>   Check out scan mode. There, a dropdown would put the only alternative behind an extra click.
+> ⚠️ **Fixed while converting:** re-picking a line's CURRENT source ran `switchSource` against the line's own
+> quantity. An in-house line therefore read as short of itself and could raise the zero-availability dialog — easy
+> to trigger from a dropdown, where re-choosing the shown value is common. It returns early now. A kit slot
+> re-picked as its own type is a no-op too.
+> Also removed: a comment orphaned by the date change, which described the deleted `dateRange` helper.
+> Measured in local mode: the view dropdown turns Month → "October 2026", Week → "Sep 28 – Oct 4, 2026", Day → today;
+> the toolbar fits one line at 1024 (view 120px, type 136px) and two lines at 375 with no overflow. The status
+> options are Hold / Confirmed / Closed / Canceled, each with its own dot, and picking Hold shows its amber dot in
+> the field (cancelled). In the equipment window four lines each offer In-house / Sub-rental; Sub-rental tints the
+> line and brings up the vendor picker, switching back raises nothing, and re-picking In-house raises nothing. A kit
+> slot switched to Fixed brings up its item picker with "#0961 (out)". Nothing saved, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

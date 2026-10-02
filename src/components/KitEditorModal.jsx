@@ -245,36 +245,25 @@ export default function KitEditorModal({
                         className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                       />
 
-                      {/* Type toggle */}
-                      <div className="flex rounded-md border border-slate-300 p-0.5">
-                        {[
-                          ['generic', 'Generic', ScanLine],
-                          ['fixed', 'Fixed', Lock],
-                        ].map(([val, lbl, Icon]) => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() =>
-                              setSlot(i, {
-                                slotType: val,
-                                fixedUnitId:
-                                  val === 'fixed' ? (s.fixedUnitId ?? units[0]?.id ?? null) : null,
-                              })
-                            }
-                            className={[
-                              'inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium transition',
-                              s.slotType === val
-                                ? val === 'fixed'
-                                  ? 'bg-chip text-white'
-                                  : 'bg-brand text-white'
-                                : 'text-slate-500 hover:bg-slate-100',
-                            ].join(' ')}
-                          >
-                            <Icon size={11} />
-                            {lbl}
-                          </button>
-                        ))}
-                      </div>
+                      {/* Slot type — a dropdown per slot, like the item picker
+                          beside it, not a two-button switch in every row. */}
+                      <SelectField
+                        value={s.slotType}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val === s.slotType) return
+                          setSlot(i, {
+                            slotType: val,
+                            fixedUnitId: val === 'fixed' ? (s.fixedUnitId ?? units[0]?.id ?? null) : null,
+                          })
+                        }}
+                        options={[
+                          { value: 'generic', label: 'Generic', icon: ScanLine },
+                          { value: 'fixed', label: 'Fixed', icon: Lock },
+                        ]}
+                        ariaLabel="Slot type"
+                        className="whitespace-nowrap rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 outline-none transition focus:ring-2 focus:ring-violet-100"
+                      />
 
                       {isFixed ? (
                         units.length > 0 ? (

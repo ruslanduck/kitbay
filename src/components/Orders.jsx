@@ -124,9 +124,6 @@ function Highlight({ text, query }) {
   )
 }
 
-// A shoot can run several days, so the window says how many — "→ 2026-09-11"
-// alone leaves the reader counting on their fingers.
-
 export default function Orders() {
   const orders = useStore((s) => s.orders)
   const studios = useStore((s) => s.studios)

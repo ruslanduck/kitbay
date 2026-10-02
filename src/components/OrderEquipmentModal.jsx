@@ -630,6 +630,9 @@ export default function OrderEquipmentModal({
   // Switching a line to sub-rental frees the in-house units it was holding.
   function switchSource(index, source, { force = false } = {}) {
     const line = itemLines[index]
+    // Picked what it already is (a dropdown makes that easy): nothing to do. An
+    // in-house line re-checked against its OWN quantity would read as short.
+    if (line.source === source && !force) return
     if (source === IN_HOUSE && !force) {
       const item = itemsById[line.itemId]
       const free = availableCount(item, avCtx) - inHouseQty(line.itemId)
@@ -948,29 +951,22 @@ export default function OrderEquipmentModal({
                       </div>
 
                       <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
-                        <div className="flex rounded-md border border-slate-300 p-0.5">
-                          {[
-                            [IN_HOUSE, 'In-house', Home],
-                            [SUB_RENTAL, 'Sub-rental', Truck],
-                          ].map(([val, lbl, Icon]) => (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={() => switchSource(i, val)}
-                              className={[
-                                'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium transition',
-                                l.source === val
-                                  ? val === SUB_RENTAL
-                                    ? 'bg-amber-500 text-white'
-                                    : 'bg-chip text-white'
-                                  : 'text-slate-500 hover:bg-slate-100',
-                              ].join(' ')}
-                            >
-                              <Icon size={11} />
-                              {lbl}
-                            </button>
-                          ))}
-                        </div>
+                        {/* A dropdown per line, not a two-button switch in every
+                            row: a list of those is a column of pills. A
+                            sub-rental stays amber, the Rental House colour. */}
+                        <SelectField
+                          value={l.source}
+                          onChange={(e) => switchSource(i, e.target.value)}
+                          options={[
+                            { value: IN_HOUSE, label: 'In-house', icon: Home },
+                            { value: SUB_RENTAL, label: 'Sub-rental', icon: Truck },
+                          ]}
+                          ariaLabel="Source"
+                          className={[
+                            'whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium outline-none transition focus:ring-2 focus:ring-violet-100',
+                            isSub ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-300 text-slate-700',
+                          ].join(' ')}
+                        />
                         {isSub && (
                           <SelectField
                             value={l.vendorId ?? ''}

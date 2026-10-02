@@ -65,6 +65,21 @@ const blank = {
   status: 'hold',
 }
 
+// A status's own dot as an "icon" SelectField can draw, in the list and in the
+// trigger — the colours the card's pill and the calendar's chips use. One
+// component per status, made once, so the trigger doesn't remount on every
+// render.
+const STATUS_DOTS = new Map()
+function statusDot(value) {
+  if (!STATUS_DOTS.has(value)) {
+    const dot = orderStatusMeta(value).dot
+    STATUS_DOTS.set(value, function StatusDot() {
+      return <span className={['h-2 w-2 shrink-0 rounded-full', dot].join(' ')} />
+    })
+  }
+  return STATUS_DOTS.get(value)
+}
+
 export default function OrderEditorModal({
   open,
   order,
@@ -370,25 +385,19 @@ export default function OrderEditorModal({
 
           <div>
             <label className={label}>Status</label>
-            <div className="flex rounded-lg border border-slate-300 p-0.5">
-              {statusChoices.map((value) => {
-                const meta = orderStatusMeta(value)
-                const on = form.status === value
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => set({ status: value })}
-                    className={[
-                      'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition',
-                      on ? [meta.pill, 'ring-1'].join(' ') : 'text-slate-600 hover:bg-slate-100',
-                    ].join(' ')}
-                  >
-                    {ORDER_STATUS[value]?.label ?? value}
-                  </button>
-                )
-              })}
-            </div>
+            {/* A dropdown like every other field in this form; the state in
+                effect is still always shown, with its own dot. */}
+            <SelectField
+              value={form.status}
+              onChange={(e) => set({ status: e.target.value })}
+              options={statusChoices.map((value) => ({
+                value,
+                label: ORDER_STATUS[value]?.label ?? value,
+                icon: statusDot(value),
+              }))}
+              ariaLabel="Status"
+              className={field}
+            />
           </div>
 
         </div>
