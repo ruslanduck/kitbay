@@ -16,7 +16,8 @@ import { orderStatusMeta } from '../data/orderStatus.js'
 import { showsSetName } from './orderSearch.js'
 import { BRAND_NAME } from './brand.js'
 import { assigneeLabel } from './peopleOptions.js'
-import { formatTime } from './clock.js'
+import { formatDate, formatTime } from './clock.js'
+import { spanDated } from './setDays.js'
 
 const PAGE = { w: 595.28, h: 841.89 } // A4 portrait, points
 const M = 48 // page margin
@@ -162,11 +163,7 @@ export function buildEstimatePdf(estimateOrOrder, context) {
       // say so: the crew reads this to know when the gear goes out and when it
       // is due back.
       est.days > 1 ? 'Shoot dates' : 'Shoot date',
-      est.order.startsOn
-        ? est.order.endsOn && est.order.endsOn !== est.order.startsOn
-          ? `${est.order.startsOn} to ${est.order.endsOn}  (${est.days} days)`
-          : est.order.startsOn
-        : '—',
+      est.order.startsOn ? spanDated(est.order.startsOn, est.order.endsOn) : '—',
     ],
     // Several people may be on a job; the row wraps like an address does.
     [
@@ -176,7 +173,7 @@ export function buildEstimatePdf(estimateOrOrder, context) {
     ['Client', est.order.companyName || '—'],
     [
       'Raised by',
-      [est.order.createdBy, est.order.createdAt ? String(est.order.createdAt).slice(0, 10) : null]
+      [est.order.createdBy, est.order.createdAt ? formatDate(est.order.createdAt) : null]
         .filter(Boolean)
         .join(' · ') || '—',
     ],

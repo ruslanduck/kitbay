@@ -8,6 +8,7 @@
 // without a browser.
 import { coversDay, firstFullDay, setSpanDays } from './setDays.js'
 import { studioLabel, LOCATION_STUDIO } from '../data/studios.js'
+import { formatDate } from './clock.js'
 
 // A studio room runs at most this many shoots a day (the studio's own rule —
 // "five sets a day"; epic #5 terminology).
@@ -47,7 +48,7 @@ export function capacityError(bookings, { studioId, from, to, excludeSetId = nul
   if (!full) return null
   const span = setSpanDays(from, to)
   const n = countOn(full)
-  return `${studioLabel(studioId)} already has ${n} shoot${n === 1 ? '' : 's'} on ${full} (max ${MAX_SETS_PER_DAY}). Pick another studio${
+  return `${studioLabel(studioId)} already has ${n} shoot${n === 1 ? '' : 's'} on ${formatDate(full)} (max ${MAX_SETS_PER_DAY}). Pick another studio${
     span > 1 ? ', or shorten the range' : ' or another date'
   }.`
 }

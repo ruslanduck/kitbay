@@ -18,6 +18,7 @@ import {
 } from 'date-fns'
 import { useCalendarFlip } from '../lib/useCalendarFlip'
 import { setSpanDays, spanLabel } from '../lib/setDays'
+import { formatDate, parseDateInput } from '../lib/clock'
 import MonthYearPicker from './MonthYearPicker'
 
 // ONE field for a shoot's days, from–to.
@@ -44,6 +45,42 @@ const parseIso = (v) => {
   if (!v) return null
   const d = parse(v, ISO, new Date())
   return isValid(d) ? d : null
+}
+
+// One end of the range, typed. Shows the day the American way ("Sep 28, 2026")
+// and reads typing the same way, committing on blur or Enter — the DateField
+// rule, so reformatting never rewrites text under the cursor. Until it reads as
+// a real day nothing is handed on: the grid below always shows a valid range.
+function DayInput({ value, onCommit, label }) {
+  const [draft, setDraft] = useState(null)
+  const shown = draft ?? formatDate(value)
+  const unreadable = draft !== null && draft.trim() !== '' && !parseDateInput(draft)
+  const commit = () => {
+    if (draft === null) return
+    const iso = parseDateInput(draft)
+    setDraft(null)
+    if (iso && iso !== value) onCommit(iso)
+  }
+  return (
+    <input
+      type="text"
+      autoComplete="off"
+      aria-label={label}
+      aria-invalid={unreadable || undefined}
+      placeholder="MM/DD/YYYY"
+      maxLength={20}
+      value={shown}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          commit()
+        }
+      }}
+      className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs outline-none transition focus:border-violet-400 aria-invalid:border-rose-400"
+    />
+  )
 }
 
 export default function DateRangeField({ from, to, onChange, className }) {
@@ -180,26 +217,28 @@ export default function DateRangeField({ from, to, onChange, className }) {
             className="z-[70] rounded-xl border border-slate-200 bg-surface p-2 shadow-xl"
           >
             {/* Typing survives the move to one field — it just moved in here,
-                where both ends are visible at once. */}
+                where both ends are visible at once. A typed day is committed
+                whole, and `emit` orders the pair, so a later "from" than "to"
+                can't leave the range backwards. */}
             <div className="mb-1.5 flex items-center gap-1.5 px-1">
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="YYYY-MM-DD"
-                maxLength={10}
-                value={from || ''}
-                onChange={(e) => emit(e.target.value, live.current.to)}
-                className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs outline-none transition focus:border-violet-400"
+              <DayInput
+                value={from}
+                label="First day"
+                onCommit={(iso) => {
+                  stretching.current = false
+                  emit(iso, live.current.to && live.current.to >= iso ? live.current.to : iso)
+                  setView(parseIso(iso) || new Date())
+                }}
               />
               <span className="shrink-0 text-xs text-slate-400">→</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="YYYY-MM-DD"
-                maxLength={10}
-                value={to || ''}
-                onChange={(e) => emit(live.current.from, e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs outline-none transition focus:border-violet-400"
+              <DayInput
+                value={to}
+                label="Last day"
+                onCommit={(iso) => {
+                  stretching.current = false
+                  const f = live.current.from || iso
+                  emit(iso < f ? iso : f, iso < f ? f : iso)
+                }}
               />
             </div>
 

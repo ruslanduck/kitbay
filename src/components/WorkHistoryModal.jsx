@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { Activity, TrendingUp, Briefcase, Plus, CalendarRange } from 'lucide-react'
 import Modal from './Modal'
 import DateField from './DateField'
+import { formatDate } from '../lib/clock'
 import SelectField from './SelectField'
 import { STUDIOS, studioLabel } from '../data/studios'
 import { usageSummary } from '../data/usage'
@@ -54,7 +55,7 @@ function UsageRow({ e }) {
       </div>
       <div className="flex shrink-0 items-center gap-3 text-xs">
         <span className="font-medium text-slate-700">×{e.quantity}</span>
-        <span className="text-slate-400">{e.usedOn}</span>
+        <span className="text-slate-400">{formatDate(e.usedOn)}</span>
       </div>
     </li>
   )

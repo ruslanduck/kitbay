@@ -24,6 +24,7 @@ import {
   signoffOf,
 } from './packing.js'
 import { whenLabel } from './clock.js'
+import { spanDated } from './setDays.js'
 import { placeLabel } from '../data/studios.js'
 import { BRAND_NAME } from './brand.js'
 import { assigneeLabel } from './peopleOptions.js'
@@ -151,11 +152,7 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
       // A shoot may run for several days, and the sheet has to say so: the crew
       // reads this to know when the gear goes out and when it is due back.
       est.days > 1 ? 'Shoot dates' : 'Shoot date',
-      est.order.startsOn
-        ? est.order.endsOn && est.order.endsOn !== est.order.startsOn
-          ? `${est.order.startsOn} to ${est.order.endsOn}  (${est.days} days)`
-          : est.order.startsOn
-        : '—',
+      est.order.startsOn ? spanDated(est.order.startsOn, est.order.endsOn) : '—',
     ],
     // Several people may be on a job; the row wraps like an address does.
     [

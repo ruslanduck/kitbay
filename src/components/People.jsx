@@ -29,6 +29,7 @@ import { newestFirst } from '../lib/ordering'
 import { PEOPLE_CATEGORIES } from '../data/people'
 import { subcategoriesIn } from '../lib/peopleOptions'
 import { orderStatusMeta } from '../data/orderStatus'
+import { formatDate } from '../lib/clock'
 import PersonEditorModal from './PersonEditorModal'
 import CompanyEditorModal from './CompanyEditorModal'
 import SelectField from './SelectField'
@@ -1086,7 +1087,7 @@ function OrderList({ orders, showCompany = false, onOpen }) {
               </span>
             </div>
             <div className="mt-1 truncate text-xs text-slate-400">
-              {[o.orderedAt, o.setTitle, showCompany ? o.companyName : null]
+              {[formatDate(o.orderedAt), o.setTitle, showCompany ? o.companyName : null]
                 .filter(Boolean)
                 .join(' · ')}
             </div>
@@ -1130,7 +1131,7 @@ function JobList({ jobs, showWho = false, emptyText, orderForSet, onOpenJob }) {
                 <div className="truncate text-sm font-medium text-slate-800">{j.title}</div>
                 <div className="truncate text-xs text-slate-400">
                   {[
-                    j.date,
+                    formatDate(j.date),
                     j.studioId ? studioLabel(j.studioId) : null,
                     showWho ? j.who : null,
                     j.role ? `as ${String(j.role).toLowerCase()}` : null,

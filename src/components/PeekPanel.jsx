@@ -20,7 +20,7 @@ import {
 import { categoryLabel } from '../lib/taxonomy'
 import { useStore } from '../store'
 import { isOutNow, unitLifecycle, unitState } from '../lib/packing'
-import { whenLabel } from '../lib/clock'
+import { formatDate, whenLabel } from '../lib/clock'
 import { normalizeAssignees } from '../lib/peopleOptions'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
@@ -29,7 +29,7 @@ import { orderStatusMeta } from '../data/orderStatus'
 import { buildEstimate, money } from '../lib/estimate'
 import { itemCount, kindLabel } from '../data/inventory'
 import { availableCount } from '../lib/availability'
-import { spanSummary } from '../lib/setDays'
+import { setSpanDays, spanDated } from '../lib/setDays'
 import CallSheetList from './CallSheetList'
 import NoteField from './NoteField'
 import ActivityList from './ActivityList'
@@ -315,10 +315,10 @@ function OrderPeek({ id }) {
 
       <Section title="The shoot">
         <div className="space-y-1.5">
-          <Field label={order.startsOn === order.endsOn ? 'Shoot date' : 'Shoot dates'}>
-            {order.startsOn === order.endsOn
-              ? order.startsOn
-              : `${order.startsOn} → ${order.endsOn}`}
+          {/* A database job may carry no end (one day); it used to print
+              "2026-09-28 → null" and call itself "Shoot dates". */}
+          <Field label={setSpanDays(order.startsOn, order.endsOn) > 1 ? 'Shoot dates' : 'Shoot date'}>
+            {order.startsOn ? spanDated(order.startsOn, order.endsOn) : '—'}
           </Field>
           <Field label="Location / Studio">{placeLabel(order.studioId, order.location) ?? '—'}</Field>
           {showsSetName(order) && <Field label="Set name">{order.setLabel || '—'}</Field>}
@@ -598,7 +598,7 @@ function ItemPeek({ id, unitId }) {
                 key={o.id}
                 icon={ClipboardList}
                 title={o.jobName || o.number}
-                sub={[o.startsOn, o.studioId ? studioLabel(o.studioId) : null]
+                sub={[formatDate(o.startsOn), o.studioId ? studioLabel(o.studioId) : null]
                   .filter(Boolean)
                   .join(' · ')}
                 right={<StatusPill status={o.status} />}
@@ -706,7 +706,7 @@ function PersonPeek({ id }) {
                   icon={Briefcase}
                   title={j.title}
                   sub={[
-                    j.date,
+                    formatDate(j.date),
                     j.studioId ? studioLabel(j.studioId) : null,
                     j.role ? `as ${String(j.role).toLowerCase()}` : null,
                   ]
@@ -836,7 +836,7 @@ function CompanyPeek({ id }) {
                 icon={o.kind === 'sub_rental' ? Truck : ClipboardList}
                 title={o.jobName || o.number}
                 sub={[
-                  o.startsOn,
+                  formatDate(o.startsOn),
                   o.kind === 'sub_rental' ? 'rented to us' : 'for their job',
                   o.poNumber || null,
                 ]
@@ -917,7 +917,7 @@ function JobPeek({ id }) {
         badges={
           <>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-              {spanSummary(booking.date, booking.endDate)}
+              {spanDated(booking.date, booking.endDate)}
             </span>
             <span className="text-xs text-slate-500">{studioLabel(booking.studioId)}</span>
           </>

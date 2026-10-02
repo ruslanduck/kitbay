@@ -34,7 +34,7 @@ import { brandsIn, CALENDAR_TYPE_FILTERS, matchesTypeFilter } from '../lib/order
 import { usePersisted } from '../lib/usePersisted'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
 import { earliestCrewCall, crewSummary, scheduleLines } from '../lib/crew'
-import { formatTime } from '../lib/clock'
+import { formatDate, formatDateRange, formatTime } from '../lib/clock'
 import { assigneeLabel, normalizeAssignees } from '../lib/peopleOptions'
 import { studioLabel } from '../data/studios'
 import {
@@ -437,8 +437,8 @@ export default function StudioCalendar() {
     calendarMode === 'month'
       ? format(refDate, 'MMMM yyyy')
       : calendarMode === 'day'
-        ? format(refDate, 'EEEE, d MMMM yyyy')
-        : `${format(weekStart, 'MMM d')} – ${format(addDays(weekStart, 6), 'MMM d, yyyy')}`
+        ? format(refDate, 'EEEE, MMMM d, yyyy')
+        : formatDateRange(format(weekStart, 'yyyy-MM-dd'), format(addDays(weekStart, 6), 'yyyy-MM-dd'))
 
   // The page currently on screen: the month for the month view, the week's first
   // day for the week view. Sortable, so the flip knows forwards from backwards.
@@ -984,7 +984,7 @@ function WeekView({
             key={day.iso}
             type="button"
             onClick={() => onOpenDay?.(day.iso)}
-            title={`Everything on ${day.iso} — crew, call times and gear`}
+            title={`Everything on ${formatDate(day.iso)} — crew, call times and gear`}
             className={[
               'sticky top-0 z-20 border-b border-r border-slate-200 px-2 py-2 text-center transition hover:bg-violet-50',
               day.today ? 'bg-amber-50' : day.weekend ? 'bg-rose-50' : 'bg-surface',
@@ -1047,7 +1047,7 @@ function WeekRow({ studioId, days, byDay, colTint, onOpenCreate, onOpenEdit, onS
           <div
             key={day.iso}
             onClick={() => onOpenCreate(studioId, day.iso)}
-            title={`New job · ${studioLabel(studioId)} · ${day.iso}`}
+            title={`New job · ${studioLabel(studioId)} · ${formatDate(day.iso)}`}
             className={[
               'group relative min-h-[92px] cursor-pointer space-y-1 border-b border-r border-slate-200 p-1.5 transition hover:bg-slate-50/70',
               colTint(day),

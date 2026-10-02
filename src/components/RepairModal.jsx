@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { Wrench, CheckCircle2, Clock, PackageCheck } from 'lucide-react'
 import Modal from './Modal'
 import DateField from './DateField'
+import { formatDate } from '../lib/clock'
 
 const todayISO = () => format(new Date(), 'yyyy-MM-dd')
 
@@ -102,7 +103,7 @@ export default function RepairModal({ open, onClose, unit, itemName, canManage, 
                   <p className="mt-0.5 text-sm text-slate-600">{openRepair.issue}</p>
                 )}
                 <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-                  <Clock size={11} /> Sent {openRepair.sentAt}
+                  <Clock size={11} /> Sent {formatDate(openRepair.sentAt)}
                   {daysSince(openRepair.sentAt) > 0
                     ? ` · ${daysSince(openRepair.sentAt)} day${
                         daysSince(openRepair.sentAt) === 1 ? '' : 's'
@@ -241,12 +242,12 @@ export default function RepairModal({ open, onClose, unit, itemName, canManage, 
                     {/* The DB stored who sent and who took it back from the very
                         first migration; it was simply never selected until now. */}
                     <span>
-                      Sent {r.sentAt}
+                      Sent {formatDate(r.sentAt)}
                       {r.sentBy && <span className="text-slate-400"> by {r.sentBy}</span>}
                     </span>
                     {done && (
                       <span>
-                        Returned {r.returnedAt}
+                        Returned {formatDate(r.returnedAt)}
                         {r.returnedBy && (
                           <span className="text-slate-400"> by {r.returnedBy}</span>
                         )}

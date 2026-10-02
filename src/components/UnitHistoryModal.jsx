@@ -4,7 +4,7 @@ import Modal from './Modal'
 import { useStore } from '../store'
 import { studioLabel } from '../data/studios'
 import { usingSupabase, getUnitHistory } from '../data/repository'
-import { spanSummary } from '../lib/setDays'
+import { spanDated } from '../lib/setDays'
 import { lifecycleEventsFor } from '../lib/packing'
 import { whenLabel } from '../lib/clock'
 
@@ -113,7 +113,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
                 <div className="mt-1 flex items-center gap-3 pl-6 text-xs text-slate-500">
                   {/* A shoot can run several days: "Sep 9" alone would hide
                       two of the three this copy was actually out for. */}
-                  <span>{spanSummary(r.date, r.endDate || r.reservedTo)}</span>
+                  <span>{spanDated(r.date, r.endDate || r.reservedTo)}</span>
                   <span className="capitalize text-slate-400">{r.reservationStatus}</span>
                 </div>
                 {/* Out and back on THIS shoot, as the packing list recorded it. */}

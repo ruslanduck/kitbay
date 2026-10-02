@@ -3335,6 +3335,65 @@
 > same split; on Sep 29 with PDP the day view reads as above. The choice survives Jobs → Calendar and a reload. The
 > toolbar fits on one line at 1440 and 1024, wraps to three lines at 375 with nothing clipped and no overflow.
 > Reseeded, 0 console errors.
+> **CHANGE — dates read the American way: "Sep 30, 2026", typed as MM/DD/YYYY** (frontend only, no migration).
+> Requested right after the 12-hour clock: "Да, даты тоже переведи на американский формат". **Storage does NOT
+> change** — a day stays ISO `YYYY-MM-DD`: it is what Postgres `date` holds, it sorts as text, and it keys every
+> reservation window.
+> **`lib/clock.js` owns dates too:** `formatDate` ("Oct 1, 2026"); `formatDateRange`, which says the year once ("Sep
+> 28 – 30, 2026" · "Sep 28 – Oct 4, 2026" · "Dec 30, 2026 – Jan 2, 2027"); `whenLabel`, now month first ("Oct 1,
+> 2026, 2:32PM"); and `parseDateInput`, month FIRST — "9/30/2026", "09/30/26", "9-30-2026", "Sep 30, 2026",
+> "September 30 2026", "30 Sep 2026", or a pasted ISO. It returns '' for a February 30th, a 13th month or a day with
+> no year: no year is ever guessed. `MONTH_ABBR` is the one month list — four copies used to live in clock, setDays,
+> Inventory and the month picker.
+> `lib/setDays` gains `spanDated` ("Sep 28 – 30, 2026 · 3 days") for every surface where a span may be any year's:
+> the job card and list rows, the peeks, the unit history, the equipment window, both PDFs. The calendar keeps the
+> year-less `spanLabel`, because its header already says the year.
+> ⚠️ **A stored DAY is never put through the Date parser.** `new Date('2026-10-01')` is UTC midnight, which in New
+> York is the evening of Sep 30, so the date a person reads would slip by one. `formatDate` reads `YYYY-MM-DD`
+> literally and treats only a full timestamp as a moment. The audit found this trap ALREADY live in three places:
+> • the job card's "Created" ran a date-only stamp through `whenLabel` (local mode), inventing a time and, west of
+>   UTC, the previous day;
+> • the estimate's "Raised by" and the Archive both took the UTC date of a timestamp (`toISOString().slice(0, 10)`).
+> `whenLabel` now returns just the date for a bare day.
+> **Fields.** `DateField` shows "Sep 30, 2026", reads typing as above, holds a draft until the field is left (the
+> TimeField rule) and rings text it can't read. Its `pattern="\d{4}-\d{2}-\d{2}"` is gone: the browser enforced it
+> on submit in the repair, usage and item forms, so it would have blocked them the moment the format changed.
+> `DateRangeField`'s two typed ends are `DayInput`s on the same rule. They commit a whole day, so a typed last day
+> before the first reorders the range ("Sep 20 – 28 · 9 days") instead of passing raw text on. Placeholders read
+> MM/DD/YYYY, and the numeric keypad is gone — month names need letters.
+> **Surfaces converted** — the audit's list, ~60 sites across 18 components and 6 libs:
+> • the calendar: day header ("Wednesday, September 30, 2026"), week label, hover texts. The week label says the
+>   month once ("Oct 5 – 11, 2026") and shows BOTH years across New Year, where it used to show only the second;
+> • the item availability calendar: tooltips, heading, next commitment, multi-day spans;
+> • Jobs list rows and the job card;
+> • the peek cards: job dates (which printed "2026-09-28 → null" for a job with no end and called it "Shoot
+>   dates"), the item's "On jobs", person and company histories, the shoot badge;
+> • People's histories;
+> • Inventory: the location column (month said once), purchase date, usage;
+> • the repair log, work history, unit history and the equipment window's strip;
+> • both PDFs, the capacity refusal ("…5 shoots on Oct 5, 2026") and the unrouted Archive.
+> **Search.** The job search's haystack gains the date as the list prints it, so "sep 28" finds a job. An
+> unreadable bound in a date filter now filters NOTHING: compared as text, "13/45/2026" sorts before every 2026 date
+> and emptied the list. The field itself is ringed instead.
+> ℹ️ **Weeks still start on Monday** in every grid. That is a calendar convention, not a date format — asked rather
+> than switched.
+> `npm run test:lib` retires the `YYYY-MM-DD` placeholder. +52 assertions (**791**), including:
+> • every day of 2026–2027 round-tripping through formatDate → parseDateInput;
+> • the UTC trap and month-first numeric parsing;
+> • ranges across months and years, and `spanDated`;
+> • the bare-day stamp, the date search and the unreadable bound.
+> Verified in local mode by measurement:
+> • the calendar labels as above;
+> • Jobs rows "Location · Oct 4, 2026"; the card "Shoot dates · Sep 28 – 30, 2026 · 3 days" and "Created · Sep 28, 2026";
+> • the filter fields, typed "9/29/2026" and "Oct 1, 2026", read "Sep 29, 2026" / "Oct 1, 2026", stored ISO and
+>   gave "8 of 14 jobs"; "13/45/2026" was left as typed, ringed and ignored by the list;
+> • the job form's range, typed "10/2/2026" → "Sep 28 – Oct 2 · 5 days" and "Sep 20 2026" → "Sep 20 – 28 · 9 days"
+>   (not saved);
+> • a purchase date typed "3/14/2019" saved as 2019-03-14 and read "Mar 14, 2019";
+> • the repair log "Sent Sep 26, 2026 · 6 days out", with the return field at "Oct 2, 2026";
+> • the peeks and the unit history as above.
+> A sweep of 14 job cards, 32 people, the companies, 80 inventory entries and all three calendar modes found 0 ISO and
+> 0 day-first dates. Reseeded, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

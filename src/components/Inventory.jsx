@@ -34,7 +34,8 @@ import {
 import FilterBar, { FILTER_FIELD } from './FilterBar'
 import MatchText from './MatchText'
 import { isOutNow, outNowByItem, unitLifecycle, unitState } from '../lib/packing'
-import { whenLabel } from '../lib/clock'
+import { formatDate, whenLabel } from '../lib/clock'
+import { spanLabel } from '../lib/setDays'
 import { useActivity } from '../lib/useActivity'
 import { useItemIndex } from '../lib/useItemIndex'
 import { buildIndex, findMatches } from '../lib/search'
@@ -58,18 +59,13 @@ function Highlight({ text, query }) {
   )
 }
 
-// "· Jul 31" / "· Jul 31 – Aug 2" for the days a unit is committed. Availability
-// is per-day, so a job three weeks out shouldn't read as "gone right now".
+// "· Jul 31" / "· Sep 28 – 30" / "· Jul 31 – Aug 2" for the days a unit is
+// committed — the calendar's own span label. Availability is per-day, so a job
+// three weeks out shouldn't read as "gone right now".
 function bookedDates(unit) {
   const r = (unit.reservations || [])[0]
   if (!r?.from) return null
-  const label = (iso) => {
-    const [y, m, d] = String(iso).split('-').map(Number)
-    if (!y || !m || !d) return iso
-    return `${MONTHS[m - 1]} ${d}`
-  }
-  const to = r.to && r.to !== r.from ? ` – ${label(r.to)}` : ''
-  return `· ${label(r.from)}${to}`
+  return `· ${spanLabel(r.from, r.to)}`
 }
 
 // Lowercased haystack for a field that may be missing. A migrated unit often has
@@ -82,8 +78,6 @@ function bookedDates(unit) {
 const UNFILE = '__unfile__'
 
 const hay = (v) => String(v ?? '').toLowerCase()
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const STATUS_STYLES = {
   available: { chip: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500', label: 'Available' },
@@ -1586,7 +1580,7 @@ function ItemDetailsGrid({ item }) {
     // lives now, and the two can differ until it has been filed.
     ['Filed under', filedPath || null],
     ['Purchase price', price],
-    ['Purchase date', item.purchaseDate],
+    ['Purchase date', item.purchaseDate ? formatDate(item.purchaseDate) : null],
   ]
   // The note is prose, so it gets its own row under the grid rather than a
   // third-of-a-column cell — and it is always there, because writing one is the
@@ -1661,7 +1655,7 @@ function NonBarcodedBody({ item, onShowWorkHistory }) {
                 </span>
                 <div className="flex shrink-0 items-center gap-3 text-xs">
                   <span className="font-medium text-slate-700">×{e.quantity}</span>
-                  <span className="text-slate-400">{e.usedOn}</span>
+                  <span className="text-slate-400">{formatDate(e.usedOn)}</span>
                 </div>
               </li>
             ))}

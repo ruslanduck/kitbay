@@ -252,7 +252,7 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
 
   // Who and when
   const at = new Date(2026, 9, 1, 14, 32).toISOString()
-  eq(clock.whenLabel(at), '01 Oct 2026, 2:32PM', 'the moment prints one way on screen and on paper — on the 12-hour clock')
+  eq(clock.whenLabel(at), 'Oct 1, 2026, 2:32PM', 'the moment prints one way on screen and on paper — the American way')
   eq(clock.whenLabel(null), '', 'and nothing invents a time')
   const key = packing.packingLineKey(rows[0])
   const signed = {
@@ -300,8 +300,8 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
   ok(sheet.includes('(In-House) Tj'), 'our own gear prints as In-House')
   ok(sheet.includes(fillOpOf([254, 243, 199])), 'the Rental House cell is filled amber-100 — the same yellow as on screen')
   ok(sheet.includes('(Clay Rodriguez) Tj'), 'a recorded check prints its name')
-  ok(sheet.includes('(01 Oct 2026, 2:32PM) Tj') && sheet.includes('(01 Oct 2026, 2:32PM \\(scan\\)) Tj'), 'and its time, on the 12-hour clock — a scanned check-in says so')
-  ok(!/\(\d\d Oct 2026, \d\d?:\d\d(?![AP]M)/.test(sheet), 'and no 24-hour stamp is left on the sheet')
+  ok(sheet.includes('(Oct 1, 2026, 2:32PM) Tj') && sheet.includes('(Oct 1, 2026, 2:32PM \\(scan\\)) Tj'), 'and its time, the American way — a scanned check-in says so')
+  ok(!/\(\d\d Oct 2026/.test(sheet) && !/\d\d?:\d\d(?![AP]M)/.test(sheet.replace(/\d{4}-\d{2}-\d{2}/g, '')), 'and no day-first or 24-hour stamp is left on the sheet')
   ok(sheet.includes('4 rows') && sheet.includes('2 checked out') && sheet.includes('1 checked in'), 'the totals line counts both moments')
   const blank = bytes(packingPdf.buildPackingListPdf(e9, { inventory: inv, booking: bk }))
   ok(!blank.includes('Clay Rodriguez') && blank.includes('(In-House) Tj'), 'with nothing recorded the cells print empty, to be written in by hand')
@@ -421,7 +421,8 @@ eq(setDays.spanSummary('2026-09-09', '2026-09-09'), 'Sep 9', 'and says nothing e
   eq(e3.total, 540, 'and the estimate bills all three')
   const t = bytes(packingPdf.buildPackingListPdf(e3, { booking, inventory }))
   ok(t.includes('Shoot dates'), 'the packing list says dates, plural, for a multi-day shoot')
-  ok(t.includes('2026-09-10') || t.includes('to  2026-09-12') || t.includes('2026-09-12'), 'and prints the window')
+  ok(t.includes('Sep 10 - 12, 2026'), 'and prints the window the American way (pdfSafe turns the en dash into "-")')
+  ok(!/\(\s*2026-09-1\d/.test(t), 'with no ISO date left on the sheet')
 }
 
 // ─────────────────────────────────────────────── call times and the wrap
@@ -557,8 +558,8 @@ eq(clock.formatTime(null), '', 'and so does null')
 eq(clock.formatTime('5:3'), '5:3', 'a half-typed value is never dressed up as a time')
 eq(clock.hourLabel('00'), '12AM', 'the list starts the day at 12AM')
 eq(clock.hourLabel('13'), '1PM', 'and an afternoon hour reads as one')
-eq(clock.whenLabel(new Date(2026, 9, 2, 0, 5).toISOString()), '02 Oct 2026, 12:05AM', 'a moment just after midnight')
-eq(clock.whenLabel(new Date(2026, 9, 2, 12, 0).toISOString()), '02 Oct 2026, 12PM', 'and one at noon')
+eq(clock.whenLabel(new Date(2026, 9, 2, 0, 5).toISOString()), 'Oct 2, 2026, 12:05AM', 'a moment just after midnight')
+eq(clock.whenLabel(new Date(2026, 9, 2, 12, 0).toISOString()), 'Oct 2, 2026, 12PM', 'and one at noon')
 for (const [typed, want] of [
   ['5pm', '17:00'],
   ['5PM', '17:00'],
@@ -592,6 +593,86 @@ for (const bad of ['13pm', '0am', '0:30pm', 'pm', 'a', '5:75pm', '24am', '5 xm',
     if (callTimes.parseTimeInput(clock.formatTime(t)) !== t) misses.push(t)
   }
   eq(misses, [], 'every time the app shows can be typed back as itself')
+}
+
+// ───────────────────────────────── American dates (2 Oct: "даты тоже")
+// Storage stays ISO; what a person READS is month first, and what they TYPE is
+// read back month first too.
+for (const [stored, shown] of [
+  ['2026-10-01', 'Oct 1, 2026'],
+  ['2026-09-30', 'Sep 30, 2026'],
+  ['2027-01-09', 'Jan 9, 2027'],
+  ['2024-02-29', 'Feb 29, 2024'],
+]) {
+  eq(clock.formatDate(stored), shown, `${stored} reads as ${shown}`)
+}
+eq(clock.formatDate(''), '', 'no date reads as nothing')
+eq(clock.formatDate(null), '', 'and so does null')
+eq(clock.formatDate('2026-02-30'), '2026-02-30', 'a day that does not exist is never dressed up as one')
+eq(clock.formatDate(new Date(2026, 9, 1, 23, 30)), 'Oct 1, 2026', 'a moment is read on its local day')
+// The trap the literal read exists for: a stored DAY must not go through the
+// Date parser, which reads it as UTC midnight — the previous evening in New York.
+eq(clock.formatDate('2026-10-01'), 'Oct 1, 2026', 'a stored day reads as itself in every time zone')
+eq(clock.formatDateRange('2026-09-30', '2026-09-30'), 'Sep 30, 2026', 'a one-day shoot is just its date')
+eq(clock.formatDateRange('2026-09-30', null), 'Sep 30, 2026', 'and so is a range with no end')
+eq(clock.formatDateRange('2026-09-28', '2026-09-30'), 'Sep 28 – 30, 2026', 'one month: the month and the year said once')
+eq(clock.formatDateRange('2026-09-28', '2026-10-04'), 'Sep 28 – Oct 4, 2026', 'two months, one year')
+eq(clock.formatDateRange('2026-12-30', '2027-01-02'), 'Dec 30, 2026 – Jan 2, 2027', 'and across a new year, both years')
+eq(clock.whenLabel(new Date(2026, 9, 1, 14, 32).toISOString()), 'Oct 1, 2026, 2:32PM', 'a moment: month first, then the 12-hour time')
+for (const [typed, want] of [
+  ['9/30/2026', '2026-09-30'],
+  ['09/30/2026', '2026-09-30'],
+  ['9/30/26', '2026-09-30'],
+  ['9-30-2026', '2026-09-30'],
+  ['9.30.2026', '2026-09-30'],
+  ['Sep 30, 2026', '2026-09-30'],
+  ['sep 30 2026', '2026-09-30'],
+  ['September 30, 2026', '2026-09-30'],
+  ['Sept 30 2026', '2026-09-30'],
+  ['30 Sep 2026', '2026-09-30'],
+  ['2026-09-30', '2026-09-30'],
+  ['2/29/2024', '2024-02-29'],
+  ['  10/1/2026  ', '2026-10-01'],
+]) {
+  eq(clock.parseDateInput(typed), want, `"${typed}" reads as ${want}`)
+}
+// Month FIRST: 1/2/2026 is January 2nd, and a 13th month is not a European day.
+eq(clock.parseDateInput('1/2/2026'), '2026-01-02', 'numeric dates read month first')
+for (const bad of ['13/01/2026', '2/30/2026', '2/29/2025', '9/30', 'Sep 30', 'Foo 30 2026', 'Ma 3 2026', '0/10/2026', 'abc', '', null]) {
+  eq(clock.parseDateInput(bad), '', `${JSON.stringify(bad)} is not a date`)
+}
+{
+  // Every day of two years: what a field SHOWS types back to what it STORES.
+  const misses = []
+  for (let t = Date.UTC(2026, 0, 1); t < Date.UTC(2028, 0, 1); t += 86400000) {
+    const iso = new Date(t).toISOString().slice(0, 10)
+    if (clock.parseDateInput(clock.formatDate(iso)) !== iso) misses.push(iso)
+  }
+  eq(misses, [], 'every date the app shows can be typed back as itself')
+}
+eq(setDays.spanDated('2026-09-28', '2026-09-30'), 'Sep 28 – 30, 2026 · 3 days', 'a dated span: the range with its year, then how long')
+eq(setDays.spanDated('2026-09-30', '2026-09-30'), 'Sep 30, 2026', 'one day is just the date')
+eq(setDays.spanDated('2026-09-30', null), 'Sep 30, 2026', 'and so is a job with no end — it used to print "→ null"')
+eq(setDays.spanDated(null, null), '—', 'no start, no span')
+// A bare DAY is a date, not a moment: the local seed stamps carry no time, and
+// the Date parser would hand them midnight UTC — the evening before in New York.
+eq(clock.whenLabel('2026-09-28'), 'Sep 28, 2026', 'a stamp with no time gets no invented time')
+eq(
+  orderSearch.searchOrders(
+    [
+      { id: 'a', startsOn: '2026-09-28', endsOn: '2026-09-30' },
+      { id: 'b', startsOn: '2026-10-05', endsOn: '2026-10-05' },
+    ],
+    { text: 'sep 28' },
+  ).map((o) => o.id),
+  ['a'],
+  'the job search finds a job by its date the way the list prints it',
+)
+{
+  const jobs = [{ id: 'a', startsOn: '2026-09-28', endsOn: '2026-09-30' }]
+  eq(orderSearch.searchOrders(jobs, { from: '13/45/2026' }).length, 1, 'a date the field could not read filters nothing')
+  eq(orderSearch.searchOrders(jobs, { to: 'abc' }).length, 1, 'on either side')
+  ok(!orderSearch.rangeIsBackwards('2026-10-01', 'abc'), 'and never reads as a backwards period')
 }
 
 // The arrows nudge without retyping, and the day wraps at midnight.
@@ -1336,6 +1417,8 @@ ok(
     // The studio works on the 12-hour clock (2 Oct): "5PM", not "17:00".
     [/\bHH:MM\b/, 'times read on the 12-hour clock (5PM)'],
     [/\b([01]\d|2[0-3]):[0-5]\d\b/, 'times read on the 12-hour clock (5PM), not 17:00'],
+    // …and dates month first (2 Oct): "Sep 30, 2026", typed as MM/DD/YYYY.
+    [/\bYYYY-MM-DD\b/, 'dates read month first (Sep 30, 2026)'],
   ]
   // Only in JSX text, where a lone LOWERCASE word is the noun of a count
   // ("{n} sets"). Case-sensitive on purpose: "Contact" is the contact-details
@@ -1517,6 +1600,10 @@ ok(
     (capacity.capacityError(five('1'), { studioId: '1', from: day, to: day }) || '').includes('already has 5 shoots'),
     'a sixth shoot in Studio 1 is refused',
   )
+  {
+    const why = capacity.capacityError(five('1'), { studioId: '1', from: day, to: day }) || ''
+    ok(why.includes('on Oct 5, 2026') && !why.includes('2026-10-05'), 'and the refusal names the full day the American way')
+  }
   eq(capacity.capacityError(five('L'), { studioId: 'L', from: day, to: day }), null, 'a sixth LOCATION shoot is not — each is its own venue')
   eq(
     capacity.capacityError(five('1'), { studioId: '1', from: day, to: day, excludeSetId: '1-0' }),

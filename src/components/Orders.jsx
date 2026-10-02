@@ -19,7 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { useStore, notArchived, capacityError } from '../store'
-import { setSpanDays } from '../lib/setDays'
+import { setSpanDays, spanDated } from '../lib/setDays'
 import { usePersisted } from '../lib/usePersisted'
 import { normalizeAssignees } from '../lib/peopleOptions'
 import { useCan } from '../lib/useCan'
@@ -126,8 +126,6 @@ function Highlight({ text, query }) {
 
 // A shoot can run several days, so the window says how many — "→ 2026-09-11"
 // alone leaves the reader counting on their fingers.
-const dateRange = (from, to) =>
-  !to || to === from ? from : `${from} → ${to} · ${setSpanDays(from, to)} days`
 
 export default function Orders() {
   const orders = useStore((s) => s.orders)
@@ -470,7 +468,7 @@ export default function Orders() {
                           <span className="truncate">
                             {[
                               o.studioId ? studioLabel(o.studioId) : null,
-                              o.startsOn ? dateRange(o.startsOn, o.endsOn) : null,
+                              o.startsOn ? spanDated(o.startsOn, o.endsOn) : null,
                             ]
                               .filter(Boolean)
                               .join(' · ')}
@@ -795,7 +793,7 @@ function OrderDetail({
             icon={CalendarRange}
             label={setSpanDays(order.startsOn, order.endsOn) > 1 ? 'Shoot dates' : 'Shoot date'}
           >
-            {order.startsOn ? dateRange(order.startsOn, order.endsOn) : '—'}
+            {order.startsOn ? spanDated(order.startsOn, order.endsOn) : '—'}
           </Row>
           <Row icon={Building2} label="Location / Studio">
             {order.studioId ? studioLabel(order.studioId) : '—'}

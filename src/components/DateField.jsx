@@ -17,14 +17,17 @@ import {
   setYear,
 } from 'date-fns'
 import { useCalendarFlip } from '../lib/useCalendarFlip'
+import { formatDate, parseDateInput } from '../lib/clock'
 import MonthYearPicker from './MonthYearPicker'
 
 // English, locale-proof date field. The native <input type="date"> renders its
 // format in the browser's locale (e.g. "дд.мм.гггг" on a Russian browser),
-// which the app can't override — so this pairs a plain ISO text input (still
-// typeable) with a custom calendar popover built on date-fns, whose month /
-// weekday labels are always English. Value is ISO "YYYY-MM-DD"; onChange is
-// called with an event-like { target: { value } } so callers stay unchanged.
+// which the app can't override — so this pairs a text input with a custom
+// calendar popover built on date-fns, whose month / weekday labels are always
+// English. It SHOWS the date the American way ("Sep 30, 2026", lib/clock) and
+// reads typing the same way ("9/30/2026", "Sep 30 2026" — a pasted ISO too);
+// the value it hands its parent stays ISO "YYYY-MM-DD", through an event-like
+// { target: { value } } so callers stay unchanged.
 const ISO = 'yyyy-MM-dd'
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
@@ -48,6 +51,21 @@ export default function DateField({ value, onChange, className }) {
 
   const selected = parseIso(value)
   const emit = (iso) => onChange({ target: { value: iso } })
+  // What is being TYPED, held here until the field is left — the TimeField rule:
+  // reformatting mid-word would rewrite the text under the cursor. Null while
+  // nobody is typing.
+  const [draft, setDraft] = useState(null)
+  const shown = draft ?? (selected ? formatDate(value) : value || '')
+  const unreadable = draft === null && !!value && !selected
+  // Unreadable text is handed on AS TYPED, so the form can say what is wrong
+  // with it; an emptied field clears the date.
+  function commit() {
+    if (draft === null) return
+    const raw = (inputRef.current?.value ?? draft).trim()
+    setDraft(null)
+    const next = raw === '' ? '' : parseDateInput(raw) || raw
+    if (next !== (value || '')) emit(next)
+  }
 
   // Position the popover relative to the input (fixed → escapes modal overflow).
   const place = () => {
@@ -104,6 +122,7 @@ export default function DateField({ value, onChange, className }) {
   }, [open])
 
   function pick(day) {
+    setDraft(null)
     emit(format(day, ISO))
     setOpen(false)
   }
@@ -126,18 +145,33 @@ export default function DateField({ value, onChange, className }) {
       <input
         ref={inputRef}
         type="text"
-        inputMode="numeric"
-        placeholder="YYYY-MM-DD"
-        pattern="\d{4}-\d{2}-\d{2}"
-        maxLength={10}
-        value={value || ''}
-        onChange={onChange}
+        autoComplete="off"
+        placeholder="MM/DD/YYYY"
+        maxLength={20}
+        aria-invalid={unreadable || undefined}
+        value={shown}
+        onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            commit()
+            setOpen(false)
+          }
+        }}
         // Room for the calendar button, which is absolutely positioned over the
         // right edge — without this the value and the placeholder run underneath
-        // it. ComboField reserves its chevron the same way.
-        className={[className, 'w-full pr-8'].filter(Boolean).join(' ')}
+        // it. ComboField reserves its chevron the same way. Text that couldn't
+        // be read is ringed in rose, as a VARIANT so it wins over the caller's
+        // border.
+        className={[
+          className,
+          'w-full pr-8 aria-invalid:border-rose-400 aria-invalid:ring-2 aria-invalid:ring-rose-100',
+        ]
+          .filter(Boolean)
+          .join(' ')}
       />
       <button
         type="button"
@@ -244,6 +278,7 @@ export default function DateField({ value, onChange, className }) {
                 <button
                   type="button"
                   onClick={() => {
+                    setDraft(null)
                     emit('')
                     setOpen(false)
                   }}

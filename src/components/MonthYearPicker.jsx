@@ -5,7 +5,7 @@
 // arrow). One definition, so both offer the same span and the same shape.
 import { yearsFor } from '../lib/years'
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+import { MONTH_ABBR as MONTHS } from '../lib/clock'
 
 export default function MonthYearPicker({ month, year, onMonth, onYear }) {
   const years = yearsFor(year)

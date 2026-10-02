@@ -14,6 +14,7 @@ import {
 } from 'date-fns'
 import { useStore } from '../store'
 import { useCalendarFlip } from '../lib/useCalendarFlip'
+import { spanLabel } from '../lib/setDays'
 import { studioLabel } from '../data/studios'
 import { availabilityForDays, dayAvailability, bookedDays } from '../lib/itemAvailability'
 
@@ -169,7 +170,7 @@ export default function ItemAvailability({ item }) {
               key={d.iso}
               type="button"
               onClick={() => setSelected(d.iso)}
-              title={`${format(d.date, 'EEE d MMM')} · ${booked} of ${total} booked · ${free} free${
+              title={`${format(d.date, 'EEE, MMM d')} · ${booked} of ${total} booked · ${free} free${
                 a?.away ? ` · ${a.away} in repair` : ''
               }`}
               className={[
@@ -237,7 +238,7 @@ export default function ItemAvailability({ item }) {
                 }}
                 className="font-medium text-violet-600 underline-offset-2 hover:underline"
               >
-                {format(parseISO(nextElsewhere), 'd MMM yyyy')}
+                {format(parseISO(nextElsewhere), 'MMM d, yyyy')}
               </button>
               .
             </>
@@ -252,7 +253,7 @@ export default function ItemAvailability({ item }) {
       >
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-sm font-semibold text-slate-800">
-            {format(parseISO(selected), 'EEEE d MMMM yyyy')}
+            {format(parseISO(selected), 'EEEE, MMMM d, yyyy')}
           </span>
           <span className="text-xs text-slate-500">
             {chosen.total} total ·{' '}
@@ -301,7 +302,7 @@ export default function ItemAvailability({ item }) {
                     when the 4th is the middle of a three-day job. */}
                 {r.from !== r.to && (
                   <span className="text-[10px] text-slate-400">
-                    {format(parseISO(r.from), 'd MMM')} – {format(parseISO(r.to), 'd MMM')}
+                    {spanLabel(r.from, r.to)}
                   </span>
                 )}
                 <span className="ml-auto inline-flex items-center gap-1 text-slate-500">

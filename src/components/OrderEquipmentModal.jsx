@@ -26,7 +26,7 @@ import { findMatches } from '../lib/search'
 import { useItemIndex } from '../lib/useItemIndex'
 import MatchText from './MatchText'
 import { studioLabel } from '../data/studios'
-import { setSpanDays } from '../lib/setDays'
+import { spanDated } from '../lib/setDays'
 import { useStore, notArchived } from '../store'
 import { applyScenarioList } from '../lib/scenarios'
 import { buildEstimate, money } from '../lib/estimate'
@@ -726,13 +726,7 @@ export default function OrderEquipmentModal({
               {order?.studioId ? ` · ${studioLabel(order.studioId)}` : ''}
               {/* The whole window: a 3-day shoot picks gear for 3 days, and
                   the availability numbers in this very window say so. */}
-              {order?.startsOn
-                ? ` · ${order.startsOn}${
-                    order.endsOn && order.endsOn !== order.startsOn
-                      ? ` → ${order.endsOn} · ${setSpanDays(order.startsOn, order.endsOn)} days`
-                      : ''
-                  }`
-                : ''}
+              {order?.startsOn ? ` · ${spanDated(order.startsOn, order.endsOn)}` : ''}
               <span className="mt-1 block text-slate-500">
                 Nothing is saved yet — <strong>Create job</strong> writes the job and this
                 equipment together.

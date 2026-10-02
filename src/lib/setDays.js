@@ -10,6 +10,7 @@
 // store, no date library — so `npm run test:lib` can assert it under plain
 // Node, which is where the off-by-one in an inclusive range gets caught.
 import { nextIso } from './itemAvailability.js'
+import { MONTH_ABBR, formatDateRange } from './clock.js'
 
 // A shoot longer than this is a typo, not a booking (a mistyped year would
 // otherwise build a 3600-entry array and render 3600 chips). The range is
@@ -69,7 +70,7 @@ export function firstFullDay(from, to, countOn, max) {
   return null
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTHS = MONTH_ABBR
 
 // "Sep 9" · "Sep 9 – 11" · "Sep 29 – Oct 1" — the span as a human reads it,
 // dropping the repeated month and never printing a year the crew doesn't need.
@@ -96,4 +97,15 @@ export function spanSummary(from, to) {
   if (!from) return '—'
   const n = setSpanDays(from, to)
   return n > 1 ? `${n} days · ${spanLabel(from, to)}` : spanLabel(from, to)
+}
+
+// The same span WITH its year — for a record that may be any year's (the job
+// card, a unit's history, the PDFs): "Sep 28 – 30, 2026 · 3 days", or just
+// "Sep 30, 2026" for one day. The calendar keeps the year-less label, because
+// its own header already says which year it is.
+export function spanDated(from, to) {
+  if (!from) return '—'
+  const n = setSpanDays(from, to)
+  const range = formatDateRange(from, endsOnFor(from, to))
+  return n > 1 ? `${range} · ${n} days` : range
 }

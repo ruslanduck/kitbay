@@ -3,6 +3,7 @@
 // Pure functions — no React — so the matching rules can be tested directly and
 // the Orders view stays a thin shell over them.
 import { OTHER, choiceOf } from './otherChoice.js'
+import { formatDateRange } from './clock.js'
 //
 // The point of this search is fast access to job history: the crew knows one
 // thing (a PO from accounting, a job name, roughly when it shot, or who shot it)
@@ -49,6 +50,8 @@ function haystack(order) {
     order.number,
     order.startsOn,
     order.endsOn,
+    // As the card prints it — "sep 28" finds the job the way the list reads.
+    order.startsOn ? formatDateRange(order.startsOn, order.endsOn) : null,
     order.companyName,
   ]
     .filter(Boolean)
@@ -60,8 +63,13 @@ function haystack(order) {
 // has to say so — two bare date boxes gave no clue which was which, and a
 // backwards range just emptied the list in silence.
 export function rangeIsBackwards(from, to) {
-  return !!(from && to && from > to)
+  return !!(isDay(from) && isDay(to) && from > to)
 }
+
+// A real ISO day. The date fields hand on what they could NOT read as typed (so
+// the field can say so), and a bound like "13/45/2026" compared as text sorts
+// before every 2026 date — it emptied the list. Such a bound is not a bound.
+const isDay = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ''))
 
 // Does [aFrom, aTo] overlap [bFrom, bTo]? Open ends mean "unbounded".
 function windowsOverlap(aFrom, aTo, bFrom, bTo) {
@@ -97,6 +105,8 @@ export function matchesOrder(
   // one-sided tests below are each satisfied independently — measured: the
   // backwards range 09-11 → 09-10 still returned the job running 09-10 → 09-11,
   // which made the warning beside those fields untrue.
+  if (!isDay(from)) from = ''
+  if (!isDay(to)) to = ''
   if (rangeIsBackwards(from, to)) return false
   if ((from || to) && !windowsOverlap(order.startsOn, order.endsOn, from, to)) return false
 

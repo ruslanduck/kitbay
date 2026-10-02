@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useStore, isArchived } from '../store'
 import { studioLabel } from '../data/studios'
-import { whenLabel } from '../lib/clock'
+import { formatDate, whenLabel } from '../lib/clock'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 
@@ -36,7 +36,7 @@ import { CAP } from '../lib/permissions'
 function when(at) {
   if (!at) return ''
   const d = new Date(at)
-  if (Number.isNaN(d.getTime())) return String(at).slice(0, 10)
+  if (Number.isNaN(d.getTime())) return formatDate(at) || String(at)
   const mins = Math.round((Date.now() - d.getTime()) / 60000)
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins} min ago`
@@ -44,7 +44,7 @@ function when(at) {
   if (hrs < 24) return `${hrs} h ago`
   const days = Math.round(hrs / 24)
   if (days < 30) return `${days} d ago`
-  return d.toISOString().slice(0, 10)
+  return formatDate(d)
 }
 
 function Row({ icon: Icon, title, meta, at, by, canRestore, onRestore, onOpen, busy }) {
@@ -219,7 +219,7 @@ export default function Archive() {
               key={o.id}
               icon={ClipboardList}
               title={o.jobName || o.number}
-              meta={[o.number, o.studioId ? studioLabel(o.studioId) : null, o.startsOn]
+              meta={[o.number, o.studioId ? studioLabel(o.studioId) : null, formatDate(o.startsOn)]
                 .filter(Boolean)
                 .join(' · ')}
               at={o.archivedAt}
@@ -240,7 +240,7 @@ export default function Archive() {
               key={b.id}
               icon={CalendarRange}
               title={b.title}
-              meta={[b.date, b.studioId ? studioLabel(b.studioId) : null]
+              meta={[formatDate(b.date), b.studioId ? studioLabel(b.studioId) : null]
                 .filter(Boolean)
                 .join(' · ')}
               at={b.archivedAt}
