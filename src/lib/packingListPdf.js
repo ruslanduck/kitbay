@@ -22,8 +22,8 @@ import {
   packingRows,
   signerName,
   signoffOf,
-  whenLabel,
 } from './packing.js'
+import { whenLabel } from './clock.js'
 import { placeLabel } from '../data/studios.js'
 import { BRAND_NAME } from './brand.js'
 import { assigneeLabel } from './peopleOptions.js'

@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const load = (p) => import(pathToFileURL(resolve(p)).href)
-const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew, hierarchyDrop, search, searchSynonyms, otherChoice] =
+const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packing, itemAvail, years, orderStatus, setDays, callTimes, taxonomy, inventoryData, unitRows, theme, ordering, patch, peopleOptions, routes, nav, studios, capacity, crew, hierarchyDrop, search, searchSynonyms, otherChoice, clock] =
   await Promise.all([
     load('src/lib/activity.js'),
     load('src/lib/barcode.js'),
@@ -45,6 +45,7 @@ const [activity, barcode, orderSearch, estimate, estimatePdf, packingPdf, packin
     load('src/lib/search.js'),
     load('src/data/searchSynonyms.js'),
     load('src/lib/otherChoice.js'),
+    load('src/lib/clock.js'),
   ])
 
 let n = 0
@@ -251,8 +252,8 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
 
   // Who and when
   const at = new Date(2026, 9, 1, 14, 32).toISOString()
-  eq(packing.whenLabel(at), '01 Oct 2026, 14:32', 'the moment prints one way on screen and on paper')
-  eq(packing.whenLabel(null), '', 'and nothing invents a time')
+  eq(clock.whenLabel(at), '01 Oct 2026, 2:32PM', 'the moment prints one way on screen and on paper — on the 12-hour clock')
+  eq(clock.whenLabel(null), '', 'and nothing invents a time')
   const key = packing.packingLineKey(rows[0])
   const signed = {
     [key]: { out1: { initials: 'CR', name: 'Clay Rodriguez', at }, ret: { initials: 'CR', name: 'Clay Rodriguez', at, via: 'scan' } },
@@ -299,7 +300,8 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
   ok(sheet.includes('(In-House) Tj'), 'our own gear prints as In-House')
   ok(sheet.includes(fillOpOf([254, 243, 199])), 'the Rental House cell is filled amber-100 — the same yellow as on screen')
   ok(sheet.includes('(Clay Rodriguez) Tj'), 'a recorded check prints its name')
-  ok(sheet.includes('(01 Oct 2026, 14:32) Tj') && sheet.includes('(01 Oct 2026, 14:32 \\(scan\\)) Tj'), 'and its time — a scanned check-in says so')
+  ok(sheet.includes('(01 Oct 2026, 2:32PM) Tj') && sheet.includes('(01 Oct 2026, 2:32PM \\(scan\\)) Tj'), 'and its time, on the 12-hour clock — a scanned check-in says so')
+  ok(!/\(\d\d Oct 2026, \d\d?:\d\d(?![AP]M)/.test(sheet), 'and no 24-hour stamp is left on the sheet')
   ok(sheet.includes('4 rows') && sheet.includes('2 checked out') && sheet.includes('1 checked in'), 'the totals line counts both moments')
   const blank = bytes(packingPdf.buildPackingListPdf(e9, { inventory: inv, booking: bk }))
   ok(!blank.includes('Clay Rodriguez') && blank.includes('(In-House) Tj'), 'with nothing recorded the cells print empty, to be written in by hand')
@@ -534,6 +536,64 @@ for (const [typed, want] of [
 for (const bad of ['24:00', '08:75', '99', 'abc', '', null, undefined, '1:2:3:4']) {
   eq(callTimes.parseTimeInput(bad), '', `${JSON.stringify(bad)} is not a time`)
 }
+// ───────────────────────────────── the 12-hour clock (2 Oct: "5PM, not 17:00")
+// Storage stays HH:MM; what a person READS is lib/clock, and what they TYPE on
+// the 12-hour clock is read back by the same parser.
+for (const [stored, shown] of [
+  ['17:00', '5PM'],
+  ['17:30', '5:30PM'],
+  ['00:00', '12AM'],
+  ['00:05', '12:05AM'],
+  ['12:00', '12PM'],
+  ['12:45', '12:45PM'],
+  ['09:07', '9:07AM'],
+  ['23:59', '11:59PM'],
+  ['08:00:00', '8AM'],
+]) {
+  eq(clock.formatTime(stored), shown, `${stored} reads as ${shown}`)
+}
+eq(clock.formatTime(''), '', 'no time reads as nothing')
+eq(clock.formatTime(null), '', 'and so does null')
+eq(clock.formatTime('5:3'), '5:3', 'a half-typed value is never dressed up as a time')
+eq(clock.hourLabel('00'), '12AM', 'the list starts the day at 12AM')
+eq(clock.hourLabel('13'), '1PM', 'and an afternoon hour reads as one')
+eq(clock.whenLabel(new Date(2026, 9, 2, 0, 5).toISOString()), '02 Oct 2026, 12:05AM', 'a moment just after midnight')
+eq(clock.whenLabel(new Date(2026, 9, 2, 12, 0).toISOString()), '02 Oct 2026, 12PM', 'and one at noon')
+for (const [typed, want] of [
+  ['5pm', '17:00'],
+  ['5PM', '17:00'],
+  ['5 pm', '17:00'],
+  ['5p', '17:00'],
+  ['5:30pm', '17:30'],
+  ['5:30 PM', '17:30'],
+  ['530pm', '17:30'],
+  ['12am', '00:00'],
+  ['12:30am', '00:30'],
+  ['12pm', '12:00'],
+  ['12:15 p.m.', '12:15'],
+  ['8:15 a.m.', '08:15'],
+  ['11:59PM', '23:59'],
+  ['7a', '07:00'],
+  // No AM/PM: the 24-hour reading, unchanged.
+  ['17', '17:00'],
+  ['1730', '17:30'],
+  ['8', '08:00'],
+]) {
+  eq(callTimes.parseTimeInput(typed), want, `"${typed}" reads as ${want}`)
+}
+for (const bad of ['13pm', '0am', '0:30pm', 'pm', 'a', '5:75pm', '24am', '5 xm', 'map']) {
+  eq(callTimes.parseTimeInput(bad), '', `${JSON.stringify(bad)} is not a time`)
+}
+{
+  // Every 5 minutes of the day: what the field SHOWS types back to what it STORES.
+  const misses = []
+  for (let n = 0; n < 1440; n += 5) {
+    const t = `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`
+    if (callTimes.parseTimeInput(clock.formatTime(t)) !== t) misses.push(t)
+  }
+  eq(misses, [], 'every time the app shows can be typed back as itself')
+}
+
 // The arrows nudge without retyping, and the day wraps at midnight.
 eq(callTimes.stepTime('08:00', 5), '08:05', '+5 minutes')
 eq(callTimes.stepTime('08:00', -5), '07:55', '-5 minutes')
@@ -1273,6 +1333,9 @@ ok(
     [/\bjob name\b/i, 'the field is the Shoot name'],
     [/\bFULFILLED\b/, 'the closed status reads "Closed" — on paper too'],
     [/Categories & subcategories/, 'the window is the Inventory Hierarchy'],
+    // The studio works on the 12-hour clock (2 Oct): "5PM", not "17:00".
+    [/\bHH:MM\b/, 'times read on the 12-hour clock (5PM)'],
+    [/\b([01]\d|2[0-3]):[0-5]\d\b/, 'times read on the 12-hour clock (5PM), not 17:00'],
   ]
   // Only in JSX text, where a lone LOWERCASE word is the noun of a count
   // ("{n} sets"). Case-sensitive on purpose: "Contact" is the contact-details
@@ -1494,7 +1557,7 @@ ok(
   eq(crew.earliestCrewCall([{ role: 'Client', name: 'X' }]), null, 'a sheet with no times has no first call')
   eq(
     crew.crewSummary(sheet),
-    '07:30 Producer · 08:00 Photographer (Marcus Reed) · 10:00 Model (Hailey Halter) · Client (Loft team)',
+    '7:30AM Producer · 8AM Photographer (Marcus Reed) · 10AM Model (Hailey Halter) · Client (Loft team)',
     'the tooltip reads the sheet, a person in brackets',
   )
   ok(crew.wrapBeforeFirstCrewCall(sheet, '07:00'), 'a wrap before the first call is reported')
@@ -1528,12 +1591,12 @@ ok(
       [{ role: 'Producer', time: '07:30' }, { role: 'Stylist' }, { role: 'Model', name: 'Ann', time: '10:00' }],
       '08:00',
     ),
-    '07:30 Producer · 08:00 General call · Stylist · 10:00 Model (Ann)',
+    '7:30AM Producer · 8AM General call · Stylist · 10AM Model (Ann)',
     'the tooltip reads it in the order of the day, a row called with everyone right after it',
   )
   eq(crew.crewNames(sheet), ['Marcus Reed', 'Hailey Halter', 'Loft team'], 'every named person, once')
   eq(crew.crewRowProblem({ time: '08:00', name: 'Ann' }), 'Pick a role for this row — or remove it.', 'a row with no role says so')
-  eq(crew.crewRowProblem({ role: 'Crew', time: '8:7' }), 'The time should read as HH:MM.', 'and so does a half-typed time')
+  eq(crew.crewRowProblem({ role: 'Crew', time: '8:7' }), 'Use a time like 9AM or 5:30PM.', 'and so does a half-typed time')
   eq(crew.crewRowProblem({ role: 'Crew' }), null, 'a role alone is a row: nobody booked, no call yet')
   eq(crew.crewRowProblem({}), null, 'an empty row is fine — it is dropped')
   eq(crew.normalizeCrew([]), [], 'an empty sheet is a real state')
@@ -1575,7 +1638,7 @@ ok(
   eq(crew.expandCrew([{ role: 'Stylist', time: '09:00', people: [] }])[0].name, null, 'a line with nobody yet is still a row')
   eq(
     crew.crewSummary(stored),
-    '06:45 Crew · 06:45 Crew · 07:30 Producer · 08:00 Photographer (Marcus Reed) · 10:00 Model (Hailey Halter, Valery Kaufman)',
+    '6:45AM Crew · 6:45AM Crew · 7:30AM Producer · 8AM Photographer (Marcus Reed) · 10AM Model (Hailey Halter, Valery Kaufman)',
     'the tooltip names everyone on a call in one bracket',
   )
   eq(crew.crewRowProblem({ people: [{ name: 'Ann' }] }), 'Pick a role for this row — or remove it.', 'a line with people but no role says so')
@@ -1642,7 +1705,19 @@ ok(
   })
   eq(sheetJob.roster, [{ role: 'Photographer', name: 'Marcus Reed', time: '08:00' }], 'only NAMED rows go on a client document')
   const t = bytes(estimatePdf.buildEstimatePdf(sheetJob))
-  ok(t.includes('(Marcus Reed) Tj') && t.includes('(08:00) Tj'), 'the estimate prints the person and their call')
+  ok(t.includes('(Marcus Reed) Tj') && t.includes('(8AM) Tj'), 'the estimate prints the person and their call — on the 12-hour clock')
+  ok(!t.includes('(08:00) Tj'), 'and not the stored 24-hour value')
+  eq(
+    estimate.rosterFor(null, {
+      callTime: '07:00:00',
+      crew: [
+        { role: 'Photographer', name: 'Marcus Reed', time: '08:00' },
+        { role: 'Model', name: 'Ann Lee', time: null },
+      ],
+    }).map((r) => r.time),
+    ['08:00', '07:00'],
+    'a crew member with no time of their own is called at the general call — on the client’s document too',
+  )
   eq(estimate.buildEstimate(job, { inventory }).roster, [], 'the assignee is not crew — no sheet, no crew rows')
   const noSheet = bytes(estimatePdf.buildEstimatePdf(estimate.buildEstimate(job, { inventory })))
   ok(noSheet.includes('(Assignee) Tj') && noSheet.includes('(Ann Taylor) Tj'), 'the assignee prints as its own row')

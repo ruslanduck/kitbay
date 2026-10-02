@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useStore, isArchived } from '../store'
 import { studioLabel } from '../data/studios'
+import { whenLabel } from '../lib/clock'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 
@@ -55,7 +56,7 @@ function Row({ icon: Icon, title, meta, at, by, canRestore, onRestore, onOpen, b
         {meta && <div className="truncate text-xs text-slate-500">{meta}</div>}
       </div>
       <div className="shrink-0 whitespace-nowrap text-right text-[11px] text-slate-400">
-        <div title={at ? new Date(at).toLocaleString() : ''}>{when(at)}</div>
+        <div title={at ? whenLabel(at) : ''}>{when(at)}</div>
         {by && <div className="truncate">{by}</div>}
       </div>
       {onOpen && (

@@ -3252,6 +3252,59 @@
 > **25** sets with **0** carrying one (nothing invented), the app's newest `getBookings` layer answers 200 with 25
 > shoots, a write of 07:45 reads back as `07:45:00`, `25:00` is refused with **22008**, and an anonymous read returns
 > `[]`. The probe row was put back to null and left no event — prod exactly as found.
+> **CHANGE — the app reads the American 12-hour clock: "5PM", not "17:00"** (frontend, plus six prod text rows;
+> no migration). Requested: "Switch app to the american time format … Чтобы было 5PM а не 17:00 / пройдись полностью
+> по всему приложению".
+> **Storage does NOT change.** A call time stays `HH:MM`, 24-hour: it is what a Postgres `time` holds, and it sorts as
+> plain text, which is what puts a call sheet in the order of the day (`normalizeCrew`, `scheduleLines` and
+> `earliestCrewCall` all compare strings). Only what a person READS and TYPES changed.
+> **`src/lib/clock.js`** (new, pure) is the one place that knows how time reads: `formatTime` ("17:00" → "5PM",
+> "17:30" → "5:30PM", "00:00" → "12AM", "12:00" → "12PM" — the minutes are left off on the hour, as in the request;
+> anything that isn't a time comes back as it was), `hourLabel` for a picker row, and `whenLabel`, the app's one format
+> for a MOMENT ("01 Oct 2026, 2:32PM"), moved here from lib/packing because it is every stamp's now.
+> ⚠️ **Five stamps printed the BROWSER's locale** (`new Date(…).toLocaleString()`): the job card's Created and
+> Equipment-by rows, the job peek's "Equipment last changed", every activity entry's hover, and the unrouted Archive —
+> 24 hours plus seconds on a machine set to Russian and another shape again on an American one, so one card could show
+> the same kind of stamp two ways. All read `whenLabel` now.
+> **Reading:** every surface goes through `formatTime` — the call sheet (`CallSheetList`: the job card and both
+> peeks), the calendar chip's first call, its tooltip (`crewSummary`), the day view, the wrap everywhere, the estimate
+> PDF's crew times — and every stamp through `whenLabel`: the packing list on screen and on paper, the item's
+> "Out since …", the unit history, the activity feed.
+> **Typing:** `parseTimeInput` reads the 12-hour clock first ("5pm" · "5 PM" · "5p" · "5:30pm" · "530p" · "12am" →
+> 00:00 · "12pm" → 12:00 · "8:15 a.m."), and a time with NO AM/PM is still read on the 24-hour clock, so "17" and
+> "1730" keep working. A bare "5" is 5AM: a period is never guessed. "13pm" and "0am" are refused, not corrected.
+> **The field (`TimeField`)** shows "5PM" and hands its parent "17:00". Its hour column runs through the day as
+> **12AM … 11PM** (24 rows) rather than 1–12 plus an AM/PM column: one tap is still a complete time, there is no
+> period to forget, and it still opens at 8AM. Minutes read ":00 … :55".
+> ⚠️ What is typed is now a local DRAFT until the field is left. Reformatting live would turn "10:30" into "10:30AM"
+> under the cursor and the " PM" being typed would land after it — measured: mid-typing the field still reads
+> "10:30"; after " PM" and blur, "10:30PM". The list and the arrows clear the draft, so a pick is never overwritten by
+> stale text. Text that can't be read stays as typed AND the field says so (`aria-invalid` + a rose ring, written as a
+> VARIANT so it beats the caller's border); the job form refuses it with "The wrap time should look like 6PM or
+> 6:30PM.", and the legacy shoot editor — which had no such check and would have handed Postgres a non-time — now
+> refuses too. The numeric keypad (`inputMode="numeric"`) is gone: "5pm" needs its letters. The call-sheet row's time
+> field grew 5.5 → 6.5rem, because "12:30PM" is the longest value and it was clipped.
+> **The estimate:** a crew member with no time of their own now prints at the shoot's GENERAL call — the rule every
+> other surface has read since the general call shipped, and the client's document had missed.
+> **Content:** the company editor's placeholder and the six seeded opening hours are 12-hour ("Mon–Fri 8AM–8PM ·
+> Sat 10AM–4PM"). On prod the same six rows still carried our seed text verbatim, so they were rewritten BY EXACT MATCH
+> (the old value in the PATCH filter, so a row the studio had edited would have been skipped): 6 written, 0 left on
+> the 24-hour clock, no events. Opening hours stay free text — whatever the crew types there is theirs.
+> ⚠️ **`npm run test:lib` retires `HH:MM` and any 24-hour time in words** (`\b([01]\d|2[0-3]):[0-5]\d\b`); it found the
+> opening-hours placeholder the moment it ran. Numeric-only literals (stored seeds, fallbacks) have no letters, so they
+> are not words and don't trip it. +46 assertions (**734**), including a round trip over every 5-minute step of the day
+> (what the field shows types back as what it stores) and the PDF bytes: "(8AM) Tj" on the estimate, "(01 Oct 2026,
+> 2:32PM)" on the packing list, and no 24-hour stamp left on it.
+> Verified in local mode by measurement: chips "7:30AM · Day 1/3 · OMSet1"; tooltips ending "10AM Model (Hailey
+> Halter, Valery Kaufman) · wrap 6PM"; the day view, the job card and both peeks; the form ("7:30AM" … "6PM" in the
+> fields, "--:-- --" when empty); "12:30pm" → 12:30PM, sorted into place on save while the store kept "12:30"; "1730" →
+> 5:30PM; ArrowDown → 5:35PM; 7AM then :00 from the list → 7AM; "abc" ringed and refused; "6p" → 6PM; the packing check
+> "Demo user · 02 Oct 2026, 10:33AM", the same stamp as "Out since" in the units table and in the unit history;
+> "Equipment by Demo user · 02 Oct 2026, 10:34AM" on the card and the peek; the activity hover; the company hours. A
+> sweep of all 14 job cards, 32 people, 14 company rows and 81 inventory entries found **0** 24-hour times in text or
+> tooltips. 375px: every field fits, the picker stays on screen, no overflow. Reseeded, 0 console errors.
+> ℹ️ **Dates did not change** — "01 Oct 2026" and the ISO "2026-09-30" on the cards are a separate format the request
+> didn't mention; asked rather than switched.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

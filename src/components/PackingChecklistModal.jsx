@@ -16,8 +16,8 @@ import {
   signerName,
   signoffOf,
   sourceLabel,
-  whenLabel,
 } from '../lib/packing'
+import { whenLabel } from '../lib/clock'
 
 // Two letters for the person doing the packing — the data still carries them
 // beside the full name, so a sheet signed in the initials era reads the same.

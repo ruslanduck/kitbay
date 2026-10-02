@@ -19,6 +19,7 @@ import { availableCount, resolveUnitsForQuantities } from '../lib/availability'
 import { studioLabel } from '../data/studios'
 import { endsOnFor } from '../lib/setDays'
 import { groupCrew, expandCrew, crewRowProblem } from '../lib/crew'
+import { isValidTime } from '../lib/callTimes'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
 import Modal from './Modal'
@@ -227,6 +228,9 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
     // wrong line on the call sheet — the row itself says what's missing; an
     // untouched empty row is dropped by normalizeCrew.
     if (form.crew.some((r) => crewRowProblem(r))) return
+    // So would a general call or a wrap that couldn't be read — the time field
+    // itself is marked; saving it would hand Postgres text that isn't a time.
+    if ([form.callTime, form.wrapTime].some((t) => t && !isValidTime(t))) return
     const payload = {
       ...form,
       title: form.title.trim(),

@@ -16,6 +16,7 @@ import { orderStatusMeta } from '../data/orderStatus.js'
 import { showsSetName } from './orderSearch.js'
 import { BRAND_NAME } from './brand.js'
 import { assigneeLabel } from './peopleOptions.js'
+import { formatTime } from './clock.js'
 
 const PAGE = { w: 595.28, h: 841.89 } // A4 portrait, points
 const M = 48 // page margin
@@ -224,7 +225,7 @@ export function buildEstimatePdf(estimateOrOrder, context) {
       if (r.time) {
         doc.setFont('helvetica', 'normal')
         setInk(INK.muted)
-        text(r.time, M + 300, y)
+        text(formatTime(r.time), M + 300, y)
       }
       y += 15
     }

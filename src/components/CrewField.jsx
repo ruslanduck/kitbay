@@ -8,7 +8,7 @@ import { CALL_ROLES, isValidTime, toHHMM } from '../lib/callTimes'
 import { useCrewNameOptions } from '../lib/usePeopleNames'
 
 // The call sheet, the studio's own design: every line is TIME · ROLE · PEOPLE —
-// "10:00 · Model · Hailey Halter, Valery Kaufman" — and a line may call several
+// "10AM · Model · Hailey Halter, Valery Kaufman" — and a line may call several
 // people ("всю команду можно выбирать — несколько людей"). The form edits LINES
 // (`lib/crew` groupCrew); the database keeps one row per person (expandCrew on
 // save), because that row is what puts a person on the shoot.
@@ -93,7 +93,7 @@ export default function CrewField({
                     </span>
                     {/* TimeField's input is `w-full` of its own wrapper, so the
                         WIDTH is set here — a width class on the input loses. */}
-                    <div className="w-[5.5rem] shrink-0">
+                    <div className="w-[6.5rem] shrink-0">
                       <TimeField
                         value={r.time ?? ''}
                         onChange={(e) => patch(i, { time: e.target.value })}

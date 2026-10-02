@@ -33,6 +33,7 @@ import { useStore } from '../store'
 import { brandsIn } from '../lib/orderSearch'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
 import { earliestCrewCall, crewSummary, scheduleLines } from '../lib/crew'
+import { formatTime } from '../lib/clock'
 import { assigneeLabel, normalizeAssignees } from '../lib/peopleOptions'
 import { studioLabel } from '../data/studios'
 import {
@@ -107,7 +108,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
     // The whole call sheet on hover; the chip has room for one number, and
     // "when do I have to be there" is that number.
     crewSummary(b.crew, b.callTime),
-    b.wrapTime && `wrap ${b.wrapTime}`,
+    b.wrapTime && `wrap ${formatTime(b.wrapTime)}`,
     canChange ? 'right-click (or hold) to change the status' : null,
   ]
     .filter(Boolean)
@@ -150,7 +151,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
           {(b.spanDays > 1 || b.setLabel || earliestCrewCall(b.crew, b.callTime)) && (
             <div className="truncate text-[10px] font-medium opacity-80">
               {[
-                earliestCrewCall(b.crew, b.callTime),
+                formatTime(earliestCrewCall(b.crew, b.callTime)),
                 b.spanDays > 1 && `Day ${b.dayIndex}/${b.spanDays}`,
                 b.setLabel,
               ]
@@ -760,7 +761,7 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
                     c.atGeneral ? 'text-slate-500' : 'text-slate-800',
                   ].join(' ')}
                 >
-                  {c.time ?? '—:—'}
+                  {c.time ? formatTime(c.time) : '—:—'}
                 </span>
                 <span className={c.general ? 'font-medium text-slate-700' : 'text-slate-600'}>
                   {c.general ? 'General call' : c.role}
@@ -773,7 +774,7 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
             ))}
             {b.wrapTime && (
               <span className="inline-flex items-baseline gap-1.5 text-xs">
-                <span className="font-semibold tabular-nums text-slate-800">{b.wrapTime}</span>
+                <span className="font-semibold tabular-nums text-slate-800">{formatTime(b.wrapTime)}</span>
                 <span className="text-slate-500">wrap</span>
               </span>
             )}

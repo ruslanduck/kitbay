@@ -291,7 +291,7 @@ export default function CompanyEditorModal({
               type="text"
               value={form.openingHours}
               onChange={(e) => set({ openingHours: e.target.value })}
-              placeholder="Mon–Fri 9:00–18:00 · Sat 10:00–14:00"
+              placeholder="Mon–Fri 9AM–6PM · Sat 10AM–2PM"
               className={field}
             />
           </div>

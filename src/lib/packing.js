@@ -164,16 +164,8 @@ export function packingProgress(lines = [], packing = {}) {
 // three-field era stored when there was no name yet.
 export const signerName = (signoff) => signoff?.name || signoff?.initials || ''
 
-// The moment as the sheet prints it: "01 Oct 2026, 14:32". One fixed, English
-// format (the UI is English-only) so the screen and the PDF agree to the minute.
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-export function whenLabel(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const two = (n) => String(n).padStart(2, '0')
-  return `${two(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${two(d.getHours())}:${two(d.getMinutes())}`
-}
+// The moment as the sheet prints it ("01 Oct 2026, 2:32PM") is lib/clock
+// `whenLabel` — the app's one format for when something happened.
 
 // ---------------------------------------------------------------------------
 // The register's side of the lifecycle: where every unit stands RIGHT NOW,

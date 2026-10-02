@@ -57,6 +57,7 @@ import { buildEstimate, money } from '../lib/estimate'
 import { downloadEstimatePdf } from '../lib/estimatePdf'
 import { downloadPackingListPdf } from '../lib/packingListPdf'
 import { packingProgress, packingRows } from '../lib/packing'
+import { whenLabel } from '../lib/clock'
 
 // Orders / Estimates (epic #5, 5.1 + 5.2).
 //
@@ -1083,7 +1084,7 @@ function OrderDetail({
             )}
           </Row>
           <Row icon={Clock3} label="Created">
-            {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
+            {order.createdAt ? whenLabel(order.createdAt) : '—'}
           </Row>
           {/* The question this whole block exists to answer. */}
           <Row icon={Boxes} label="Equipment by">
@@ -1093,7 +1094,7 @@ function OrderDetail({
                 {order.eqUpdatedAt && (
                   <span className="text-slate-400">
                     {' · '}
-                    {new Date(order.eqUpdatedAt).toLocaleString()}
+                    {whenLabel(order.eqUpdatedAt)}
                   </span>
                 )}
               </>

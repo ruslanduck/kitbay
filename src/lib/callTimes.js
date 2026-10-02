@@ -29,8 +29,9 @@ export const CALL_ROLES = [
   'Client',
 ]
 
-// HH:MM, 24-hour. The field is a TimeField, but a stored value can come from
-// anywhere (a seed, an import, a hand-written SQL row).
+// HH:MM, 24-hour — the STORED shape (what a person reads is lib/clock). The
+// field is a TimeField, but a stored value can come from anywhere (a seed, an
+// import, a hand-written SQL row).
 export function isValidTime(t) {
   return typeof t === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t)
 }
@@ -59,13 +60,26 @@ export function minuteOptions(step = 5) {
 }
 
 // What a person TYPED, snapped to HH:MM — so nobody has to reach for the colon.
+// The 12-hour clock the app shows is read back first:
+//   "5pm" · "5 PM" · "5p" → 17:00 · "5:30pm" · "530p" → 17:30 · "12am" → 00:00
+//   · "12pm" → 12:00 · "8:15 a.m." → 08:15
+// and a time with no AM/PM is read on the 24-hour clock, so "17" and "1730"
+// still work for whoever types it that way:
 //   "8" → 08:00 · "830" → 08:30 · "0830" → 08:30 · "8:5" → 08:05 · "19.45" → 19:45
-// Returns '' when the text cannot be read as a time (including a real 24:00 or
-// 08:75), so the caller can leave what was typed alone rather than overwrite it
+// Returns '' when the text cannot be read as a time (a real 24:00, 08:75, a
+// 13PM), so the caller can leave what was typed alone rather than overwrite it
 // with a guess.
 export function parseTimeInput(raw) {
-  const text = String(raw ?? '').trim()
+  let text = String(raw ?? '').trim()
   if (!text) return ''
+  // AM/PM, in any of the ways it gets written. It makes the hour 1–12.
+  let period = null
+  const suffix = text.match(/^(.*?)\s*([ap])\.?\s*(?:m\.?)?$/i)
+  if (suffix) {
+    period = suffix[2].toLowerCase()
+    text = suffix[1].trim()
+    if (!text) return ''
+  }
   if (!/^[\d\s:.]+$/.test(text)) return ''
   let h
   let m
@@ -94,6 +108,12 @@ export function parseTimeInput(raw) {
     }
   }
   if (!Number.isInteger(h) || !Number.isInteger(m)) return ''
+  if (period) {
+    // On a 12-hour clock 12AM is midnight and 12PM is noon; there is no 0PM and
+    // no 13AM.
+    if (h < 1 || h > 12 || m < 0 || m > 59) return ''
+    h = period === 'a' ? h % 12 : (h % 12) + 12
+  }
   if (h < 0 || h > 23 || m < 0 || m > 59) return ''
   return `${pad(h)}:${pad(m)}`
 }

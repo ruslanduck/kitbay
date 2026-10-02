@@ -1,8 +1,9 @@
 import { Fragment } from 'react'
 import { scheduleLines } from '../lib/crew'
+import { formatTime } from '../lib/clock'
 
 // The call sheet as it is READ: one line per call — the time, the role and
-// everyone called for it ("10:00 · Model · Hailey Halter, Valery Kaufman"), the
+// everyone called for it ("10AM · Model · Hailey Halter, Valery Kaufman"), the
 // note if there is one — plus the wrap when the caller asks for it.
 //
 // One definition because three surfaces show this: the job card, the job's peek
@@ -45,7 +46,7 @@ export default function CallSheetList({
                     : 'font-semibold text-slate-400 ring-slate-200',
               ].join(' ')}
             >
-              {c.time ?? '—:—'}
+              {c.time ? formatTime(c.time) : '—:—'}
             </span>
             <span className="min-w-0">
               <span className="font-medium text-slate-700">{c.general ? 'General call' : c.role}</span>
@@ -77,7 +78,7 @@ export default function CallSheetList({
       {wrapTime && (
         <span className="flex items-baseline gap-2">
           <span className="shrink-0 rounded-md px-1.5 py-0.5 text-sm font-semibold tabular-nums text-slate-500 ring-1 ring-slate-300">
-            {wrapTime}
+            {formatTime(wrapTime)}
           </span>
           <span className="text-slate-500">wrap</span>
         </span>

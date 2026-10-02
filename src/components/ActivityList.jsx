@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNowStrict, parseISO } from 'date-fns'
 import { describeEvent } from '../lib/activity'
+import { whenLabel } from '../lib/clock'
 
 // "Who did what, and when" — one list, used on the order card, the item card and
 // the peek cards. Rendering only: the sentences come from lib/activity.js, which
@@ -55,18 +56,13 @@ function when(at) {
   try {
     return `${formatDistanceToNowStrict(parseISO(at))} ago`
   } catch {
-    return String(at).slice(0, 16).replace('T', ' ')
+    return whenLabel(at) || String(at)
   }
 }
 
-function exact(at) {
-  if (!at) return ''
-  try {
-    return new Date(at).toLocaleString()
-  } catch {
-    return String(at)
-  }
-}
+// The exact moment on hover, in the app's one format (lib/clock) — not the
+// browser's locale, which printed it on a 24-hour clock with seconds.
+const exact = (at) => (at ? whenLabel(at) || String(at) : '')
 
 export default function ActivityList({ events, loading, limit = 6, dense = false, emptyText }) {
   const [expanded, setExpanded] = useState(false)

@@ -9,29 +9,33 @@ import {
   stepTime,
   toHHMM,
 } from '../lib/callTimes'
+import { formatTime, hourLabel } from '../lib/clock'
 
-// The one time field in the app — a call time, and the shoot's wrap.
+// The one time field in the app — a call time, the general call, and the wrap.
 //
 // Locale-proof by construction: a native <input type="time"> has its placeholder
 // and its own picker drawn by the OPERATING SYSTEM (чч:мм on a Russian browser,
 // unstyleable), which is the same trade DateField and SelectField already made.
-// So the field is a 24h HH:MM text input, and the list below is ours.
+// So the field is a text input and the list below is ours. It SHOWS the 12-hour
+// clock the studio works in ("5PM", lib/clock) and hands its parent "HH:MM",
+// 24-hour — the stored shape, which sorts as text.
 //
 // THREE ways to set a time, because a phone and a desk are not the same hand:
-//   • the LIST — two flickable columns (hour, then minute). One tap on an hour
-//     already gives a valid time (HH:00), the second refines it, so the common
-//     case is two taps and never any typing.
-//   • TYPING — "8" · "830" · "8:5" · "19.45" all snap to HH:MM on blur or Enter
-//     (lib/callTimes `parseTimeInput`). Nobody has to reach for the colon.
+//   • the LIST — two flickable columns (hour, then minute). The hours run
+//     through the day as 12AM … 11PM, so one tap is already a complete time —
+//     there is no AM/PM column to forget — and the second only refines it.
+//   • TYPING — "5pm" · "5:30p" · "530pm" · "8" · "17:30" all snap on blur or
+//     Enter (lib/callTimes `parseTimeInput`). Nobody has to reach for the colon,
+//     and whoever types the 24-hour clock is still understood.
 //   • ARROW KEYS — ±5 minutes, for correcting a value without retyping it.
 //
-// Two columns rather than one list of 96 slots: 19:45 is two short scrolls
+// Two columns rather than one list of 96 slots: 5:45PM is two short scrolls
 // instead of a long hunt, and each column is a thumb-sized flick on a phone.
 const STEP = 5
 const HOURS = hourOptions()
 const MINUTES = minuteOptions(STEP)
 // Where an empty field's lists open. A studio calls people in the morning, not
-// at 00:15 — opening at midnight would make every pick a scroll.
+// at 12:15AM — opening at midnight would make every pick a scroll.
 const OPEN_AT_HOUR = '08'
 
 // Rows are deliberately tall: this list is used with a thumb.
@@ -46,12 +50,20 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
   const hourCol = useRef(null)
   const minCol = useRef(null)
 
-  // What the field shows is what was typed — never a guess. A stored value with
-  // seconds ("08:00:00", straight out of a Postgres `time`) is trimmed, because
-  // that one is not something a person typed.
-  const text = /^\d{1,2}:\d{2}:\d{2}$/.test(String(value ?? '')) ? toHHMM(value) : value || ''
-  const valid = isValidTime(text)
-  const [hh, mm] = valid ? text.split(':') : [null, null]
+  // The stored value, as HH:MM. One with seconds ("08:00:00", straight out of a
+  // Postgres `time`) is trimmed, because that one is not something a person typed.
+  const stored = /^\d{1,2}:\d{2}:\d{2}$/.test(String(value ?? '')) ? toHHMM(value) : value || ''
+  const valid = isValidTime(stored)
+  const [hh, mm] = valid ? stored.split(':') : [null, null]
+  // What a person is TYPING, held here until they leave the field: reformatting
+  // mid-word would turn "10:30" into "10:30AM" under the cursor, and the " PM"
+  // they were about to type would land after it. Null while nobody is typing.
+  const [draft, setDraft] = useState(null)
+  // What the field shows: the draft while typing, else the stored time on the
+  // 12-hour clock — or, for text that could not be read, exactly what was typed
+  // (never a guess), with the field marked so it says so.
+  const shown = draft ?? (valid ? formatTime(stored) : stored)
+  const unreadable = draft === null && stored !== '' && !valid
 
   const emit = (v) => onChange({ target: { value: v } })
 
@@ -134,11 +146,15 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
 
   // Picking an HOUR keeps the minute if there is one, else lands on :00 — so one
   // tap is already a complete, valid time and the second tap only refines it.
-  const pickHour = (h) => emit(`${h}:${mm ?? '00'}`)
+  const pickHour = (h) => {
+    setDraft(null)
+    emit(`${h}:${mm ?? '00'}`)
+  }
   // A minute with no hour would need an hour invented for it, so the column is
   // inert until there is one. Nothing here guesses.
   const pickMinute = (m) => {
     if (!hh) return
+    setDraft(null)
     emit(`${hh}:${m}`)
     setOpen(false)
     inputRef.current?.focus()
@@ -150,11 +166,15 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
   // a fixed bug: the case that looked like one turned out to be a test artifact,
   // see the focusout note below.)
   function snap() {
-    const raw = inputRef.current?.value ?? text
-    const parsed = parseTimeInput(raw)
-    // Unreadable text is LEFT ALONE: the form says what is wrong with it, and
-    // overwriting it with a guess would hide the typo rather than fix it.
-    if (parsed && parsed !== raw) emit(parsed)
+    // Nothing typed since the last pick: the list or the arrows already set it.
+    if (draft === null) return
+    const raw = (inputRef.current?.value ?? draft).trim()
+    setDraft(null)
+    // Unreadable text is LEFT ALONE — handed on as typed, so the form says what
+    // is wrong with it: overwriting it with a guess would hide the typo rather
+    // than fix it. An emptied field clears the time.
+    const next = raw === '' ? '' : parseTimeInput(raw) || raw
+    if (next !== stored) emit(next)
   }
 
   return (
@@ -163,20 +183,25 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
         <input
           ref={inputRef}
           type="text"
-          inputMode="numeric"
+          // A full keyboard, not the numeric pad: "5pm" needs its letters.
+          autoComplete="off"
           aria-label={ariaLabel}
-          placeholder="HH:MM"
-          maxLength={5}
-          value={text}
-          onChange={onChange}
+          aria-invalid={unreadable || undefined}
+          placeholder="--:-- --"
+          maxLength={10}
+          value={shown}
+          onChange={(e) => setDraft(e.target.value)}
           onClick={() => setOpen(true)}
           onBlur={snap}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
               e.preventDefault()
               // The list is a picker, not a keyboard trap: the arrows nudge the
-              // VALUE, which is what a time field is expected to do.
-              emit(stepTime(text, e.key === 'ArrowDown' ? STEP : -STEP, `${OPEN_AT_HOUR}:00`))
+              // VALUE, which is what a time field is expected to do — from what
+              // is being typed, if anything is.
+              const base = draft !== null ? parseTimeInput(draft) || stored : stored
+              setDraft(null)
+              emit(stepTime(base, e.key === 'ArrowDown' ? STEP : -STEP, `${OPEN_AT_HOUR}:00`))
               setOpen(true)
               return
             }
@@ -189,7 +214,15 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
           // `min-w-0` + the full width: without them a bare input keeps its
           // intrinsic ~20-character size and overflows this wrapper, putting the
           // chevron on top of the text (the DateField lesson).
-          className={[className, 'w-full pr-7'].filter(Boolean).join(' ')}
+          // Text that couldn't be read is ringed in rose: a VARIANT, so it wins
+          // over whatever border the caller passed (a plain utility would be
+          // settled by stylesheet order, not intent).
+          className={[
+            className,
+            'w-full pr-7 aria-invalid:border-rose-400 aria-invalid:ring-2 aria-invalid:ring-rose-100',
+          ]
+            .filter(Boolean)
+            .join(' ')}
         />
         <button
           type="button"
@@ -218,8 +251,8 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
             className="z-[75] flex overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-xl"
           >
             {[
-              { key: 'h', label: 'Hour', ref: hourCol, rows: HOURS, sel: hh, at: hh ?? OPEN_AT_HOUR, pick: pickHour, on: true },
-              { key: 'm', label: 'Min', ref: minCol, rows: MINUTES, sel: mm, at: mm ?? '00', pick: pickMinute, on: !!hh },
+              { key: 'h', label: 'Hour', ref: hourCol, rows: HOURS, sel: hh, at: hh ?? OPEN_AT_HOUR, pick: pickHour, on: true, show: hourLabel },
+              { key: 'm', label: 'Min', ref: minCol, rows: MINUTES, sel: mm, at: mm ?? '00', pick: pickMinute, on: !!hh, show: (v) => `:${v}` },
             ].map((col) => (
               <div key={col.key} className="flex w-[68px] flex-col border-r border-slate-100 last:border-r-0">
                 <div className="shrink-0 border-b border-slate-100 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400">
@@ -251,7 +284,7 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
                               : 'cursor-not-allowed text-slate-300',
                         ].join(' ')}
                       >
-                        {v}
+                        {col.show(v)}
                       </button>
                     )
                   })}

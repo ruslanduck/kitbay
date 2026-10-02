@@ -20,6 +20,7 @@ import {
 import { categoryLabel } from '../lib/taxonomy'
 import { useStore } from '../store'
 import { isOutNow, unitLifecycle, unitState } from '../lib/packing'
+import { whenLabel } from '../lib/clock'
 import { normalizeAssignees } from '../lib/peopleOptions'
 import { useCan } from '../lib/useCan'
 import { CAP } from '../lib/permissions'
@@ -446,7 +447,7 @@ function OrderActivity({ orderId, eqBy, eqAt }) {
         {eqBy ? (
           <>
             Equipment last changed by <span className="font-medium text-slate-600">{eqBy}</span>
-            {eqAt ? ` · ${new Date(eqAt).toLocaleString()}` : ''}
+            {eqAt ? ` · ${whenLabel(eqAt)}` : ''}
           </>
         ) : (
           'No equipment change recorded yet.'

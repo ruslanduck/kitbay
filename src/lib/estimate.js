@@ -12,6 +12,7 @@
 // quietly understating the total.
 
 import { normalizeAssignees } from './peopleOptions.js'
+import { isValidTime, toHHMM } from './callTimes.js'
 
 // Billable days are inclusive: a single-day job bills 1, Mon→Wed bills 3.
 export function billableDays(startsOn, endsOn) {
@@ -31,9 +32,12 @@ export const money = (n) =>
 // not crew to put on a client's document. The job's ASSIGNEE is not crew by
 // definition — it prints in the meta table as its own row.
 export function rosterFor(order, booking) {
+  // A row with no time of its own is called with everyone — at the shoot's
+  // general call, the rule every other surface reads (lib/crew `scheduleLines`).
+  const general = isValidTime(toHHMM(booking?.callTime ?? '')) ? toHHMM(booking.callTime) : null
   return (booking?.crew || [])
     .filter((r) => r?.name)
-    .map((r) => ({ role: r.role, name: r.name, time: r.time ?? null }))
+    .map((r) => ({ role: r.role, name: r.name, time: r.time || general }))
 }
 
 // Group an order's lines: one group per kit (in first-seen order), then the

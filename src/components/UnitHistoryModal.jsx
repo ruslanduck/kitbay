@@ -5,7 +5,8 @@ import { useStore } from '../store'
 import { studioLabel } from '../data/studios'
 import { usingSupabase, getUnitHistory } from '../data/repository'
 import { spanSummary } from '../lib/setDays'
-import { lifecycleEventsFor, whenLabel } from '../lib/packing'
+import { lifecycleEventsFor } from '../lib/packing'
+import { whenLabel } from '../lib/clock'
 
 // Click a unit → every set it was reserved for → each set's roster.
 //

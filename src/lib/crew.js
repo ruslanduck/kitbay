@@ -1,5 +1,5 @@
 // The call sheet, the way the studio asked for it: every row is a TIME · ROLE ·
-// PERSON — "10:00 · Producer · Clay Rodriguez". One role and one person per row,
+// PERSON — "10AM · Producer · Clay Rodriguez". One role and one person per row,
 // and the photographer is simply one of the rows.
 //
 // It replaced TWO lists that described the same people from two ends: call times
@@ -10,6 +10,7 @@
 //
 // PURE — no React, no store — so `npm run test:lib` holds the rules.
 import { isValidTime, toHHMM, CALL_ROLES } from './callTimes.js'
+import { formatTime } from './clock.js'
 
 const clean = (s) => String(s ?? '').trim()
 const same = (a, b) => clean(a).toLowerCase() === clean(b).toLowerCase()
@@ -138,11 +139,11 @@ export function crewSummary(crew = [], generalCall = null) {
   return scheduleLines(crew, generalCall)
     .map((l) =>
       l.general
-        ? `${l.time} General call`
+        ? `${formatTime(l.time)} General call`
         : [
             // A row called with everyone follows the general call; repeating
             // its time on every one of them would only be noise.
-            l.atGeneral ? null : l.time,
+            l.atGeneral ? null : formatTime(l.time),
             l.people.length ? `${l.role} (${l.people.map((p) => p.name).join(', ')})` : l.role,
           ]
             .filter(Boolean)
@@ -192,7 +193,7 @@ export function crewRowProblem(r = {}) {
   const hasAny = clean(r.role) || named || clean(r.time) || clean(r.note)
   if (!hasAny) return null
   if (!clean(r.role)) return 'Pick a role for this row — or remove it.'
-  if (clean(r.time) && !isValidTime(toHHMM(r.time))) return 'The time should read as HH:MM.'
+  if (clean(r.time) && !isValidTime(toHHMM(r.time))) return 'Use a time like 9AM or 5:30PM.'
   return null
 }
 
