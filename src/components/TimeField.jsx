@@ -1,15 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
-import {
-  hourOptions,
-  isValidTime,
-  minuteOptions,
-  parseTimeInput,
-  stepTime,
-  toHHMM,
-} from '../lib/callTimes'
-import { formatTime, hourLabel } from '../lib/clock'
+import { isValidTime, minuteOptions, parseTimeInput, stepTime, toHHMM } from '../lib/callTimes'
+import { formatTime } from '../lib/clock'
 
 // The one time field in the app — a call time, the general call, and the wrap.
 //
@@ -21,25 +14,36 @@ import { formatTime, hourLabel } from '../lib/clock'
 // 24-hour — the stored shape, which sorts as text.
 //
 // THREE ways to set a time, because a phone and a desk are not the same hand:
-//   • the LIST — two flickable columns (hour, then minute). The hours run
-//     through the day as 12AM … 11PM, so one tap is already a complete time —
-//     there is no AM/PM column to forget — and the second only refines it.
+//   • the LIST — three flickable columns, the way a 12-hour time is picked
+//     everywhere else: HOUR (12, 1 … 11), MINUTE, then AM/PM. Nothing is
+//     written until the hour AND the half of the day are known — the field
+//     never guesses AM or PM — and the minute is :00 unless one is picked. The
+//     AM/PM tap is the last step, so it closes the list.
 //   • TYPING — "5pm" · "5:30p" · "530pm" · "8" · "17:30" all snap on blur or
 //     Enter (lib/callTimes `parseTimeInput`). Nobody has to reach for the colon,
 //     and whoever types the 24-hour clock is still understood.
 //   • ARROW KEYS — ±5 minutes, for correcting a value without retyping it.
-//
-// Two columns rather than one list of 96 slots: 5:45PM is two short scrolls
-// instead of a long hunt, and each column is a thumb-sized flick on a phone.
 const STEP = 5
-const HOURS = hourOptions()
+const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 const MINUTES = minuteOptions(STEP)
-// Where an empty field's lists open. A studio calls people in the morning, not
-// at 12:15AM — opening at midnight would make every pick a scroll.
-const OPEN_AT_HOUR = '08'
+const PERIODS = ['AM', 'PM']
+// Where an empty field's hour column opens. A studio calls people in the
+// morning, not at 12AM — opening at midnight would make every pick a scroll.
+const OPEN_AT_HOUR = 8
+const NOTHING = { h: null, m: null, p: null }
+
+const pad = (n) => String(n).padStart(2, '0')
+// "17" → { h: 5, p: 'PM' }; the stored minute stays as it is (it may be off the
+// 5-minute grid, e.g. 08:07, and must survive an hour or AM/PM change).
+const partsOf = (hhmm) => {
+  const [hh, mm] = hhmm.split(':')
+  const h24 = Number(hh)
+  return { h: h24 % 12 || 12, m: mm, p: h24 < 12 ? 'AM' : 'PM' }
+}
+const compose = ({ h, m, p }) => `${pad((h % 12) + (p === 'PM' ? 12 : 0))}:${m ?? '00'}`
 
 // Rows are deliberately tall: this list is used with a thumb.
-const ROW = 'flex w-full items-center justify-center px-3 py-2.5 text-sm transition'
+const ROW = 'flex w-full items-center justify-center px-2 py-2.5 text-sm transition'
 
 export default function TimeField({ value, onChange, className, ariaLabel }) {
   const [open, setOpen] = useState(false)
@@ -54,7 +58,6 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
   // Postgres `time`) is trimmed, because that one is not something a person typed.
   const stored = /^\d{1,2}:\d{2}:\d{2}$/.test(String(value ?? '')) ? toHHMM(value) : value || ''
   const valid = isValidTime(stored)
-  const [hh, mm] = valid ? stored.split(':') : [null, null]
   // What a person is TYPING, held here until they leave the field: reformatting
   // mid-word would turn "10:30" into "10:30AM" under the cursor, and the " PM"
   // they were about to type would land after it. Null while nobody is typing.
@@ -64,6 +67,10 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
   // (never a guess), with the field marked so it says so.
   const shown = draft ?? (valid ? formatTime(stored) : stored)
   const unreadable = draft === null && stored !== '' && !valid
+  // A time being assembled in the list on an EMPTY field — hour and minute can be
+  // picked before the half of the day is known. A stored time IS the selection.
+  const [partial, setPartial] = useState(NOTHING)
+  const sel = valid ? partsOf(stored) : partial
 
   const emit = (v) => onChange({ target: { value: v } })
 
@@ -79,7 +86,7 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     if (!el) return
     const r = el.getBoundingClientRect()
     const wanted = 268
-    const w = popRef.current?.offsetWidth || 138
+    const w = popRef.current?.offsetWidth || 176
     const below = window.innerHeight - r.bottom - 8
     const openUp = below < wanted && r.top > below
     const room = window.innerWidth >= 200 ? window.innerWidth - w - 8 : r.left
@@ -95,8 +102,15 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     place()
     // The field lives inside a scrollable modal, so a scroll has to move the
     // list with it — a `fixed` popover otherwise stays behind while the field it
-    // belongs to slides away. Capture, so an inner scroller counts too.
-    const again = () => place()
+    // belongs to slides away.
+    const again = (e) => {
+      // ⚠️ …but NOT a scroll inside the list itself. That is somebody flicking a
+      // column, and re-placing on it re-rendered the list on every scroll tick and
+      // re-ran the centring below — the column snapped back to the selected row
+      // while it was being scrolled. Reported as "the scroll hangs".
+      if (e?.target instanceof Node && popRef.current?.contains(e.target)) return
+      place()
+    }
     window.addEventListener('resize', again)
     // NOTE: `document`, not `window` — a scroll INSIDE a container (this app's
     // modals scroll) never reaches a capture listener on window; measured with a
@@ -109,15 +123,38 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // Scroll each column to what is selected — or, on an empty field, to the hour
-  // a shoot actually starts at.
-  useLayoutEffect(() => {
-    if (!open || !coords) return
+  // Centre each column on what is selected — or, on an empty field, on the hour
+  // a shoot actually starts at. ONCE per opening (and again when the arrow keys
+  // move the value), never on a re-placement: centring on every render is what
+  // fought the person scrolling. scrollTop, not scrollIntoView, which would also
+  // scroll the page behind.
+  const centred = useRef(false)
+  const follow = useRef(false)
+  const centre = () => {
     for (const col of [hourCol.current, minCol.current]) {
       const row = col?.querySelector('[data-at="true"]')
-      if (row) row.scrollIntoView({ block: 'center' })
+      if (row) col.scrollTop = row.offsetTop - col.clientHeight / 2 + row.offsetHeight / 2
     }
-  }, [open, coords, hh, mm])
+  }
+  useLayoutEffect(() => {
+    if (!open) {
+      centred.current = false
+      return
+    }
+    if (!coords || centred.current) return
+    centred.current = true
+    centre()
+  }, [open, coords])
+  useLayoutEffect(() => {
+    if (!open || !follow.current) return
+    follow.current = false
+    centre()
+  }, [open, stored])
+
+  // A fresh list starts from the stored time, not from a half-built one.
+  useEffect(() => {
+    if (open) setPartial(NOTHING)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -144,27 +181,28 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     }
   }, [open])
 
-  // Picking an HOUR keeps the minute if there is one, else lands on :00 — so one
-  // tap is already a complete, valid time and the second tap only refines it.
-  const pickHour = (h) => {
+  // One tap in any column. Once the hour AND the half of the day are known the
+  // time is written (the minute is :00 unless one was picked); until then the
+  // picks are held here. AM/PM is the last step of the usual order, so it closes.
+  const pick = (column, v) => {
     setDraft(null)
-    emit(`${h}:${mm ?? '00'}`)
-  }
-  // A minute with no hour would need an hour invented for it, so the column is
-  // inert until there is one. Nothing here guesses.
-  const pickMinute = (m) => {
-    if (!hh) return
-    setDraft(null)
-    emit(`${hh}:${m}`)
-    setOpen(false)
-    inputRef.current?.focus()
+    const next = { ...sel, [column]: v }
+    if (next.h != null && next.p != null) {
+      setPartial(NOTHING)
+      const time = compose(next)
+      if (time !== stored) emit(time)
+      if (column === 'p') {
+        setOpen(false)
+        inputRef.current?.focus()
+      }
+      return
+    }
+    setPartial(next)
   }
 
   // Reads the INPUT, not the render closure. A handler that can fire before a
   // re-render must read the live value — the rule this codebase has written down
-  // six times — and for a text field the DOM node IS that value. (Defensive, not
-  // a fixed bug: the case that looked like one turned out to be a test artifact,
-  // see the focusout note below.)
+  // six times — and for a text field the DOM node IS that value.
   function snap() {
     // Nothing typed since the last pick: the list or the arrows already set it.
     if (draft === null) return
@@ -177,6 +215,20 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     if (next !== stored) emit(next)
   }
 
+  // While a time is being assembled on an empty field, the field says how far
+  // it has got ("5:30 --") instead of looking untouched — only while the list is
+  // open: closed, nothing was written, and the field must not suggest otherwise.
+  const building = open && !valid && (partial.h != null || partial.m != null || partial.p != null)
+  const placeholder = building
+    ? `${partial.h ?? '--'}:${partial.m ?? '--'} ${partial.p ?? '--'}`
+    : '--:-- --'
+
+  const columns = [
+    { key: 'h', label: 'Hour', ref: hourCol, rows: HOURS, at: sel.h ?? OPEN_AT_HOUR, show: String },
+    { key: 'm', label: 'Min', ref: minCol, rows: MINUTES, at: sel.m ?? '00', show: (v) => `:${v}` },
+    { key: 'p', label: '', ref: null, rows: PERIODS, at: null, show: String },
+  ]
+
   return (
     <>
       <div ref={wrapRef} className="relative min-w-0">
@@ -187,7 +239,7 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
           autoComplete="off"
           aria-label={ariaLabel}
           aria-invalid={unreadable || undefined}
-          placeholder="--:-- --"
+          placeholder={placeholder}
           maxLength={10}
           value={shown}
           onChange={(e) => setDraft(e.target.value)}
@@ -201,7 +253,8 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
               // is being typed, if anything is.
               const base = draft !== null ? parseTimeInput(draft) || stored : stored
               setDraft(null)
-              emit(stepTime(base, e.key === 'ArrowDown' ? STEP : -STEP, `${OPEN_AT_HOUR}:00`))
+              follow.current = true
+              emit(stepTime(base, e.key === 'ArrowDown' ? STEP : -STEP, `${pad(OPEN_AT_HOUR)}:00`))
               setOpen(true)
               return
             }
@@ -250,38 +303,41 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
             style={{ position: 'fixed', top: coords.top, left: coords.left }}
             className="z-[75] flex overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-xl"
           >
-            {[
-              { key: 'h', label: 'Hour', ref: hourCol, rows: HOURS, sel: hh, at: hh ?? OPEN_AT_HOUR, pick: pickHour, on: true, show: hourLabel },
-              { key: 'm', label: 'Min', ref: minCol, rows: MINUTES, sel: mm, at: mm ?? '00', pick: pickMinute, on: !!hh, show: (v) => `:${v}` },
-            ].map((col) => (
-              <div key={col.key} className="flex w-[68px] flex-col border-r border-slate-100 last:border-r-0">
+            {columns.map((col) => (
+              <div
+                key={col.key}
+                className={[
+                  'flex flex-col border-r border-slate-100 last:border-r-0',
+                  col.key === 'p' ? 'w-[56px]' : 'w-[60px]',
+                ].join(' ')}
+              >
                 <div className="shrink-0 border-b border-slate-100 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  {col.label}
+                  {/* A non-breaking space keeps the AM/PM column's header as tall
+                      as the others, so the three columns' rows line up. */}
+                  {col.label || ' '}
                 </div>
                 <div
                   ref={col.ref}
-                  className="overflow-y-auto overscroll-contain"
+                  // `relative`: the centring measures a row's offsetTop against
+                  // its column.
+                  className="relative overflow-y-auto overscroll-contain"
                   style={{ maxHeight: Math.max(120, (coords.maxHeight ?? 240) - 26) }}
                 >
                   {col.rows.map((v) => {
-                    const selected = col.sel === v
+                    const selected = sel[col.key] === v
                     return (
                       <button
                         key={v}
                         type="button"
-                        // Where to scroll on open: the selection, or the hour a
+                        aria-pressed={selected}
+                        // Where to centre on open: the selection, or the hour a
                         // shoot plausibly starts at when nothing is set yet.
-                        data-at={(selected || (!col.sel && v === col.at)) ? 'true' : undefined}
-                        disabled={!col.on}
-                        onClick={() => col.pick(v)}
+                        data-at={col.at === v ? 'true' : undefined}
+                        onClick={() => pick(col.key, v)}
                         className={[
                           ROW,
                           'tabular-nums',
-                          selected
-                            ? 'bg-brand font-semibold text-white'
-                            : col.on
-                              ? 'text-slate-700 hover:bg-violet-50'
-                              : 'cursor-not-allowed text-slate-300',
+                          selected ? 'bg-brand font-semibold text-white' : 'text-slate-700 hover:bg-violet-50',
                         ].join(' ')}
                       >
                         {col.show(v)}

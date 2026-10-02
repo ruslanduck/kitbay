@@ -16,12 +16,11 @@ import { ChevronDown, Check } from 'lucide-react'
 // `onChange` is called with an event-like { target: { value } }, exactly like a
 // real <select> and like DateField — so every call site keeps its handler body.
 //
-// Options: [{ value, label, disabled?, icon?, hint? }] or plain strings. `icon`
-// is a component (a lucide icon); it is drawn in the row AND in the trigger, so
-// a compact trigger can show just the icon of what is in effect. `hint` is a
-// muted second label in the row — what an option holds ("Lookbook, test").
-// The field-level `icon` is for the trigger alone, when the options carry none:
-// a filter that should read as a filter before it is opened.
+// Options: [{ value, label, disabled?, icon? }] or plain strings. `icon` is a
+// component (a lucide icon); it is drawn in the row AND in the trigger, so a
+// compact trigger can show just the icon of what is in effect. The field-level
+// `icon` is for the trigger alone, when the options carry none: a filter that
+// should read as a filter before it is opened.
 export default function SelectField({
   value,
   onChange,
@@ -229,7 +228,7 @@ export default function SelectField({
                   disabled={o.disabled}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => pick(o)}
-                  title={o.hint ? `${o.label} — ${o.hint}` : o.label}
+                  title={o.label}
                   className={[
                     'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition',
                     o.disabled
@@ -256,9 +255,6 @@ export default function SelectField({
                       whole point of the width rule above. It still shrinks (and
                       ellipsises) when the maxWidth clamp bites. */}
                   <span className="min-w-0 flex-auto truncate">{o.label}</span>
-                  {o.hint && (
-                    <span className="ml-2 min-w-0 max-w-[12rem] truncate text-xs font-normal text-slate-400">{o.hint}</span>
-                  )}
                 </button>
               )
             })}

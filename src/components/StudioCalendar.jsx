@@ -32,8 +32,7 @@ import {
   setYear,
 } from 'date-fns'
 import { useStore } from '../store'
-import { brandsIn, CALENDAR_TYPE_FILTERS, matchesTypeFilter, otherTypesIn } from '../lib/orderSearch'
-import { OTHER } from '../lib/otherChoice'
+import { brandsIn, CALENDAR_TYPE_FILTERS, matchesTypeFilter } from '../lib/orderSearch'
 import { usePersisted } from '../lib/usePersisted'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
 import { earliestCrewCall, crewSummary, scheduleLines } from '../lib/crew'
@@ -210,8 +209,6 @@ export default function StudioCalendar() {
   // a shared modal's new props have to be fed from every call site — forgetting
   // that is exactly how `companies={companies}` white-screened this view.
   const brandOptions = useMemo(() => brandsIn(orders), [orders])
-  // What the Other filter gathers right now, for its tooltip.
-  const otherTypes = useMemo(() => otherTypesIn(orders.filter((o) => !o.archivedAt)), [orders])
   const openOrderDraft = useStore((s) => s.openOrderDraft)
   const updateOrder = useStore((s) => s.updateOrder)
   const peek = useStore((s) => s.peek)
@@ -499,7 +496,7 @@ export default function StudioCalendar() {
               </span>
             ))}
           </div>
-          <TypeFilter value={typeFilter} onChange={setTypeFilter} otherTypes={otherTypes} />
+          <TypeFilter value={typeFilter} onChange={setTypeFilter} />
           <ModeToggle mode={calendarMode} setMode={pickMode} />
           {canCreate && (
             <button
@@ -666,18 +663,14 @@ export default function StudioCalendar() {
 // violet buttons read as one control with two halves: which one is the view and
 // which one is the filter? A filter now looks like a filter. While it narrows
 // the grid the trigger is tinted, so a filtered week is never mistaken for an
-// empty one. Other names what it gathers in its row ("Lookbook, test").
-function TypeFilter({ value, onChange, otherTypes = [] }) {
+// empty one.
+function TypeFilter({ value, onChange }) {
   const filtered = value !== 'all'
   return (
     <SelectField
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      options={CALENDAR_TYPE_FILTERS.map((t) => ({
-        value: t,
-        label: t === 'all' ? 'All jobs' : t,
-        hint: t === OTHER ? otherTypes.join(', ') || 'every other type' : undefined,
-      }))}
+      options={CALENDAR_TYPE_FILTERS.map((t) => ({ value: t, label: t === 'all' ? 'All jobs' : t }))}
       icon={ListFilter}
       ariaLabel={`Shoot type: ${value === 'all' ? 'All jobs' : value}`}
       // One width whatever is chosen ("Editorial" is the longest), so picking a

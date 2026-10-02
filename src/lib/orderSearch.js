@@ -176,17 +176,6 @@ export function matchesTypeFilter(jobType, filter) {
   return choiceOf(jobType, JOB_TYPES) === filter
 }
 
-// The typed types Other gathers — once each whatever the spelling, in name
-// order — so the Other button can say what it holds.
-export function otherTypesIn(orders = []) {
-  const seen = new Map()
-  for (const o of orders) {
-    if (choiceOf(o?.jobType, JOB_TYPES) !== OTHER) continue
-    const t = String(o.jobType).trim()
-    if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t)
-  }
-  return [...seen.values()].sort((a, b) => a.localeCompare(b))
-}
 
 // A SET name is how a PDP day tells its sets apart ("OMSet1", "OMSet2"); an
 // editorial shoot has none. So the field belongs to PDP — and to a job with no

@@ -3452,6 +3452,33 @@
 > the field (cancelled). In the equipment window four lines each offer In-house / Sub-rental; Sub-rental tints the
 > line and brings up the vendor picker, switching back raises nothing, and re-picking In-house raises nothing. A kit
 > slot switched to Fixed brings up its item picker with "#0961 (out)". Nothing saved, 0 console errors.
+> **FIX — the time picker's scroll no longer "hangs", and AM/PM is its own column** (frontend only). Two reports
+> with a screenshot of the wrap field: "Зависает прокрутка при выборе времени" and "обычно выбирается час, минуты, а
+> потом отдельно AM/PM".
+> ⚠️ **The hang was real, and self-inflicted by the placement code.** The list re-places itself on any scroll
+> (`document` capture listener, so a scrolling modal carries it along), and a scroll INSIDE one of its own columns
+> reached that listener too. Each re-placement set new coords, which re-ran the effect that centres a column on its
+> selected row — so the column snapped back while it was being flicked. Two fixes: the listener ignores scrolls
+> whose target is inside the list; and the centring runs ONCE per opening (plus once when the arrow keys move the
+> value), through `scrollTop` rather than `scrollIntoView`, which also scrolls whatever is behind. Measured: an
+> hour column centred at 219 now stays at 0 / 60 / 140 when scrolled there, and at its bottom (238) for 300; a
+> minute column stays at 200. Before, every one of those came back to 219.
+> **Three columns, the canonical order: HOUR (12, 1 … 11) · MIN (:00 … :55) · AM/PM.** This replaces the 24-row
+> "12AM … 11PM" hour list. Nothing is written until the hour AND the half of the day are known — the field never
+> guesses AM or PM — and the minute is :00 unless one is picked. While a time is being assembled on an empty field,
+> the placeholder says how far it has got ("6:-- --", then "6:30 --"), only while the list is open. AM/PM is the last
+> step of the usual order, so picking it closes the list. An existing time edits in place: a new hour or minute is
+> written at once, and the list stays open. A minute off the 5-minute grid (08:07) survives an hour or AM/PM change.
+> ⚠️ An empty header made the AM/PM column's header 9px against 24px, so the rows didn't line up. A plain space
+> collapses; it is `\u00a0` now.
+> **Also removed, on request** ("убрать отсюда доп коммент"): the calendar filter's Other row no longer lists the
+> types it gathers. It had read "Other · test" — the studio's own test job. With it went the code that only existed
+> for it: `SelectField`'s option `hint`, `orderSearch.otherTypesIn` and its assertion (**794**). Dead plumbing that
+> reads as live is worse than none.
+> Verified in local mode: on an empty wrap, 6 → nothing written, ":30" → nothing written, PM → "6:30PM" and the list
+> closes; on 8AM, 9 → "9AM" (still open), PM → "9PM" (closed), ArrowDown → "9:05PM" with the columns on 9 / :05 / PM.
+> The list is 178×268, fully on screen at 375 with 40px rows. The filter reads All jobs / PDP / Editorial / Other with
+> no extra text. Nothing saved, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
