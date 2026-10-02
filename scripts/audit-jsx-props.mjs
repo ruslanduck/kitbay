@@ -9,10 +9,11 @@
 // EVERY component that renders it needs the value.
 //
 // Deliberately regex-based rather than a real parse: it has to stay a two-second
-// check with no new dependency. It can report a false positive on an unusual
-// declaration form (a renamed object destructure, e.g.
-// `const { loading: activityLoading } = useActivity()`), so read the survivors
-// rather than trusting the count.
+// check with no new dependency. It can still report a false positive on an
+// unusual declaration form, so read the survivors rather than trusting the count
+// — and when one turns out to be a false alarm, teach the patterns below that
+// form instead of learning to ignore the line (object destructuring, renamed or
+// not, was the last one).
 import { readdirSync, readFileSync } from 'node:fs'
 
 const files = readdirSync('src/components')
@@ -58,6 +59,12 @@ for (const f of files) {
       // array destructuring: const [x, setX] = useState()
       new RegExp(`\\[\\s*${n}\\s*[,\\]]`),
       new RegExp(`,\\s*${n}\\s*\\]`),
+      // object destructuring in a declaration, renamed or not:
+      //   const { byDay, hiddenByDay } = useMemo(…)
+      //   const { loading: activityLoading } = useActivity()
+      // Both read as undeclared until this pattern existed — the second for
+      // months, which taught everyone to skip the line instead of reading it.
+      new RegExp(`(const|let|var)\\s*\\{[^}]*\\b${n}\\b[^}]*\\}\\s*=`, 's'),
     ]
     if (patterns.some((p) => p.test(src))) continue
     console.log('UNDECLARED', f, '->', name)
