@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Plus, X, Clock, AlertTriangle } from 'lucide-react'
+import { Plus, X, AlertTriangle } from 'lucide-react'
 import TimeField from './TimeField'
 import OtherSelectField from './OtherSelectField'
 import MultiComboField from './MultiComboField'
@@ -63,11 +63,15 @@ export default function CrewField({
 
   return (
     <div className="space-y-3">
-      <div>
-        <label className={label}>General call time</label>
-        {/* The width goes on a wrapper, as on the rows: on the input itself it
-            shrank the box and left the picker's chevron at the far edge. */}
-        <div className="sm:w-32">
+      {/* The day's two fixed points, side by side: when everyone is called and
+          when the shoot wraps. They used to stack — two short fields, each on a
+          row of its own, down a box as wide as the form — which is most of what
+          made the sheet read as stretched. The widths go on the grid, not on
+          the inputs: on an input a width shrank the box and left the picker's
+          icon at the far edge. */}
+      <div className="grid grid-cols-2 gap-3 sm:max-w-[21rem]">
+        <div className="min-w-0">
+          <label className={label}>General call time</label>
           <TimeField
             value={callTime}
             onChange={(e) => onCallTimeChange(e.target.value)}
@@ -75,111 +79,130 @@ export default function CrewField({
             className={field}
           />
         </div>
+        {/* The wrap is one time for the whole shoot, not somebody's call. */}
+        <div className="min-w-0">
+          <label className={label}>Shoot wrap time</label>
+          <TimeField
+            value={wrapTime}
+            onChange={(e) => onWrapChange(e.target.value)}
+            ariaLabel="Shoot wrap time"
+            className={field}
+          />
+          {wrapEarly ? (
+            <p className="mt-1 flex items-start gap-1 text-[11px] font-medium text-rose-600">
+              <AlertTriangle size={12} className="mt-px shrink-0" />
+              That is before the first call.
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div>
-        <label className={label}>Call times</label>
-
+        {/* Headed only once there is something under the heading: on an empty
+            sheet the button says what it adds. */}
         {rows.length > 0 && (
-          <ul className="mb-2 space-y-2">
-            {rows.map((r, i) => {
-              const problem = crewRowProblem(r)
-              const badTime = !!r.time && !isValidTime(toHHMM(r.time))
-              return (
-                <li
-                  key={r.id || r.uid || i}
-                  className="rounded-lg bg-slate-50 p-2.5 ring-1 ring-slate-200"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center text-slate-400">
-                      <Clock size={13} />
-                    </span>
-                    {/* TimeField's input is `w-full` of its own wrapper, so the
-                        WIDTH is set here — a width class on the input loses. */}
-                    <div className="w-[6.5rem] shrink-0">
-                      <TimeField
-                        value={r.time ?? ''}
-                        onChange={(e) => patch(i, { time: e.target.value })}
-                        ariaLabel="Call time"
-                        className={[
-                          'rounded-md border px-2 py-1 text-sm outline-none transition focus:ring-2',
-                          badTime
-                            ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
-                            : 'border-slate-300 focus:border-violet-400 focus:ring-violet-100',
-                        ].join(' ')}
+          <>
+            <div className={label}>Call times</div>
+            <ul className="mb-2 space-y-2">
+              {rows.map((r, i) => {
+                const problem = crewRowProblem(r)
+                const badTime = !!r.time && !isValidTime(toHHMM(r.time))
+                return (
+                  <li
+                    key={r.id || r.uid || i}
+                    className="rounded-lg bg-slate-50 p-2.5 ring-1 ring-slate-200"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* TimeField's input is `w-full` of its own wrapper, so the
+                          WIDTH is set here — a width class on the input loses.
+                          No clock in front of it any more: the field carries
+                          its own. */}
+                      <div className="w-[6.5rem] shrink-0">
+                        <TimeField
+                          value={r.time ?? ''}
+                          onChange={(e) => patch(i, { time: e.target.value })}
+                          ariaLabel="Call time"
+                          placeholder="Time"
+                          className={[
+                            'rounded-md border px-2 py-1 text-sm outline-none transition focus:ring-2',
+                            badTime
+                              ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
+                              : 'border-slate-300 focus:border-violet-400 focus:ring-violet-100',
+                          ].join(' ')}
+                        />
+                      </div>
+                      {/* The PERSON first: picking them fills the line's role from
+                          what People says they do (a role already chosen is kept).
+                          A person kept keeps the contact the line was read with; a
+                          new name is resolved again on save. */}
+                      <div className="min-w-[10rem] flex-[2]">
+                        <MultiComboField
+                          size="sm"
+                          value={(r.people ?? []).map((p) => p.name)}
+                          onChange={(fn) =>
+                            onChange((cur) =>
+                              cur.map((line, n) => {
+                                if (n !== i) return line
+                                const had = line.people ?? []
+                                const names = fn(had.map((p) => p.name))
+                                const people = names.map(
+                                  (name) =>
+                                    had.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? {
+                                      name,
+                                      contactId: null,
+                                    },
+                                )
+                                if (String(line.role ?? '').trim()) return { ...line, people }
+                                // The first person with a trade decides an empty role.
+                                const trade = people
+                                  .map((p) => trades.get(p.name.trim().toLowerCase()))
+                                  .find(Boolean)
+                                return { ...line, people, role: trade ? canonicalRole(trade) : line.role }
+                              }),
+                            )
+                          }
+                          options={namesFor(r.role)}
+                          placeholder="People"
+                          ariaLabel="People"
+                        />
+                      </div>
+                      <OtherSelectField
+                        value={r.role ?? ''}
+                        onChange={(e) => patch(i, { role: e.target.value })}
+                        options={CALL_ROLES}
+                        placeholder="Role"
+                        ariaLabel="Role"
+                        detailPlaceholder="Which role?"
+                        detailAriaLabel="Which role"
+                        className="min-w-[8rem] flex-1"
+                        otherClassName="min-w-[14rem] flex-[1.5]"
+                        selectClassName={small}
+                        detailClassName={small}
                       />
+                      <button
+                        type="button"
+                        onClick={() => remove(i)}
+                        title="Remove this call time"
+                        aria-label="Remove this call time"
+                        className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-surface hover:text-rose-500"
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
-                    {/* The PERSON first: picking them fills the line's role from
-                        what People says they do (a role already chosen is kept).
-                        A person kept keeps the contact the line was read with; a
-                        new name is resolved again on save. */}
-                    <div className="min-w-[10rem] flex-[2]">
-                      <MultiComboField
-                        size="sm"
-                        value={(r.people ?? []).map((p) => p.name)}
-                        onChange={(fn) =>
-                          onChange((cur) =>
-                            cur.map((line, n) => {
-                              if (n !== i) return line
-                              const had = line.people ?? []
-                              const names = fn(had.map((p) => p.name))
-                              const people = names.map(
-                                (name) =>
-                                  had.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? {
-                                    name,
-                                    contactId: null,
-                                  },
-                              )
-                              if (String(line.role ?? '').trim()) return { ...line, people }
-                              // The first person with a trade decides an empty role.
-                              const trade = people
-                                .map((p) => trades.get(p.name.trim().toLowerCase()))
-                                .find(Boolean)
-                              return { ...line, people, role: trade ? canonicalRole(trade) : line.role }
-                            }),
-                          )
-                        }
-                        options={namesFor(r.role)}
-                        placeholder="People"
-                        ariaLabel="People"
-                      />
-                    </div>
-                    <OtherSelectField
-                      value={r.role ?? ''}
-                      onChange={(e) => patch(i, { role: e.target.value })}
-                      options={CALL_ROLES}
-                      placeholder="Role"
-                      ariaLabel="Role"
-                      detailPlaceholder="Which role?"
-                      detailAriaLabel="Which role"
-                      className="min-w-[8rem] flex-1"
-                      otherClassName="min-w-[14rem] flex-[1.5]"
-                      selectClassName={small}
-                      detailClassName={small}
+                    <input
+                      type="text"
+                      value={r.note ?? ''}
+                      onChange={(e) => patch(i, { note: e.target.value })}
+                      placeholder="Note"
+                      className={[small, 'mt-2'].join(' ')}
                     />
-                    <button
-                      type="button"
-                      onClick={() => remove(i)}
-                      title="Remove this call time"
-                      aria-label="Remove this call time"
-                      className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-surface hover:text-rose-500"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={r.note ?? ''}
-                    onChange={(e) => patch(i, { note: e.target.value })}
-                    placeholder="Note"
-                    className={[small, 'mt-2'].join(' ')}
-                  />
-                  {/* Said where the row is, rather than refused at the button. */}
-                  {problem && <p className="mt-1.5 text-[11px] text-amber-600">{problem}</p>}
-                </li>
-              )
-            })}
-          </ul>
+                    {/* Said where the row is, rather than refused at the button. */}
+                    {problem && <p className="mt-1.5 text-[11px] text-amber-600">{problem}</p>}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
         )}
 
         <button
@@ -190,25 +213,6 @@ export default function CrewField({
           <Plus size={13} />
           Add call time
         </button>
-      </div>
-
-      {/* The wrap is one time for the whole shoot, not somebody's call. */}
-      <div>
-        <label className={label}>Shoot wrap time</label>
-        <div className="sm:w-32">
-          <TimeField
-            value={wrapTime}
-            onChange={(e) => onWrapChange(e.target.value)}
-            ariaLabel="Shoot wrap time"
-            className={field}
-          />
-        </div>
-        {wrapEarly ? (
-          <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-rose-600">
-            <AlertTriangle size={12} />
-            That is before the first call.
-          </p>
-        ) : null}
       </div>
     </div>
   )

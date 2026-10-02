@@ -3504,6 +3504,30 @@
 > `querySelector` for an option then found "Marcus Reed" in the PREVIOUS row's still-open list and put him there,
 > which made the "a chosen role is kept" check pass vacuously. Redone with exactly one list open. When driving a
 > picker that stays open, close it, or scope the option search to the popover you just opened.
+> **UI — the time field wears a CLOCK and picks from one card; the call sheet sits in two rows** (frontend
+> only, no migration). Reported with a screenshot of the job form's call sheet: "Очень стремная такая иконка …
+> чтобы выбор времени был симпатичнее … растянуто по екрану, сделать более компактно". Drawn first on a Claude
+> Design canvas — A · tap grid, B · scroll wheel, and the empty sheet — and A shipped.
+> • **The icon is a clock**, where DateField keeps its calendar (same box, size and colour), lit while the card
+>   is open. The chevron made a time read as one more dropdown.
+> • **The picker is ONE card with nothing to scroll:** HOUR (12, 1 … 11) and MIN (:00 … :55) as 3×4 grids, then
+>   two tall AM/PM buttons — 340×177 against the old 178×268, and the three columns' Windows scrollbars are gone.
+>   The rules did not change (nothing is written until the hour AND AM/PM are known, the minute is :00 unless
+>   picked, AM/PM closes, typing and the ±5 arrows still work). The quarter hours fill the first column and the
+>   other minutes are a step quieter. Cells are 32px with a mouse and 40px under a finger (`pointer-coarse`). The
+>   centring code and its refs went with the columns: nothing inside the card scrolls any more.
+> • **Placeholder "Set time"** ("Time" in a call row) instead of "--:-- --"; the "6:30 --" progress shown while a
+>   time is being assembled stays.
+> • **A compact sheet:** General call and Shoot wrap side by side (a 2-column grid, at most 21rem), the "Call
+>   times" heading only once a row exists, and no clock in front of a row (its field has one). Empty sheet:
+>   **232 → 130px** tall. The wrap warning stays under the wrap field, on one line.
+> ℹ️ The card is placed twice per opening — first from a guessed size, then from its measured one — because
+> whether it opens above the field depends on its height, which is taller under a finger.
+> Verified in local mode: 6 → :30 → PM gave "6:30PM" and closed; 9 on that time gave "9:30PM" (still open), AM
+> "9:30AM" (closed); "5a" + Enter gave 5AM and the wrap warning; "12:30pm" fits a call row's 104px field;
+> Escape closes the card and not the job form; ArrowDown on an empty field 8AM → 8:05AM; at 375px the two fields
+> are 141px each, the card slides to 27–367 and its cells are 40px. Contrast with transitions frozen: cells
+> 10.36 light / 16.28 dark, quiet minutes 4.76 / 12, the selected cell 5.89.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

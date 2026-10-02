@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { isValidTime, minuteOptions, parseTimeInput, stepTime, toHHMM } from '../lib/callTimes'
 import { formatTime } from '../lib/clock'
 
@@ -9,16 +9,19 @@ import { formatTime } from '../lib/clock'
 // Locale-proof by construction: a native <input type="time"> has its placeholder
 // and its own picker drawn by the OPERATING SYSTEM (чч:мм on a Russian browser,
 // unstyleable), which is the same trade DateField and SelectField already made.
-// So the field is a text input and the list below is ours. It SHOWS the 12-hour
+// So the field is a text input and the card below is ours. It SHOWS the 12-hour
 // clock the studio works in ("5PM", lib/clock) and hands its parent "HH:MM",
 // 24-hour — the stored shape, which sorts as text.
 //
 // THREE ways to set a time, because a phone and a desk are not the same hand:
-//   • the LIST — three flickable columns, the way a 12-hour time is picked
-//     everywhere else: HOUR (12, 1 … 11), MINUTE, then AM/PM. Nothing is
-//     written until the hour AND the half of the day are known — the field
-//     never guesses AM or PM — and the minute is :00 unless one is picked. The
-//     AM/PM tap is the last step, so it closes the list.
+//   • the CARD — every hour, every minute and AM/PM at once, in the order a
+//     12-hour time is picked: HOUR (12, 1 … 11), MINUTE, then AM/PM. Three taps
+//     and no scrolling. It replaced three flickable columns that showed five
+//     rows at a time, so most picks were a scroll and a hunt — and on Windows
+//     each column wore its own grey scrollbar. Nothing is written until the hour
+//     AND the half of the day are known — the field never guesses AM or PM — and
+//     the minute is :00 unless one is picked. The AM/PM tap is the last step, so
+//     it closes the card.
 //   • TYPING — "5pm" · "5:30p" · "530pm" · "8" · "17:30" all snap on blur or
 //     Enter (lib/callTimes `parseTimeInput`). Nobody has to reach for the colon,
 //     and whoever types the 24-hour clock is still understood.
@@ -27,8 +30,8 @@ const STEP = 5
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 const MINUTES = minuteOptions(STEP)
 const PERIODS = ['AM', 'PM']
-// Where an empty field's hour column opens. A studio calls people in the
-// morning, not at 12AM — opening at midnight would make every pick a scroll.
+// Where the arrow keys start on an empty field. A studio calls people in the
+// morning, not at 12AM.
 const OPEN_AT_HOUR = 8
 const NOTHING = { h: null, m: null, p: null }
 
@@ -42,17 +45,36 @@ const partsOf = (hhmm) => {
 }
 const compose = ({ h, m, p }) => `${pad((h % 12) + (p === 'PM' ? 12 : 0))}:${m ?? '00'}`
 
-// Rows are deliberately tall: this list is used with a thumb.
-const ROW = 'flex w-full items-center justify-center px-2 py-2.5 text-sm transition'
+// One look for every cell. 32px tall with a mouse, 40px under a finger
+// (`pointer-coarse`), so a phone gets a thumb-sized target without a desk
+// paying for it in height.
+const CELL =
+  'flex h-8 items-center justify-center rounded-md text-sm tabular-nums transition pointer-coarse:h-10'
+const HEAD = 'px-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400'
+// The quarter hours are what a call sheet mostly says, so the other minutes are
+// a step quieter — they sit in the second and third column, out of the way.
+const tone = (selected, quiet = false) =>
+  selected
+    ? 'bg-brand font-semibold text-white'
+    : [quiet ? 'text-slate-500' : 'text-slate-700', 'hover:bg-violet-50 hover:text-violet-700'].join(' ')
 
-export default function TimeField({ value, onChange, className, ariaLabel }) {
+function Group({ label, children }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {/* A label-less group still carries the header line, so all three
+          groups' cells start on the same row. */}
+      <div className={HEAD}>{label || '\u00a0'}</div>
+      {children}
+    </div>
+  )
+}
+
+export default function TimeField({ value, onChange, className, ariaLabel, placeholder = 'Set time' }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState(null)
   const wrapRef = useRef(null)
   const inputRef = useRef(null)
   const popRef = useRef(null)
-  const hourCol = useRef(null)
-  const minCol = useRef(null)
 
   // The stored value, as HH:MM. One with seconds ("08:00:00", straight out of a
   // Postgres `time`) is trimmed, because that one is not something a person typed.
@@ -67,8 +89,8 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
   // (never a guess), with the field marked so it says so.
   const shown = draft ?? (valid ? formatTime(stored) : stored)
   const unreadable = draft === null && stored !== '' && !valid
-  // A time being assembled in the list on an EMPTY field — hour and minute can be
-  // picked before the half of the day is known. A stored time IS the selection.
+  // A time being assembled on the card on an EMPTY field — hour and minute can
+  // be picked before the half of the day is known. A stored time IS the selection.
   const [partial, setPartial] = useState(NOTHING)
   const sel = valid ? partsOf(stored) : partial
 
@@ -85,15 +107,16 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     const el = wrapRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    const wanted = 268
-    const w = popRef.current?.offsetWidth || 176
+    // The card's own size once it is on screen; before its first paint, about
+    // what it measures.
+    const w = popRef.current?.offsetWidth || 340
+    const h = popRef.current?.offsetHeight || 190
     const below = window.innerHeight - r.bottom - 8
-    const openUp = below < wanted && r.top > below
+    const openUp = below < h && r.top > below
     const room = window.innerWidth >= 200 ? window.innerWidth - w - 8 : r.left
     setCoords({
-      top: openUp ? Math.max(8, r.top - Math.min(wanted, r.top - 8) - 4) : r.bottom + 4,
+      top: openUp ? Math.max(8, r.top - h - 4) : r.bottom + 4,
       left: Math.max(8, Math.min(r.left, room)),
-      maxHeight: Math.min(wanted, openUp ? r.top - 12 : below),
     })
   }
 
@@ -101,16 +124,9 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     if (!open) return
     place()
     // The field lives inside a scrollable modal, so a scroll has to move the
-    // list with it — a `fixed` popover otherwise stays behind while the field it
+    // card with it — a `fixed` popover otherwise stays behind while the field it
     // belongs to slides away.
-    const again = (e) => {
-      // ⚠️ …but NOT a scroll inside the list itself. That is somebody flicking a
-      // column, and re-placing on it re-rendered the list on every scroll tick and
-      // re-ran the centring below — the column snapped back to the selected row
-      // while it was being scrolled. Reported as "the scroll hangs".
-      if (e?.target instanceof Node && popRef.current?.contains(e.target)) return
-      place()
-    }
+    const again = () => place()
     window.addEventListener('resize', again)
     // NOTE: `document`, not `window` — a scroll INSIDE a container (this app's
     // modals scroll) never reaches a capture listener on window; measured with a
@@ -123,35 +139,23 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // Centre each column on what is selected — or, on an empty field, on the hour
-  // a shoot actually starts at. ONCE per opening (and again when the arrow keys
-  // move the value), never on a re-placement: centring on every render is what
-  // fought the person scrolling. scrollTop, not scrollIntoView, which would also
-  // scroll the page behind.
-  const centred = useRef(false)
-  const follow = useRef(false)
-  const centre = () => {
-    for (const col of [hourCol.current, minCol.current]) {
-      const row = col?.querySelector('[data-at="true"]')
-      if (row) col.scrollTop = row.offsetTop - col.clientHeight / 2 + row.offsetHeight / 2
-    }
-  }
+  // The first placement had to guess the card's size. Once it is on screen it is
+  // placed again from what it really measures — whether it fits below the field
+  // or opens above it depends on its height, which is taller under a finger.
+  // Once per opening, held in a ref so the re-placement can't loop.
+  const measured = useRef(false)
   useLayoutEffect(() => {
     if (!open) {
-      centred.current = false
+      measured.current = false
       return
     }
-    if (!coords || centred.current) return
-    centred.current = true
-    centre()
+    if (!coords || measured.current) return
+    measured.current = true
+    place()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, coords])
-  useLayoutEffect(() => {
-    if (!open || !follow.current) return
-    follow.current = false
-    centre()
-  }, [open, stored])
 
-  // A fresh list starts from the stored time, not from a half-built one.
+  // A fresh card starts from the stored time, not from a half-built one.
   useEffect(() => {
     if (open) setPartial(NOTHING)
   }, [open])
@@ -166,7 +170,7 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     }
     const onKey = (e) => {
       if (e.key === 'Escape') {
-        // Escape closes the LIST, not the modal behind it.
+        // Escape closes the CARD, not the modal behind it.
         e.stopPropagation()
         setOpen(false)
       }
@@ -181,7 +185,7 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
     }
   }, [open])
 
-  // One tap in any column. Once the hour AND the half of the day are known the
+  // One tap on the card. Once the hour AND the half of the day are known the
   // time is written (the minute is :00 unless one was picked); until then the
   // picks are held here. AM/PM is the last step of the usual order, so it closes.
   const pick = (column, v) => {
@@ -204,7 +208,7 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
   // re-render must read the live value — the rule this codebase has written down
   // six times — and for a text field the DOM node IS that value.
   function snap() {
-    // Nothing typed since the last pick: the list or the arrows already set it.
+    // Nothing typed since the last pick: the card or the arrows already set it.
     if (draft === null) return
     const raw = (inputRef.current?.value ?? draft).trim()
     setDraft(null)
@@ -216,18 +220,10 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
   }
 
   // While a time is being assembled on an empty field, the field says how far
-  // it has got ("5:30 --") instead of looking untouched — only while the list is
+  // it has got ("5:30 --") instead of looking untouched — only while the card is
   // open: closed, nothing was written, and the field must not suggest otherwise.
   const building = open && !valid && (partial.h != null || partial.m != null || partial.p != null)
-  const placeholder = building
-    ? `${partial.h ?? '--'}:${partial.m ?? '--'} ${partial.p ?? '--'}`
-    : '--:-- --'
-
-  const columns = [
-    { key: 'h', label: 'Hour', ref: hourCol, rows: HOURS, at: sel.h ?? OPEN_AT_HOUR, show: String },
-    { key: 'm', label: 'Min', ref: minCol, rows: MINUTES, at: sel.m ?? '00', show: (v) => `:${v}` },
-    { key: 'p', label: '', ref: null, rows: PERIODS, at: null, show: String },
-  ]
+  const hint = building ? `${partial.h ?? '--'}:${partial.m ?? '--'} ${partial.p ?? '--'}` : placeholder
 
   return (
     <>
@@ -239,7 +235,7 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
           autoComplete="off"
           aria-label={ariaLabel}
           aria-invalid={unreadable || undefined}
-          placeholder={placeholder}
+          placeholder={hint}
           maxLength={10}
           value={shown}
           onChange={(e) => setDraft(e.target.value)}
@@ -248,12 +244,11 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
               e.preventDefault()
-              // The list is a picker, not a keyboard trap: the arrows nudge the
+              // The card is a picker, not a keyboard trap: the arrows nudge the
               // VALUE, which is what a time field is expected to do — from what
               // is being typed, if anything is.
               const base = draft !== null ? parseTimeInput(draft) || stored : stored
               setDraft(null)
-              follow.current = true
               emit(stepTime(base, e.key === 'ArrowDown' ? STEP : -STEP, `${pad(OPEN_AT_HOUR)}:00`))
               setOpen(true)
               return
@@ -266,32 +261,38 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
           }}
           // `min-w-0` + the full width: without them a bare input keeps its
           // intrinsic ~20-character size and overflows this wrapper, putting the
-          // chevron on top of the text (the DateField lesson).
+          // clock on top of the text (the DateField lesson). `pr-8` keeps the
+          // value clear of it.
           // Text that couldn't be read is ringed in rose: a VARIANT, so it wins
           // over whatever border the caller passed (a plain utility would be
           // settled by stylesheet order, not intent).
           className={[
             className,
-            'w-full pr-7 aria-invalid:border-rose-400 aria-invalid:ring-2 aria-invalid:ring-rose-100',
+            'w-full pr-8 aria-invalid:border-rose-400 aria-invalid:ring-2 aria-invalid:ring-rose-100',
           ]
             .filter(Boolean)
             .join(' ')}
         />
+        {/* A clock, where DateField keeps its calendar — the same box, size and
+            colour. The chevron it replaced made a time read as one more
+            dropdown. Lit while the card is open, so the field says whose card
+            it is. */}
         <button
           type="button"
           tabIndex={-1}
           aria-label="Pick a time"
+          aria-expanded={open}
           title="Pick a time"
           onClick={() => {
             setOpen((v) => !v)
             inputRef.current?.focus()
           }}
-          className="absolute right-1 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          className={[
+            'absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 transition',
+            open ? 'bg-slate-100 text-slate-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600',
+          ].join(' ')}
         >
-          <ChevronDown
-            size={14}
-            className={['transition', open ? 'rotate-180' : ''].join(' ')}
-          />
+          <Clock size={16} />
         </button>
       </div>
 
@@ -301,52 +302,60 @@ export default function TimeField({ value, onChange, className, ariaLabel }) {
           <div
             ref={popRef}
             style={{ position: 'fixed', top: coords.top, left: coords.left }}
-            className="z-[75] flex overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-xl"
+            className="z-[75] flex gap-2 rounded-xl border border-slate-200 bg-surface p-2 shadow-xl"
           >
-            {columns.map((col) => (
-              <div
-                key={col.key}
-                className={[
-                  'flex flex-col border-r border-slate-100 last:border-r-0',
-                  col.key === 'p' ? 'w-[56px]' : 'w-[60px]',
-                ].join(' ')}
-              >
-                <div className="shrink-0 border-b border-slate-100 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  {/* A non-breaking space keeps the AM/PM column's header as tall
-                      as the others, so the three columns' rows line up. */}
-                  {col.label || ' '}
-                </div>
-                <div
-                  ref={col.ref}
-                  // `relative`: the centring measures a row's offsetTop against
-                  // its column.
-                  className="relative overflow-y-auto overscroll-contain"
-                  style={{ maxHeight: Math.max(120, (coords.maxHeight ?? 240) - 26) }}
-                >
-                  {col.rows.map((v) => {
-                    const selected = sel[col.key] === v
-                    return (
-                      <button
-                        key={v}
-                        type="button"
-                        aria-pressed={selected}
-                        // Where to centre on open: the selection, or the hour a
-                        // shoot plausibly starts at when nothing is set yet.
-                        data-at={col.at === v ? 'true' : undefined}
-                        onClick={() => pick(col.key, v)}
-                        className={[
-                          ROW,
-                          'tabular-nums',
-                          selected ? 'bg-brand font-semibold text-white' : 'text-slate-700 hover:bg-violet-50',
-                        ].join(' ')}
-                      >
-                        {col.show(v)}
-                      </button>
-                    )
-                  })}
-                </div>
+            <Group label="Hour">
+              <div className="grid grid-cols-3 gap-1">
+                {HOURS.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    aria-pressed={sel.h === h}
+                    onClick={() => pick('h', h)}
+                    className={[CELL, 'w-9', tone(sel.h === h)].join(' ')}
+                  >
+                    {h}
+                  </button>
+                ))}
               </div>
-            ))}
+            </Group>
+            <div className="w-px self-stretch bg-slate-100" />
+            <Group label="Min">
+              <div className="grid grid-cols-3 gap-1">
+                {MINUTES.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={sel.m === m}
+                    onClick={() => pick('m', m)}
+                    className={[CELL, 'w-10', tone(sel.m === m, Number(m) % 15 !== 0)].join(' ')}
+                  >
+                    :{m}
+                  </button>
+                ))}
+              </div>
+            </Group>
+            <div className="w-px self-stretch bg-slate-100" />
+            {/* AM / PM: two tall buttons that fill the grid's height — the last
+                tap of the three, and the biggest target on the card. */}
+            <Group>
+              <div className="flex flex-1 flex-col gap-1">
+                {PERIODS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    aria-pressed={sel.p === p}
+                    onClick={() => pick('p', p)}
+                    className={[
+                      'flex w-11 flex-1 items-center justify-center rounded-md text-sm font-medium transition',
+                      tone(sel.p === p),
+                    ].join(' ')}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </Group>
           </div>,
           document.body,
         )}
