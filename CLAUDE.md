@@ -3411,6 +3411,21 @@
 > only its own type; the tooltip reads as above; the toolbar still fits one line at 1024 (the group is 264px) and the
 > four buttons fit unclipped at 375. 0 console errors.
 > ℹ️ On prod, Other currently holds one job (typed "test"); 16 jobs have no type at all and show under All jobs only.
+> **UI — the calendar's type filter is a DROPDOWN** (frontend only). Reported with a screenshot of the toolbar:
+> "Сделай вид фильтра как-то более канонично, чтобы было дропдауном, ибо даёт юзер экспириенс плохой". Fair: it was a
+> second segmented control right beside Day / Week / Month, painted in the same violet, so the two read as one
+> control with two halves — which half is the view, and which is the filter?
+> It is the app's own `SelectField` now: a filter icon, the choice in effect ("All jobs" / PDP / Editorial / Other)
+> and a chevron. The list ticks the current choice, and Other carries what it gathers as a muted hint in its row
+> ("Other · Lookbook"). While the filter narrows the grid the trigger is tinted violet, so a filtered week is never
+> mistaken for an empty one. The trigger keeps ONE width (8.5rem, fitting "Editorial"), so changing the filter never
+> shoves the view toggle and the arrows sideways.
+> `SelectField` gained two small generic props: a field-level `icon` (drawn in the trigger alone, when the options
+> carry none), and an option `hint`, a muted second label in the row that also joins the row's tooltip.
+> Measured in local mode: the trigger is 38px tall like Today and the view toggle, and 136px for all four choices with
+> nothing clipped. Its tint reads 10.98 dark / 6.65 light. PDP shows 9 chips, All jobs 14, and the choice persists.
+> The toolbar fits one line at 1440 and 1024; at 375 it is two lines instead of three, with the list opening on
+> screen. No overflow, 0 console errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

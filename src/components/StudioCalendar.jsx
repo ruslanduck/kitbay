@@ -11,6 +11,7 @@ import {
   Layers,
   MapPin,
   UserRound,
+  ListFilter,
 } from 'lucide-react'
 import {
   startOfWeek,
@@ -52,6 +53,7 @@ import StatusMenu from './StatusMenu'
 import { useLongPress } from '../lib/useLongPress'
 import BookingModal from './BookingModal'
 import OrderEditorModal from './OrderEditorModal'
+import SelectField from './SelectField'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -658,34 +660,34 @@ export default function StudioCalendar() {
 // "текущий по дефолту" — because a day view opened on last month's Tuesday is
 // not what anyone means by it. A day cell in the month grid and a day header in
 // the week grid open the day they name instead, which is the other half of it.
-// Which jobs the grid shows. Same shape as the Day / Week / Month toggle beside
-// it: one tap, and the choice in effect is always visible.
+// Which jobs the grid shows — a DROPDOWN, the app's own (SelectField). It was a
+// second segmented control beside Day / Week / Month, and two identical rows of
+// violet buttons read as one control with two halves: which one is the view and
+// which one is the filter? A filter now looks like a filter. While it narrows
+// the grid the trigger is tinted, so a filtered week is never mistaken for an
+// empty one. Other names what it gathers in its row ("Lookbook, test").
 function TypeFilter({ value, onChange, otherTypes = [] }) {
+  const filtered = value !== 'all'
   return (
-    <div className="flex rounded-lg border border-slate-300 bg-surface p-0.5" role="group" aria-label="Shoot type">
-      {CALENDAR_TYPE_FILTERS.map((t) => (
-        <button
-          key={t}
-          type="button"
-          aria-pressed={value === t}
-          onClick={() => onChange(t)}
-          // Other gathers every type typed beside it; the tooltip says which.
-          title={
-            t === OTHER
-              ? otherTypes.length
-                ? `Every other shoot type: ${otherTypes.join(', ')}`
-                : 'Every shoot type outside PDP and Editorial'
-              : undefined
-          }
-          className={[
-            'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition',
-            value === t ? 'bg-brand text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100',
-          ].join(' ')}
-        >
-          {t === 'all' ? 'All jobs' : t}
-        </button>
-      ))}
-    </div>
+    <SelectField
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      options={CALENDAR_TYPE_FILTERS.map((t) => ({
+        value: t,
+        label: t === 'all' ? 'All jobs' : t,
+        hint: t === OTHER ? otherTypes.join(', ') || 'every other type' : undefined,
+      }))}
+      icon={ListFilter}
+      ariaLabel={`Shoot type: ${value === 'all' ? 'All jobs' : value}`}
+      // One width whatever is chosen ("Editorial" is the longest), so picking a
+      // filter never shoves the view toggle and the arrows sideways.
+      className={[
+        'min-w-[8.5rem] whitespace-nowrap rounded-lg border px-3 py-2 text-sm font-medium transition',
+        filtered
+          ? 'border-violet-300 bg-violet-50 text-violet-700'
+          : 'border-slate-300 bg-surface text-slate-700 hover:bg-slate-100',
+      ].join(' ')}
+    />
   )
 }
 
