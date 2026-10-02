@@ -191,6 +191,7 @@ function buildSeedData() {
         // A shoot runs for whole days and may run for several (`days`, default 1).
         endDate: format(addDays(weekStart, t.dayOffset + ((t.days || 1) - 1)), 'yyyy-MM-dd'),
         wrapTime: t.wrap || null,
+        callTime: t.call || null,
         // Whose job it is — several people. Mirrors the job's own field so a
         // person's work history can say "as assignee" in local mode too.
         assignees: normalizeAssignees(t.assignees ?? [{ name: t.photographer, role: 'Photographer' }]),
@@ -2760,6 +2761,7 @@ export const useStore = create(
             date: startsOn,
             endDate: endsOn,
             wrapTime: order.wrapTime || null,
+            callTime: order.callTime || null,
             crew: normalizeCrew(order.crew || []),
           })
           logNew(id)
@@ -2785,6 +2787,7 @@ export const useStore = create(
             date: startsOn,
             endDate: endsOn,
             wrapTime: order.wrapTime || null,
+            callTime: order.callTime || null,
             assignees: normalizeAssignees(order.assignees),
             unitIds: [],
             status: 'active',
@@ -2888,6 +2891,8 @@ export const useStore = create(
           if (k === 'assignees') return people(changes.assignees) !== people(before?.assignees)
           if (k === 'wrapTime')
             return String(changes.wrapTime ?? '') !== String(beforeShoot?.wrapTime ?? '')
+          if (k === 'callTime')
+            return String(changes.callTime ?? '') !== String(beforeShoot?.callTime ?? '')
           return !before || String(changes[k] ?? '') !== String(before[k] ?? '')
         })
         const logStatus = (res) =>
@@ -2918,6 +2923,7 @@ export const useStore = create(
                 // through here. Left alone when the caller didn't carry it.
                 ...(changes.crew !== undefined ? { crew: normalizeCrew(changes.crew) } : {}),
                 ...(changes.wrapTime !== undefined ? { wrapTime: changes.wrapTime || null } : {}),
+                ...(changes.callTime !== undefined ? { callTime: changes.callTime || null } : {}),
               })
             } catch (e) {
               console.error('could not move the shoot with its job:', e)
@@ -2964,6 +2970,7 @@ export const useStore = create(
                   date: target.startsOn ?? b.date,
                   endDate: endsOnFor(target.startsOn ?? b.date, target.endsOn ?? b.endDate),
                   wrapTime: changes.wrapTime !== undefined ? changes.wrapTime || null : b.wrapTime,
+                  callTime: changes.callTime !== undefined ? changes.callTime || null : b.callTime,
                   assignees: target.assignees ?? [],
                 },
                 nextCrew ?? b.crew,
@@ -3281,6 +3288,7 @@ export const useStore = create(
           endDate: endsOnFor(data.date, data.endDate),
           crew: normalizeCrew(data.crew || []),
           wrapTime: data.wrapTime || null,
+          callTime: data.callTime || null,
         }
         if (usingSupabase) {
           const id = await sbCreateBooking(data)
@@ -3317,6 +3325,8 @@ export const useStore = create(
         if (changes.crew !== undefined) changes = { ...changes, crew: normalizeCrew(changes.crew) }
         if (changes.wrapTime !== undefined)
           changes = { ...changes, wrapTime: changes.wrapTime || null }
+        if (changes.callTime !== undefined)
+          changes = { ...changes, callTime: changes.callTime || null }
         if (usingSupabase) {
           await sbUpdateBooking(id, changes)
           await get().hydrate({ quiet: true })

@@ -77,11 +77,15 @@ export function crewNames(crew = []) {
 }
 
 // The earliest call — what a calendar chip has room for: "when do I have to be
-// there".
-export function earliestCrewCall(crew = []) {
-  const times = normalizeCrew(crew)
-    .map((r) => r.time)
-    .filter(Boolean)
+// there". The shoot's GENERAL call (everyone, no role) is a call too.
+export function earliestCrewCall(crew = [], generalCall = null) {
+  const general = toHHMM(generalCall)
+  const times = [
+    ...(isValidTime(general) ? [general] : []),
+    ...normalizeCrew(crew)
+      .map((r) => r.time)
+      .filter(Boolean),
+  ].sort()
   return times.length ? times[0] : null
 }
 
@@ -130,20 +134,51 @@ export function expandCrew(lines = []) {
 // The whole sheet on one line, for a tooltip — "08:00 Photographer (Marcus
 // Reed) · 10:00 Model (Hailey Halter, Valery Kaufman)". The lines are joined
 // with a middle dot, so a line names its people in brackets.
-export function crewSummary(crew = []) {
-  return groupCrew(crew)
+export function crewSummary(crew = [], generalCall = null) {
+  return scheduleLines(crew, generalCall)
     .map((l) =>
-      [l.time, l.people.length ? `${l.role} (${l.people.map((p) => p.name).join(', ')})` : l.role]
-        .filter(Boolean)
-        .join(' '),
+      l.general
+        ? `${l.time} General call`
+        : [
+            // A row called with everyone follows the general call; repeating
+            // its time on every one of them would only be noise.
+            l.atGeneral ? null : l.time,
+            l.people.length ? `${l.role} (${l.people.map((p) => p.name).join(', ')})` : l.role,
+          ]
+            .filter(Boolean)
+            .join(' '),
     )
     .join(' · ')
 }
 
+// The call sheet as it is READ: its lines in the order of the day, with the
+// shoot's GENERAL call (everyone, no role, no person) taking its place among
+// them by time. A sheet is read as a schedule, so a producer called before
+// everyone else stays above the general call; at the same hour the general call
+// comes first — it is the default, a row is the exception.
+// A row with no time of its own is called WITH everyone, so it reads at the
+// general call and is listed right under it — not at the end of the day with a
+// blank where its time should be. It is marked `atGeneral` so a surface can tell
+// it from a time somebody typed, and nothing is stored: change the general call
+// and those rows follow. The general line itself is `{ general: true, time }`;
+// a half-typed general call adds nothing.
+export function scheduleLines(crew = [], generalCall = null) {
+  const lines = groupCrew(crew)
+  const time = toHHMM(generalCall)
+  if (!isValidTime(time)) return lines
+  const general = { id: 'general-call', general: true, time, role: '', note: null, people: [] }
+  const covered = lines.filter((l) => !l.time).map((l) => ({ ...l, time, atGeneral: true }))
+  const timed = lines.filter((l) => l.time)
+  const at = timed.findIndex((l) => l.time >= time)
+  const before = at === -1 ? timed : timed.slice(0, at)
+  const after = at === -1 ? [] : timed.slice(at)
+  return [...before, general, ...covered, ...after]
+}
+
 // A wrap before the first call is a typo, not a shoot. Reported, never clamped —
 // clamping would invent an hour nobody typed.
-export function wrapBeforeFirstCrewCall(crew = [], wrapTime = null) {
-  const first = earliestCrewCall(crew)
+export function wrapBeforeFirstCrewCall(crew = [], wrapTime = null, generalCall = null) {
+  const first = earliestCrewCall(crew, generalCall)
   const wrap = toHHMM(wrapTime)
   if (!first || !isValidTime(wrap)) return false
   return wrap < first

@@ -309,6 +309,7 @@ async function main() {
       // wrap is one time for the day. Both optional — some seeded shoots
       // deliberately have neither.
       wrap_time: t.wrap || null,
+      call_time: t.call || null,
       status: 'active', color: t.color,
     }).select('id').single()
     if (sErr) throw sErr

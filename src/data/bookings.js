@@ -16,6 +16,9 @@
 // `reservedUnitsForOrder`) — one source of truth, so inventory and orders can't
 // disagree. Each shoot below has a matching order (linked by title).
 //
+// `call` is a GENERAL call — one time for everyone, no role, no person; a
+// shoot may have one, rows of its own, both, or neither.
+//
 // `assignees` is the job's crew — several people, each with their ROLE on the
 // job (the client asked for "all crew", read as "name (role)"). Optional:
 // without it a shoot's assignee is its photographer. `crew` adds people a
@@ -28,7 +31,7 @@ export const BOOKING_TEMPLATES = [
   { title: '20260624_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '1', dayOffset: 0, days: 3, calls: [{ roles: ['Producer'], time: '07:30' }, { roles: ['Photographer', 'Digital tech'], time: '08:00' }, { roles: ['Hair & makeup', 'Stylist'], time: '08:30' }, { roles: ['Model'], time: '10:00' }], wrap: '18:00', photographer: 'Marcus Reed', model: 'Hailey Halter', assignees: [{ name: 'Marcus Reed', role: 'Photographer' }, { name: 'Jonas Lind', role: 'Stylist' }], crew: [{ role: 'Model', name: 'Valery Kaufman', time: '10:00' }], color: '#3b82f6' },
   { title: '20260629_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '3', dayOffset: 1, calls: [{ roles: ['Photographer'], time: '09:00' }, { roles: ['Model', 'Stylist'], time: '10:30' }], wrap: '17:00', photographer: 'Sofia Ventura', model: 'Hyunjoo', color: '#ec4899' },
   { title: '20260629_AT_MAIN_SepBOM_Missy_OMSet2', studioId: '5', dayOffset: 1, photographer: 'Diego Alvarez', model: 'Abigael Boivin', color: '#10b981' },
-  { title: '20260625_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '2', dayOffset: 2, photographer: 'Priya Nair', model: 'Amanda Googe', color: '#f59e0b' },
+  { title: '20260625_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '2', dayOffset: 2, call: '08:00', photographer: 'Priya Nair', model: 'Amanda Googe', color: '#f59e0b' },
   { title: '20260630_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '2', dayOffset: 3, photographer: 'Ann Taylor', model: 'Jade Huber', color: '#3b82f6' },
   { title: '20260630_AT_MAIN_SepBOM_Missy_OMSet2', studioId: 'L', dayOffset: 3, days: 2, calls: [{ roles: ['Crew'], time: '06:45', note: 'Load-in through the freight door' }, { roles: ['Photographer', 'Assistant'], time: '08:00' }], wrap: '20:00', photographer: 'Liam Chen', model: 'Lala Olsson', color: '#8b5cf6' },
   { title: '20260706_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '4', dayOffset: 4, photographer: 'Noah Kim', model: 'Mia Speicher', color: '#14b8a6' },

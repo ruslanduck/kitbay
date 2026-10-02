@@ -156,6 +156,7 @@ const JOB_FIELD_WORDS = {
   callTimes: 'call times',
   crew: 'call times',
   wrapTime: 'wrap time',
+  callTime: 'general call time',
 }
 
 // Keys → words, in order, once each (both ends of the dates are one field on

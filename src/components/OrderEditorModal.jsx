@@ -59,6 +59,7 @@ const blank = {
   endsOn: '',
   crew: [],
   wrapTime: '',
+  callTime: '',
   assignees: [],
   poNumber: '',
   status: 'hold',
@@ -101,6 +102,7 @@ export default function OrderEditorModal({
             // stored one row per person again on save (lib/crew).
             crew: groupCrew(order.crew ?? []),
             wrapTime: order.wrapTime ?? '',
+            callTime: order.callTime ?? '',
             assignees: normalizeAssignees(order.assignees),
             poNumber: order.poNumber ?? '',
             status: order.status ?? 'hold',
@@ -134,9 +136,11 @@ export default function OrderEditorModal({
     // and left — it is dropped on save.
     const rowProblem = form.crew.map(crewRowProblem).find(Boolean)
     if (rowProblem) return setError(rowProblem)
+    if (form.callTime && !isValidTime(form.callTime))
+      return setError('The general call time should read as HH:MM.')
     if (form.wrapTime && !isValidTime(form.wrapTime))
       return setError('The wrap time should read as HH:MM.')
-    if (wrapBeforeFirstCrewCall(form.crew, form.wrapTime))
+    if (wrapBeforeFirstCrewCall(form.crew, form.wrapTime, form.callTime))
       return setError('The wrap time is before the first call.')
     setBusy(true)
     const payload = {
@@ -158,6 +162,7 @@ export default function OrderEditorModal({
       endsOn: form.endsOn || form.startsOn,
       crew: expandCrew(form.crew),
       wrapTime: form.wrapTime || null,
+      callTime: form.callTime || null,
     }
     // Creating is a two-step flow: this form settles the job, then the equipment
     // window opens and IT creates the order together with the gear. So nothing is
@@ -298,6 +303,8 @@ export default function OrderEditorModal({
                 onChange={(fn) => setForm((f) => ({ ...f, crew: fn(f.crew) }))}
                 wrapTime={form.wrapTime}
                 onWrapChange={(wrapTime) => set({ wrapTime })}
+                callTime={form.callTime}
+                onCallTimeChange={(callTime) => set({ callTime })}
               />
             </div>
           )}

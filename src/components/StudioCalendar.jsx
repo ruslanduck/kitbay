@@ -32,7 +32,7 @@ import {
 import { useStore } from '../store'
 import { brandsIn } from '../lib/orderSearch'
 import { setDays, spanSummary, spanLabel } from '../lib/setDays'
-import { earliestCrewCall, crewSummary, groupCrew } from '../lib/crew'
+import { earliestCrewCall, crewSummary, scheduleLines } from '../lib/crew'
 import { assigneeLabel, normalizeAssignees } from '../lib/peopleOptions'
 import { studioLabel } from '../data/studios'
 import {
@@ -106,7 +106,7 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
     b.spanDays > 1 && `day ${b.dayIndex} of ${b.spanDays}`,
     // The whole call sheet on hover; the chip has room for one number, and
     // "when do I have to be there" is that number.
-    crewSummary(b.crew),
+    crewSummary(b.crew, b.callTime),
     b.wrapTime && `wrap ${b.wrapTime}`,
     canChange ? 'right-click (or hold) to change the status' : null,
   ]
@@ -147,10 +147,10 @@ function BookingChip({ b, variant = 'week', onOpen, onStatus, canManage }) {
       ) : (
         <>
           <div className="truncate pr-4 text-xs font-semibold leading-tight">{b.title}</div>
-          {(b.spanDays > 1 || b.setLabel || earliestCrewCall(b.crew)) && (
+          {(b.spanDays > 1 || b.setLabel || earliestCrewCall(b.crew, b.callTime)) && (
             <div className="truncate text-[10px] font-medium opacity-80">
               {[
-                earliestCrewCall(b.crew),
+                earliestCrewCall(b.crew, b.callTime),
                 b.spanDays > 1 && `Day ${b.dayIndex}/${b.spanDays}`,
                 b.setLabel,
               ]
@@ -668,7 +668,7 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
   const canChange = canManage && !!b.orderId
   const press = useLongPress((at) => canChange && onStatus(b, at))
   // One line per call, everyone called for it on that line.
-  const calls = groupCrew(b.crew)
+  const calls = scheduleLines(b.crew, b.callTime)
 
   return (
     <li
@@ -753,9 +753,17 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {calls.map((c, i) => (
               <span key={c.id || i} className="inline-flex items-baseline gap-1.5 text-xs">
-                <span className="font-semibold tabular-nums text-slate-800">{c.time ?? '—:—'}</span>
-                <span className="text-slate-600">
-                  {c.role}
+                <span
+                  title={c.atGeneral ? 'At the general call' : undefined}
+                  className={[
+                    'font-semibold tabular-nums',
+                    c.atGeneral ? 'text-slate-500' : 'text-slate-800',
+                  ].join(' ')}
+                >
+                  {c.time ?? '—:—'}
+                </span>
+                <span className={c.general ? 'font-medium text-slate-700' : 'text-slate-600'}>
+                  {c.general ? 'General call' : c.role}
                   {c.people.length > 0 && (
                     <span className="font-medium text-slate-800"> · {c.people.map((p) => p.name).join(', ')}</span>
                   )}

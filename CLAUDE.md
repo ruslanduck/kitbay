@@ -3207,6 +3207,51 @@
 > under `set -o pipefail` now. The failure itself was a FALSE positive in the vocabulary scan: it skipped
 > `className` but not `otherClassName="order-last …"`, and read "order" as the retired word. Any `*ClassName`
 > prop is code now — and the scan was proved to still bark by planting "Role on 2 orders" in a placeholder.
+> **FEATURE — a GENERAL call time for the whole shoot** (`20261002120000_shoot_general_call.sql`, applied and
+> verified on prod). Requested: "Call Time: Add the ability to just add a general call time for the shoot without
+> needing to add role/person. Sometimes everyone's call time is the same." Every call-sheet row (`roster_entries`)
+> must carry a role (a CHECK), so "everyone at 08:00" had nowhere to go but one row per role, each with the same time.
+> **`sets.call_time`** (nullable `time`) sits beside `wrap_time` for the same reason: one time for the whole shoot.
+> ⚠️ NOT a reuse of `start_time` — that column holds the 09:00 an order-created set was once given without anyone
+> typing it, and reading it back as "everyone is called at 09:00" would be fabricated data. Null = no general call.
+> **Form:** "General call time" opens the call-sheet block (`CrewField` `callTime`/`onCallTimeChange`, in the job form
+> and the legacy shoot editor); the rows under it are the exceptions, the wrap stays last. The wrap check counts it
+> (`wrapBeforeFirstCrewCall(crew, wrap, generalCall)`), so a wrap before the general call is reported even when no row
+> has a time.
+> **Reading it — `scheduleLines(crew, generalCall)` in `lib/crew.js`** (pure) is the call sheet as read: the general
+> call takes its place in the day BY TIME (a producer called earlier stays above it; at the same hour it comes first),
+> and a row with NO time of its own is called WITH everyone — it reads at the general call's time, listed right under
+> it, marked `atGeneral` and drawn lighter (outlined chip, `text-slate-500`) so it is told from a time somebody typed.
+> Nothing is stored for those rows, so changing the general call moves them too. Without a general call they keep
+> the dash chip, as before. One rule for all five surfaces: the job card, both peek cards (`CallSheetList`), the day
+> view, and the chip tooltip (`crewSummary(crew, generalCall)`, which leaves the repeated time off the covered rows);
+> the chip's own first time is `earliestCrewCall(crew, generalCall)`. Measured with transitions frozen: the lighter
+> chip reads 12 dark / 4.76 light, the general one 13.97 / 16.28. The feed calls the field "general call time", and
+> `updateOrder` diffs it against the SHOOT, like the wrap.
+> **Repository:** `writeSetRow` is ONE strip-and-retry ladder for `sets` (`call_time` → `wrap_time` → `end_date`,
+> newest first), replacing three hand-written copies in `createBooking` / `updateBooking` / `createSetForOrder` — and
+> the 6 lint warnings their unused destructured columns produced (18 → 12). `call_time` is the OUTERMOST `getBookings`
+> layer (eighth time that rule held).
+> ⚠️ **Fixed while verifying, pre-existing:** the WRAP field's time picker had a DETACHED chevron, and the new field
+> copied its classes. `sm:w-32` on the INPUT shrank the box to 128px while `TimeField`'s own wrapper stayed full width,
+> so the chevron sat at x=980 beside a field ending at 545. The width goes on a wrapper now — the call-sheet rows
+> already did exactly that, with a comment saying why. Measured: chevron 517–541 inside 417–545, and at 375px 306–330
+> inside 41–334. The wrap field also gained the aria-label it never had.
+> Demo: the Studio 2 shoot (Priya Nair) carries `call: '08:00'` with its two people untimed — the "everyone's call
+> time is the same" case. +14 assertions (**688 total**).
+> Verified in local mode: that shoot's chip reads "08:00 · OMSet1" and its tooltip "08:00 General call · Photographer
+> (Priya Nair) · Model (Amanda Googe)"; the job peek, the job card and the shoot peek list "08:00 General call" with
+> both people at a lighter 08:00 under it; typing "745" in the form snapped to 07:45, a wrap of 07:00 said "That is
+> before the first call", 18:00 saved, and the feed read "edited the job · wrap time, general call time". On the
+> seeded 3-day job a general call of 08:00 landed between "07:30 Producer" and "08:00 Photographer" on the card, the
+> tooltip and the day view, with the chip still reading 07:30. A new job with ONLY a general call (09:00, no rows),
+> created through both steps, stored `callTime: '09:00'` with an empty sheet and showed it on the card, the peek and
+> the day view. The picker opens 4px under the field and Escape closes it without closing the form. 375px: both time
+> fields full width, no page overflow. Reseeded (14 jobs / 11 shoots / 44 items / 0 activity), 0 console errors.
+> On prod, prediction written first: the dry run listed exactly this migration; after it, `call_time` answers for all
+> **25** sets with **0** carrying one (nothing invented), the app's newest `getBookings` layer answers 200 with 25
+> shoots, a write of 07:45 reads back as `07:45:00`, `25:00` is refused with **22008**, and an anonymous read returns
+> `[]`. The probe row was put back to null and left no event — prod exactly as found.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

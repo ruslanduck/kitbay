@@ -541,6 +541,7 @@ export default function Orders() {
                       ...selected,
                       crew: selectedBooking?.crew ?? [],
                       wrapTime: selectedBooking?.wrapTime ?? '',
+                      callTime: selectedBooking?.callTime ?? '',
                     },
                   })
                 }
@@ -806,7 +807,12 @@ function OrderDetail({
           {/* The call sheet. Empty is a real answer — a shoot nobody has
               scheduled yet — so it says so instead of showing nothing. */}
           <Row icon={Clock3} label="Call times">
-            <CallSheetList crew={booking?.crew} wrapTime={booking?.wrapTime} onPerson={personLink} />
+            <CallSheetList
+              crew={booking?.crew}
+              callTime={booking?.callTime}
+              wrapTime={booking?.wrapTime}
+              onPerson={personLink}
+            />
           </Row>
           {showsSetName(order) && (
             <Row icon={Layers} label="Set name">

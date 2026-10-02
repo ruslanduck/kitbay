@@ -31,6 +31,11 @@ export default function CrewField({
   onChange,
   wrapTime = '',
   onWrapChange,
+  // The shoot's GENERAL call: one time for everyone, no role and no person
+  // ("sometimes everyone's call time is the same"). The rows below are the
+  // exceptions.
+  callTime = '',
+  onCallTimeChange,
 }) {
   // A key that survives removing a row in the middle: a DB row has an id, a new
   // one gets a local uid (dropped by normalizeCrew on save).
@@ -51,10 +56,24 @@ export default function CrewField({
     'w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
   const field =
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
-  const wrapEarly = wrapBeforeFirstCrewCall(rows, wrapTime)
+  const wrapEarly = wrapBeforeFirstCrewCall(rows, wrapTime, callTime)
 
   return (
     <div className="space-y-3">
+      <div>
+        <label className={label}>General call time</label>
+        {/* The width goes on a wrapper, as on the rows: on the input itself it
+            shrank the box and left the picker's chevron at the far edge. */}
+        <div className="sm:w-32">
+          <TimeField
+            value={callTime}
+            onChange={(e) => onCallTimeChange(e.target.value)}
+            ariaLabel="General call time"
+            className={field}
+          />
+        </div>
+      </div>
+
       <div>
         <label className={label}>Call times</label>
 
@@ -168,11 +187,14 @@ export default function CrewField({
       {/* The wrap is one time for the whole shoot, not somebody's call. */}
       <div>
         <label className={label}>Shoot wrap time</label>
-        <TimeField
-          value={wrapTime}
-          onChange={(e) => onWrapChange(e.target.value)}
-          className={[field, 'sm:w-32'].join(' ')}
-        />
+        <div className="sm:w-32">
+          <TimeField
+            value={wrapTime}
+            onChange={(e) => onWrapChange(e.target.value)}
+            ariaLabel="Shoot wrap time"
+            className={field}
+          />
+        </div>
         {wrapEarly ? (
           <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-rose-600">
             <AlertTriangle size={12} />

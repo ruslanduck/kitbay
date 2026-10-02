@@ -407,6 +407,7 @@ export async function getBookings() {
   // merged into one sheet by the same rule the migration applied.
   const CALLS = ', wrap_time, set_call_times ( id, roles, call_time, note, position )'
   const layers = [
+    [sel(CREW, ', end_date, wrap_time, call_time'), 'crew'], // 20261002120000 — a general call
     [sel(CREW, ', end_date, wrap_time'), 'crew'], // 20260930120000 — one call sheet
     [sel(ROSTER, `, end_date${CALLS}`), 'legacy'], // 20260910120000 — call times + wrap
     [sel(ROSTER, ', end_date'), 'legacy'], //         20260909120000 — multi-day shoots
@@ -461,6 +462,9 @@ export async function getBookings() {
       // shoot nobody has scheduled yet — read as "not set", never a made-up 09:00.
       crew,
       wrapTime: toHHMM(s.wrap_time) || null,
+      // One call for everyone, without a role or a person (null on a database
+      // without 20261002120000, and on a shoot that has none).
+      callTime: toHHMM(s.call_time) || null,
       status: s.status,
       color: s.color || studioColor(s.studio_id),
       notes: s.notes,
@@ -618,25 +622,39 @@ export async function setCrew(setId, rows) {
   return { ok: true }
 }
 
+// Write a `sets` row, dropping the newest columns one at a time when the
+// database doesn't have them yet — newest first, so a pre-migration database
+// still saves everything it does have room for. One ladder for the three
+// writers; each used to carry its own copy.
+const SET_COLUMNS_NEWEST_FIRST = ['call_time', 'wrap_time', 'end_date']
+async function writeSetRow(run, row) {
+  let r = row
+  let res = await run(r)
+  for (const col of SET_COLUMNS_NEWEST_FIRST) {
+    if (!res.error || !isUndefinedColumn(res.error)) break
+    if (!(col in r)) continue
+    const { [col]: _dropped, ...rest } = r
+    r = rest
+    if (!Object.keys(r).length) return { data: null, error: null }
+    res = await run(r)
+  }
+  return res
+}
+
 export async function createBooking(b) {
-  // A shoot is a range of whole days now, so no times are written — the columns
-  // stay for the rows that already carry them (nothing in this app deletes
-  // data), but nothing collects or reads them any more.
+  // A shoot is a range of whole days now, so no start/end times are written —
+  // those columns stay for the rows that already carry them (nothing in this
+  // app deletes data), but nothing collects or reads them any more. The two
+  // times a shoot DOES have are the general call and the wrap.
   const row = {
     title: b.title, studio_id: b.studioId, date: b.date, end_date: endDateColumn(b),
-    wrap_time: b.wrapTime || null,
+    wrap_time: b.wrapTime || null, call_time: b.callTime || null,
     color: b.color || studioColor(b.studioId), notes: b.notes, status: 'active',
   }
-  let { data: set, error } = await supabase.from('sets').insert(row).select('id').single()
-  if (error && isUndefinedColumn(error)) {
-    // Drop the newest columns and retry, newest first.
-    const { wrap_time, ...noWrap } = row
-    ;({ data: set, error } = await supabase.from('sets').insert(noWrap).select('id').single())
-    if (error && isUndefinedColumn(error)) {
-      const { end_date, ...oneDay } = noWrap
-      ;({ data: set, error } = await supabase.from('sets').insert(oneDay).select('id').single())
-    }
-  }
+  const { data: set, error } = await writeSetRow(
+    (r) => supabase.from('sets').insert(r).select('id').single(),
+    row,
+  )
   if (error) throw error
   await replaceUnits(set.id, b.unitIds)
   if (b.crew?.length) await setCrew(set.id, b.crew)
@@ -650,24 +668,11 @@ export async function updateBooking(setId, changes) {
   if ('date' in changes) patch.date = changes.date
   if ('endDate' in changes) patch.end_date = endDateColumn(changes)
   if ('wrapTime' in changes) patch.wrap_time = changes.wrapTime || null
+  if ('callTime' in changes) patch.call_time = changes.callTime || null
   if ('notes' in changes) patch.notes = changes.notes
   if ('color' in changes) patch.color = changes.color
   if (Object.keys(patch).length) {
-    let { error } = await supabase.from('sets').update(patch).eq('id', setId)
-    // Drop the newest column and retry, newest first, so a pre-migration
-    // database still saves everything it does have room for.
-    if (error && isUndefinedColumn(error)) {
-      const { wrap_time, ...noWrap } = patch
-      error = null
-      if (Object.keys(noWrap).length)
-        ({ error } = await supabase.from('sets').update(noWrap).eq('id', setId))
-      if (error && isUndefinedColumn(error)) {
-        const { end_date, ...oneDay } = noWrap
-        error = null
-        if (Object.keys(oneDay).length)
-          ({ error } = await supabase.from('sets').update(oneDay).eq('id', setId))
-      }
-    }
+    const { error } = await writeSetRow((r) => supabase.from('sets').update(r).eq('id', setId), patch)
     if (error) throw error
   }
   if ('crew' in changes) await setCrew(setId, changes.crew)
@@ -1794,11 +1799,12 @@ export async function setReservationsForSet(setId, unitIds, { from = null, to = 
 }
 
 // Create the Set an order equips (5.1: "Order привязан к Set/Job"), then link it.
-// The shoot spans the order's whole working window; no times are written — the
-// grid is studio × day, and the range is what the crew now types.
+// The shoot spans the order's whole working window; no start/end times are
+// written — the grid is studio × day, and the range is what the crew now types.
+// The general call and the wrap travel with it.
 export async function createSetForOrder(
   orderId,
-  { jobName, studioId, date, endDate, wrapTime = null, crew = null },
+  { jobName, studioId, date, endDate, wrapTime = null, callTime = null, crew = null },
 ) {
   const row = {
     title: jobName.trim(),
@@ -1806,18 +1812,14 @@ export async function createSetForOrder(
     date,
     end_date: endDateColumn({ date, endDate }),
     wrap_time: wrapTime || null,
+    call_time: callTime || null,
     status: 'active',
     order_id: orderId,
   }
-  let { data, error } = await supabase.from('sets').insert(row).select('id').single()
-  if (error && isUndefinedColumn(error)) {
-    const { wrap_time, ...noWrap } = row
-    ;({ data, error } = await supabase.from('sets').insert(noWrap).select('id').single())
-    if (error && isUndefinedColumn(error)) {
-      const { end_date, ...oneDay } = noWrap
-      ;({ data, error } = await supabase.from('sets').insert(oneDay).select('id').single())
-    }
-  }
+  const { data, error } = await writeSetRow(
+    (r) => supabase.from('sets').insert(r).select('id').single(),
+    row,
+  )
   if (error) throw error
   if (crew?.length) await setCrew(data.id, crew)
   return data.id
@@ -1829,13 +1831,14 @@ export async function createSetForOrder(
 // mismatch visible immediately, so the two modes are the same shape now.
 // The call sheet travels with it. (The job's assignee is written with the job
 // itself — see `withAssignee`.)
-export async function syncSetForOrder(setId, { jobName, studioId, date, endDate, wrapTime, crew }) {
+export async function syncSetForOrder(setId, { jobName, studioId, date, endDate, wrapTime, callTime, crew }) {
   return updateBooking(setId, {
     ...(jobName != null ? { title: jobName.trim() } : {}),
     ...(studioId ? { studioId } : {}),
     ...(date ? { date, endDate: endDate || date } : {}),
     // undefined = the form didn't carry them; null / [] = the crew cleared them.
     ...(wrapTime !== undefined ? { wrapTime } : {}),
+    ...(callTime !== undefined ? { callTime } : {}),
     ...(crew !== undefined ? { crew: crew ?? [] } : {}),
   })
 }

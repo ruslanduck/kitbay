@@ -39,6 +39,7 @@ function blankForm(prefill) {
     endDate: prefill?.date ?? '',
     crew: [],
     wrapTime: '',
+    callTime: '',
     notes: '',
   }
 }
@@ -95,6 +96,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
         // Edited as LINES (several people per call), stored per person.
         crew: groupCrew(booking.crew ?? []),
         wrapTime: booking.wrapTime ?? '',
+        callTime: booking.callTime ?? '',
         notes: booking.notes ?? '',
       })
       const counts = {}
@@ -230,6 +232,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
       title: form.title.trim(),
       crew: expandCrew(form.crew),
       wrapTime: form.wrapTime || null,
+      callTime: form.callTime || null,
       unitIds: resolveUnitIds(),
     }
     if (isEdit) await updateBooking(booking.id, payload)
@@ -308,6 +311,8 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
               onChange={(fn) => setForm((f) => ({ ...f, crew: fn(f.crew) }))}
               wrapTime={form.wrapTime}
               onWrapChange={(wrapTime) => setForm((f) => ({ ...f, wrapTime }))}
+              callTime={form.callTime}
+              onCallTimeChange={(callTime) => setForm((f) => ({ ...f, callTime }))}
             />
           </div>
 

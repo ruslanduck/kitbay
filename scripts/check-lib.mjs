@@ -1500,6 +1500,37 @@ ok(
   ok(crew.wrapBeforeFirstCrewCall(sheet, '07:00'), 'a wrap before the first call is reported')
   ok(!crew.wrapBeforeFirstCrewCall(sheet, '19:00'), 'a normal day is not')
   ok(!crew.wrapBeforeFirstCrewCall([], '07:00'), 'and with no calls there is nothing to contradict')
+  // A GENERAL call: everyone at one time, with no role and no person.
+  eq(crew.earliestCrewCall([], '08:00'), '08:00', 'a general call alone is the shoot’s first call')
+  eq(crew.earliestCrewCall(sheet, '06:45'), '06:45', 'an earlier general call is what the chip shows')
+  eq(crew.earliestCrewCall(sheet, '09:00'), '07:30', 'a row called before everyone else still leads')
+  eq(crew.earliestCrewCall([], '08:00:00'), '08:00', 'a Postgres time reads as HH:MM')
+  eq(crew.earliestCrewCall([], '8:5'), null, 'a half-typed general call is not a call')
+  ok(crew.wrapBeforeFirstCrewCall([], '07:00', '08:00'), 'a wrap before the general call is reported')
+  ok(!crew.wrapBeforeFirstCrewCall([], '18:00', '08:00'), 'a day with only a general call and a wrap is fine')
+  const day = (lines) =>
+    lines.map((l) => (l.general ? `${l.time} *` : `${l.atGeneral ? '~' : ''}${l.time ?? '-'} ${l.role}`))
+  eq(
+    day(crew.scheduleLines(sheet, '08:00')),
+    ['07:30 Producer', '08:00 *', '~08:00 Client', '08:00 Photographer', '10:00 Model'],
+    'the general call takes its place in the day: an earlier row stays above it, a row with no time of its own is called with it',
+  )
+  eq(day(crew.scheduleLines(sheet)), ['07:30 Producer', '08:00 Photographer', '10:00 Model', '- Client'], 'without one the sheet is unchanged')
+  eq(crew.scheduleLines([], '07:00').length, 1, 'a general call alone is a sheet of one line')
+  eq(day(crew.scheduleLines(sheet, '8:5')), day(crew.scheduleLines(sheet)), 'a half-typed general call adds nothing')
+  eq(
+    crew.scheduleLines([{ role: 'Model', name: 'Ann' }], '08:00').map((l) => l.people.map((p) => p.name)),
+    [[], ['Ann']],
+    'everyone on a row stays on it under the general call',
+  )
+  eq(
+    crew.crewSummary(
+      [{ role: 'Producer', time: '07:30' }, { role: 'Stylist' }, { role: 'Model', name: 'Ann', time: '10:00' }],
+      '08:00',
+    ),
+    '07:30 Producer · 08:00 General call · Stylist · 10:00 Model (Ann)',
+    'the tooltip reads it in the order of the day, a row called with everyone right after it',
+  )
   eq(crew.crewNames(sheet), ['Marcus Reed', 'Hailey Halter', 'Loft team'], 'every named person, once')
   eq(crew.crewRowProblem({ time: '08:00', name: 'Ann' }), 'Pick a role for this row — or remove it.', 'a row with no role says so')
   eq(crew.crewRowProblem({ role: 'Crew', time: '8:7' }), 'The time should read as HH:MM.', 'and so does a half-typed time')
@@ -1656,6 +1687,7 @@ ok(
     'the search finds a job by ANY of its assignees, not just the first',
   )
   eq(activity.jobFieldWords(['crew']), ['call times'], 'the feed calls an edited sheet "call times"')
+  eq(activity.jobFieldWords(['callTime']), ['general call time'], 'and a changed general call by its own name')
   // One word per level: the position is Inventory, a physical piece an item.
   eq(activity.describeEvent({ type: activity.EVENT.UNIT_ADDED, data: { barcode: '0851' } }).title, 'Registered an item', 'a new piece is an item')
   eq(activity.describeEvent({ type: activity.EVENT.ITEM_CREATED, data: { name: 'C-Stand' } }).title, 'Added this inventory entry', 'a new position is an inventory entry')

@@ -365,7 +365,12 @@ function OrderPeek({ id }) {
               the day is what time people are due. */}
           {booking && (
             <Field label="Call times">
-              <CallSheetList crew={booking.crew} wrapTime={booking.wrapTime} onPerson={personLink} />
+              <CallSheetList
+                crew={booking.crew}
+                callTime={booking.callTime}
+                wrapTime={booking.wrapTime}
+                onPerson={personLink}
+              />
             </Field>
           )}
         </div>
@@ -925,9 +930,14 @@ function JobPeek({ id }) {
           the crew list (it used to be a second section). Empty is a real
           answer, so it says so. */}
       <Section title="Call times">
-        {booking.crew?.length || booking.wrapTime ? (
+        {booking.crew?.length || booking.wrapTime || booking.callTime ? (
           <div className="text-sm text-slate-700">
-            <CallSheetList crew={booking.crew} wrapTime={booking.wrapTime} onPerson={personLink} />
+            <CallSheetList
+              crew={booking.crew}
+              callTime={booking.callTime}
+              wrapTime={booking.wrapTime}
+              onPerson={personLink}
+            />
           </div>
         ) : (
           <Empty text="No call times set for this shoot." />
