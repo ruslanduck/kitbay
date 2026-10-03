@@ -1902,4 +1902,38 @@ ok(
   eq([cv.cvObjectPath(''), cv.cvObjectPath(null), cv.cvObjectPath('storage:cvs/')], [null, null, null], 'nothing names nothing')
 }
 
+// ---------------------------------------------------------------------------
+// The Content-Security-Policy in vercel.json (security audit, 3 Oct). It allows
+// the ONE inline script — index.html's theme script, which must run before
+// React to avoid a white flash — by its HASH, so editing that script without
+// updating the hash would silently drop it on prod. This is the net.
+{
+  const { readFileSync } = await import('node:fs')
+  const { createHash } = await import('node:crypto')
+  const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'))
+  const csp = vercel.headers?.flatMap((r) => r.headers).find((h) => h.key === 'Content-Security-Policy')?.value ?? ''
+  const directive = (name) => (csp.split(';').map((d) => d.trim()).find((d) => d.startsWith(name + ' ')) ?? '').split(/\s+/).slice(1)
+  // The browser hashes the script's text AFTER parsing, which turns CRLF into LF —
+  // and a Windows checkout has CRLF on disk while the deploy builds from git (LF).
+  const html = readFileSync('index.html', 'utf8').replace(/\r\n?/g, '\n')
+  const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1])
+  ok(inline.length > 0, 'index.html has its inline theme script')
+  for (const body of inline)
+    ok(
+      directive('script-src').includes(`'sha256-${createHash('sha256').update(body, 'utf8').digest('base64')}'`),
+      'every inline script in index.html is allowed by its exact hash — re-hash it after editing it',
+    )
+  ok(!directive('script-src').some((s) => s === "'unsafe-inline'" || s === "'unsafe-eval'"), 'no inline or eval escape hatch for scripts')
+  const env = readFileSync('.env.production', 'utf8')
+  const supa = env.match(/^VITE_SUPABASE_URL=(.+)$/m)?.[1].trim()
+  ok(supa && directive('connect-src').includes(supa), 'the app may talk to its own Supabase project')
+  ok(directive('frame-ancestors').join(' ') === "'none'", 'no other site may frame the app')
+  ok(directive('object-src').join(' ') === "'none'", 'no plugins')
+  eq(
+    vercel.headers.flatMap((r) => r.headers).map((h) => h.key).sort(),
+    ['Content-Security-Policy', 'Permissions-Policy', 'Referrer-Policy', 'X-Content-Type-Options', 'X-Frame-Options'],
+    'the five security headers are served',
+  )
+}
+
 console.log(`OK — ${n} assertions passed`)

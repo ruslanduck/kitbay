@@ -7,7 +7,8 @@
 >   `set -a; . ./.env.local; set +a; echo y | npx supabase db push`. Project ref `bowtxtapuxfohdhhakvg`.
 > - **Data layer:** `src/data/repository.js` is source-agnostic, switched by `VITE_DATA_SOURCE`
 >   (`local` = localStorage seeds; `supabase` = the DB). Zustand `src/store.js` hydrates from it.
-> - **Auth:** individual email/password logins (`src/components/Login.jsx`, store `initAuth/signIn/signUp/signOut`);
+> - **Auth:** individual email/password logins (`src/components/Login.jsx`, store `initAuth/signIn/signOut`); access =
+>   an ACTIVE profile (`profiles.active`, enforced in every RLS policy by `is_team_member()` — see SECURITY below);
 >   every action attributed (`created_by`, etc.). One flat role **Equipment Team** behind a capability
 >   layer — `src/lib/permissions.js` + `useCan()`; **never hardcode role checks**.
 > - **Responsive:** desktop / iPad / iPhone (sidebar→drawer, master-detail inventory).
@@ -3528,6 +3529,69 @@
 > Escape closes the card and not the job form; ArrowDown on an empty field 8AM → 8:05AM; at 375px the two fields
 > are 141px each, the card slides to 27–367 and its cells are 40px. Contrast with transitions frozen: cells
 > 10.36 light / 16.28 dark, quiet minutes 4.76 / 12, the selected cell 5.89.
+> **SECURITY — the database no longer trusts "signed in": only ACTIVE team members reach the data**
+> (`20261003120000_team_gate.sql` + `20261003130000_private_cvs.sql`, both applied and verified on prod; CSP and
+> dependency fixes frontend-only). Prompted by an outside audit; its findings were checked against prod before
+> acting, and prod was WORSE than the report thought: the public auth settings endpoint
+> (`/auth/v1/settings`, readable with the anon key) showed **anonymous sign-ins ON**, self-registration ON and
+> email confirmation OFF. With every policy `to authenticated using (true)`, a one-line
+> `supabase.auth.signInAnonymously()` from any browser — the anon key ships in the bundle — got read AND write on
+> every table. (The two anonymous auth users on prod date from 24 Jul, V2's first day: early testing, not an
+> intrusion.)
+> • **The gate:** `profiles.active` (the 7 existing accounts backfilled true) and `public.is_team_member()`
+>   (SECURITY DEFINER, `search_path=''`, false for an anonymous JWT) ANDed into all 65 policies in `public` by a
+>   DO block that rewrites each in place (`(select …)` so it runs once per statement). A NEW auth user — anonymous,
+>   self-registered or made in the dashboard — gets an INACTIVE profile and sees nothing. Its own profile row stays
+>   readable, so the app signs it out with "This account is not active yet. Ask the studio to activate it."
+>   ⚠️ **A table added later must put `(select public.is_team_member())` in its own policies** — the DO block
+>   only rewrote what existed.
+> • **Accounts are switched on by `npm run user:add`** (it now upserts `active: true`; run it again on an
+>   existing email to activate it). An account created in the Supabase dashboard needs `profiles.active = true`
+>   set there, or it will sign in and be turned away.
+> • **Role escalation closed:** `profiles_update_own` is gone (the app never updated a profile; the policy let
+>   a user rewrite their own `role`, and would now let them activate themselves), and `fn_handle_new_user` no
+>   longer reads `role` from `raw_user_meta_data` — the signer's own input. `store.signUp` removed (dead code).
+> • **EXECUTE revoked** on the three trigger functions (advisor finding). Proved first, on prod, in a
+>   rolled-back transaction: a SECURITY DEFINER trigger function with EXECUTE revoked from `authenticated` still
+>   fires on that role's INSERT — Postgres checks EXECUTE at CREATE TRIGGER, not when the trigger runs.
+> • **CVs are private:** the `cvs` bucket is no longer public, has a 10 MB limit and a MIME allow-list (pdf, doc,
+>   docx, png, jpeg — what the button offers), and only active members read or add files; nobody overwrites or
+>   deletes one (`upsert` dropped). Objects get a random UUID name with the extension from the allow-list, never
+>   from the picked file's name. A row stores `storage:cvs/<object>`; rows from the public days hold the public
+>   URL, which `lib/cvFile` reads the same way. The card opens a CV through a ONE-MINUTE signed URL minted on the
+>   click — the tab is opened first, inside the click, because a `window.open` after an await is a blocked popup.
+>   A refused upload no longer files the name of a file that was never stored.
+> • **CSP + headers in `vercel.json`:** `script-src 'self'` plus the SHA-256 of index.html's inline theme script
+>   (no `unsafe-inline`/`unsafe-eval` — the bundle has neither `eval` nor `new Function`), `connect-src` limited to
+>   this Supabase project, `frame-ancestors 'none'` + `X-Frame-Options: DENY`, `nosniff`, a referrer policy and a
+>   permissions policy. `vite preview` serves the SAME headers (read from vercel.json), so a CSP that would break
+>   the app breaks locally first. ⚠️ **Editing the inline theme script means re-hashing it** — `test:lib` fails
+>   until the hash matches (hashed after CRLF→LF, as the browser does). A new external origin needs `connect-src`.
+> • `npm audit fix`: dompurify 3.4.16 (via jspdf), postcss 8.5.28 and nanoid 3.3.19 (build-time, via vite) —
+>   0 vulnerabilities. `.gitignore` now covers `.env` and `.env.*` except the public `.env.production` (its JWT
+>   decoded: `role: anon` — the audit's open question). `supabase/config.toml` mirrors what prod must have
+>   (signup off, min 10 chars, mixed case + digits) — it drives only a local stack. The demo password is gone from
+>   `seed-users.mjs` (now required from `DEMO_USER_PASSWORD`, never printed) and from this file; it stays in git
+>   history, so it must be ROTATED.
+> **+21 assertions (821)**: the CV allow-list (an `.html` named like a PDF, an SVG, an unknown type, 10 MB ± 1
+> byte), the stored-reference reader (new form, public-era URL, escapes, another bucket, an outside link), and the
+> CSP (every inline script allowed by its exact hash, no script escape hatch, Supabase in `connect-src`, the five
+> headers present).
+> Verified on prod as three callers via SQL impersonation (`set local role authenticated` + `request.jwt.claims`,
+> each probe in a savepoint) — 31/31 first INSIDE a rolled-back transaction with the migrations applied in it,
+> then again after the real push: an active member reads, writes, reserves (the set_units trigger still logs to
+> `events`) and updates repairs, but cannot rewrite its role or delete a CV; an anonymous session and a fresh
+> signUp carrying `role: admin` read 0 rows, cannot write, and cannot switch themselves on. The old public CV URL
+> answers **400**; a signed URL **200 application/pdf**. Prod left as found: 9 auth users, 7 active profiles, 1 CV,
+> 0 probe rows. The new frontend was live BEFORE the push (it reads `active` with a 42703 fallback, and signs CVs,
+> which a public bucket also allows), so no moment broke anything. CSP verified with `vite preview` in both
+> builds: local mode — every view, the packing checklist, both PDFs (downloads intercepted), the time card, 0
+> violations, empty console; supabase mode — login renders, the project's API is reachable, another origin is
+> refused.
+> ℹ️ **Left for the studio (dashboard only — the CLI's account has no management rights on this project):**
+> anonymous sign-ins OFF, "Allow new users to sign up" OFF, password minimum 10 + requirements, rotate the three
+> demo passwords. Leaked-password protection is a Pro-plan feature. None of these is load-bearing any more —
+> the gate holds without them — but each closes a door.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
