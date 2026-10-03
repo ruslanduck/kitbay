@@ -3592,6 +3592,17 @@
 > anonymous sign-ins OFF, "Allow new users to sign up" OFF, password minimum 10 + requirements, rotate the three
 > demo passwords. Leaked-password protection is a Pro-plan feature. None of these is load-bearing any more —
 > the gate holds without them — but each closes a door.
+> **TOOLING — `npm run user:password` sets a NEW password on an existing account, and no script takes a
+> password through a variable any more.** `user:add` deliberately never touches an existing account's password, so
+> handing Clay a proper password (in place of shared demo logins) had no tool. `scripts/set-password.mjs` finds the
+> account by email, says whose it is (and if it is inactive), then ASKS for the password in the terminal — hidden,
+> twice, at least 12 characters (Supabase's own password rules apply on top and its refusal is printed). The prompt
+> lives in `scripts/password-prompt.mjs` (raw mode, char codes only: Enter, Backspace, Ctrl+C, a paste from a
+> password manager) and `user:add` uses it too: a variable typed into a shell lands in that shell's history file.
+> `NEW_USER_PASSWORD` still works for a run with no terminal. Claude does not type or receive passwords — it can
+> START the command in the user's terminal panel; the user types the password there.
+> Verified without changing anything: an unknown email is refused with the `user:add` hint; Clay's account is
+> found and, with no terminal attached, the script stops before asking.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

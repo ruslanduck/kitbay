@@ -3,20 +3,20 @@
 // Separate from seed-users.mjs, which hardcodes the three demo accounts and
 // their shared password: this is for adding a real person later.
 //
-// The password is NEVER hardcoded, defaulted or printed — it comes from the
-// NEW_USER_PASSWORD environment variable, so it stays with whoever runs this
-// and never lands in the repo, the shell history of a committed file, or a log.
+// The password is NEVER hardcoded, defaulted or printed: the script ASKS for it
+// in the terminal, hidden and twice (scripts/password-prompt.mjs), so it stays
+// with whoever runs this and lands in no repo, shell history or log.
+// NEW_USER_PASSWORD still works for a run without a terminal.
 //
-// Run (PowerShell):
-//   $env:NEW_USER_PASSWORD = '…'
-//   node --env-file=.env.local scripts/add-user.mjs --email someone@example.com --name "Their Name"
-//   Remove-Item Env:\NEW_USER_PASSWORD
+// Run:
+//   npm run user:add -- --email someone@example.com --name "Their Name"
 //
 // Idempotent, and deliberately NON-destructive: if the account already exists
 // it does NOT reset the password (silently changing someone's credentials is
 // worse than doing nothing) — it only makes sure the profile is right.
 import { createClient } from '@supabase/supabase-js'
 import { APP_URL } from '../src/lib/brand.js'
+import { askNewPassword } from './password-prompt.mjs'
 
 const url = process.env.VITE_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -44,19 +44,21 @@ if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
   process.exit(1)
 }
 
-const password = process.env.NEW_USER_PASSWORD
-if (!password) {
-  console.error(
-    'Set NEW_USER_PASSWORD first — this script will not invent a password.\n' +
-      "  PowerShell:  $env:NEW_USER_PASSWORD = '…'\n" +
-      "  bash:        export NEW_USER_PASSWORD='…'",
-  )
-  process.exit(1)
-}
-// Supabase's own floor is 6; 10 is a nudge, not a policy.
-if (password.length < 10) {
-  console.error(`NEW_USER_PASSWORD is ${password.length} characters — use at least 10.`)
-  process.exit(1)
+// Supabase's own floor is 6; this is a nudge, not the policy — the project's
+// password rules are checked by Supabase on top of it.
+const MIN_LENGTH = 12
+
+// NEW_USER_PASSWORD still works for a run without a terminal, but by default the
+// password is ASKED for, hidden and twice: a variable typed into a shell is
+// saved in that shell's history file.
+async function newPassword(label) {
+  const fromEnv = process.env.NEW_USER_PASSWORD
+  if (fromEnv) {
+    if (fromEnv.length < MIN_LENGTH)
+      throw new Error(`NEW_USER_PASSWORD is ${fromEnv.length} characters — use at least ${MIN_LENGTH}.`)
+    return fromEnv
+  }
+  return askNewPassword(label, MIN_LENGTH)
 }
 
 const db = createClient(url, key, { auth: { persistSession: false } })
@@ -79,8 +81,9 @@ async function main() {
   let created = false
 
   if (user) {
-    console.log(`exists   ${email} — password left untouched`)
+    console.log(`exists   ${email} — password left untouched (to change it: npm run user:password -- --email ${email})`)
   } else {
+    const password = await newPassword(`${fullName} <${email}>`)
     const { data, error } = await db.auth.admin.createUser({
       email,
       password,
@@ -112,7 +115,7 @@ async function main() {
   console.log(
     created
       ? `\nDone. They can sign in at ${APP_URL} with the password you set.`
-      : '\nDone. Profile updated; to change their password use the Supabase dashboard.',
+      : '\nDone. Profile updated; to change their password: npm run user:password -- --email ' + email,
   )
 }
 

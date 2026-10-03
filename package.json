@@ -11,6 +11,7 @@
     "seed:supabase": "node --env-file=.env.local scripts/seed-supabase.mjs",
     "backfill:attribution": "node --env-file=.env.local scripts/backfill-attribution.mjs",
     "user:add": "node --env-file=.env.local scripts/add-user.mjs",
+    "user:password": "node --env-file=.env.local scripts/set-password.mjs",
     "audit:jsx": "node scripts/audit-jsx-props.mjs",
     "audit:tdz": "node scripts/audit-tdz.mjs",
     "test:lib": "node scripts/check-lib.mjs"
