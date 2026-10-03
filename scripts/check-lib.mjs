@@ -244,8 +244,9 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
   const rows = packing.packingRows(e9, { inventory: inv, booking: bk }).flatMap((g) => g.lines)
   eq(rows.map((r) => r.barcode ?? r.why), ['0801', '0802', 'vendor gear', 'counted stock'], 'one row per copy, the rental house and the tape counted')
   eq(rows[0].note, 'Needs new battery', 'the line note travels onto every row it expands to')
-  eq(packing.itemLabel(rows[0]), 'Profoto B10 (Needs new battery)', 'and reads in parentheses right after the name')
-  eq(packing.itemLabel(rows[3]), 'Gaffer tape', 'no note, no parentheses')
+  eq(rows[1].note, 'Needs new battery', 'every copy of the line carries it')
+  eq(rows[0].itemName, 'Profoto B10', 'and the name stays the name — no note glued to it in parentheses')
+  eq(rows[3].note ?? null, null, 'a line without a note has none')
   eq(packing.sourceLabel(rows[0]), 'In-House', 'our own gear is In-House')
   eq(packing.sourceLabel(rows[2]), 'Rental House · Northlight Rentals', 'a sub-rental line is the Rental House, named')
   ok(packing.isRentalHouse(rows[2]) && !packing.isRentalHouse(rows[0]), 'and only that one is highlighted')
@@ -294,8 +295,19 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
   for (const head of ['EQUIPMENT ITEM', 'VENDOR SOURCE', 'CHECK-OUT', 'CHECK-IN'])
     ok(sheet.includes(`(${head}) Tj`), `the PDF has the ${head} column`)
   ok(!sheet.includes('(PACKED) Tj') && !sheet.includes('(QTY) Tj'), 'and not the old ones')
-  // Parentheses are escaped inside a PDF string, so the note reads \(…\) in the bytes.
-  ok(sheet.includes('Profoto B10 \\(Needs new battery\\)'), 'the note prints in parentheses right after the name')
+  // The note is a line of its own under the name, marked "Note:" — it used to sit
+  // in parentheses after the name, where the studio read it as part of the name.
+  ok(sheet.includes('(Profoto B10) Tj'), 'the name prints alone')
+  ok(sheet.includes('(Note: Needs new battery) Tj'), 'and the note under it, marked as one')
+  ok(!sheet.includes('Profoto B10 \\(Needs'), 'nothing glues the note to the name any more')
+  {
+    const long = 'Two keyboards need fresh batteries before the shoot, check the spare pack in the grip cage on shelf B3 and label each one TAILWORD'
+    const o2 = { ...o, lines: [{ itemId: 'tape', quantity: 1, notes: long }] }
+    const longSheet = bytes(packingPdf.buildPackingListPdf(estimate.buildEstimate(o2, { inventory: inv }), { inventory: inv, booking: bk }))
+    const run = longSheet.match(/\(Note: [^)]*\) Tj/)?.[0] ?? ''
+    ok(run.endsWith('...) Tj'), 'a long note prints its first characters on one line, cut with an ellipsis')
+    ok(run.length > 40 && !longSheet.includes('TAILWORD'), 'as many as fit the column — and its tail is not printed anywhere')
+  }
   ok(sheet.includes('(Rental House) Tj') && sheet.includes('(Northlight Rentals) Tj'), 'the rental house prints with its vendor')
   ok(sheet.includes('(In-House) Tj'), 'our own gear prints as In-House')
   ok(sheet.includes(fillOpOf([254, 243, 199])), 'the Rental House cell is filled amber-100 — the same yellow as on screen')

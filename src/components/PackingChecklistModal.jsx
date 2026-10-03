@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Barcode, Check, Layers, LogIn, LogOut, PackageCheck, ScanLine } from 'lucide-react'
 import Modal from './Modal'
+import LineNote from './LineNote'
 import { useStore } from '../store'
 import { normalizeBarcode } from '../lib/barcode'
 import {
@@ -8,7 +9,6 @@ import {
   CHECK_OUT,
   VIA_SCAN,
   isRentalHouse,
-  itemLabel,
   packingLineKey,
   packingProgress,
   packingRows,
@@ -63,7 +63,7 @@ export default function PackingChecklistModal({
 
   // The unit and item ride along so the event lands on the item's card too.
   const sign = (line, slot, via) =>
-    onSign(packingLineKey(line), slot, myInitials, itemLabel(line), {
+    onSign(packingLineKey(line), slot, myInitials, line.itemName, {
       name: myName,
       via,
       unitId: line.unitId ?? null,
@@ -73,7 +73,7 @@ export default function PackingChecklistModal({
     onClear(packingLineKey(line), slot, {
       unitId: line.unitId ?? null,
       itemId: line.itemId ?? null,
-      itemName: itemLabel(line),
+      itemName: line.itemName,
     })
 
   // ── the scanner: one field, pointed at check-in (the ticket's case) or out.
@@ -251,17 +251,19 @@ export default function PackingChecklistModal({
                                 : 'border-slate-200',
                           ].join(' ')}
                         >
-                          {/* 1 · the item, its note in parentheses right after */}
+                          {/* 1 · the item, its note on a line of its own under it
+                              (the job card's LineNote — the printed sheet's
+                              "Note: …") */}
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-slate-800">
                               {l.itemName}
-                              {l.note && <span className="font-normal text-slate-500"> ({l.note})</span>}
                               {l.slotLabel && (
                                 <span className="ml-1.5 text-[11px] uppercase tracking-wide text-slate-400">
                                   {l.slotLabel}
                                 </span>
                               )}
                             </div>
+                            <LineNote text={l.note} className="mb-0.5" />
                             <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                               {l.kind === 'unit' ? (
                                 <span className="inline-flex items-center gap-1 font-mono text-slate-500">

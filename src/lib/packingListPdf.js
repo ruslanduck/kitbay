@@ -17,7 +17,6 @@ import {
   CHECK_IN,
   CHECK_OUT,
   isRentalHouse,
-  itemLabel,
   packingProgress,
   packingRows,
   signerName,
@@ -236,13 +235,21 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
     y += 16
 
     for (const l of g.lines) {
-      // 1 · the item — its note in parentheses right after the name, up to two
-      // lines; the detail (barcode, slot, quantity) on a line of its own.
+      // 1 · the item: its NAME (up to two lines), then its NOTE on a line of its
+      // own — "Note: …" in italic, as many first characters as the column holds
+      // and an ellipsis after — then the detail (barcode, slot, quantity). The
+      // note used to sit in parentheses after the name, where it read as part of
+      // the name and a long one took the name's second line and was cut there.
+      const width = X.source - X.item - 2 * PAD
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
-      const nameLines = doc.splitTextToSize(pdfSafe(itemLabel(l)), X.source - X.item - 2 * PAD)
+      const nameLines = doc.splitTextToSize(pdfSafe(l.itemName ?? ''), width)
       const shown = nameLines.slice(0, 2)
-      if (nameLines.length > 2) shown[1] = fit(`${shown[1]} ${nameLines.slice(2).join(' ')}`, X.source - X.item - 2 * PAD)
+      if (nameLines.length > 2) shown[1] = fit(`${shown[1]} ${nameLines.slice(2).join(' ')}`, width)
+      const note = String(l.note ?? '').replace(/\s+/g, ' ').trim()
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(7.5)
+      const noteLine = note ? fit(`Note: ${note}`, width) : null
       const detail = [
         l.slotLabel,
         l.barcode ? `#${l.barcode}` : null,
@@ -251,15 +258,26 @@ export function buildPackingListPdf(orderOrEstimate, context, opts = {}) {
       ]
         .filter(Boolean)
         .join(' · ')
-      const rowH = Math.max(28, PAD + shown.length * 11 + (detail ? 10 : 0) + PAD)
+      const rowH = Math.max(28, PAD + shown.length * 11 + (noteLine ? 10 : 0) + (detail ? 10 : 0) + PAD)
       ensure(rowH, true)
 
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
       setInk(INK.text)
       shown.forEach((line, i) => text(line, X.item, y + PAD + 8 + i * 11))
+      let below = y + PAD + 8 + shown.length * 11 - 1
+      if (noteLine) {
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(7.5)
+        setInk(INK.text)
+        text(noteLine, X.item, below)
+        below += 10
+      }
       if (detail) {
+        doc.setFont('helvetica', 'normal')
         doc.setFontSize(7.5)
         setInk(INK.muted)
-        text(fit(detail, X.source - X.item - 2 * PAD), X.item, y + PAD + 8 + shown.length * 11 - 1)
+        text(fit(detail, width), X.item, below)
       }
 
       // 2 · vendor source — a rental house is filled yellow, as on screen.

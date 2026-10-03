@@ -3641,6 +3641,26 @@
 > the short one whole; the peek card from the calendar chip shows both the same way; at 375px the names read in
 > full with the note under them and the numbers below, no overflow. Demo data reseeded (0 line notes), 0 console
 > errors.
+> **CHANGE — on the packing list (paper AND screen) a line's note is its own line, not glued to the name**
+> (frontend only). Reported with the job's own PDF: "Все равно тоже самое показывает … тут надо выводить note,
+> хотя бы первые Х символов". The previous change put the note on the job card; the request was about the
+> PRINTED sheet, which still read "Profoto 10 Air 2400 TTL Pack (Test new 2 Note)" — the studio had asked earlier
+> where "the Note in parentheses" came from, i.e. it read as part of the item's name — and a long note took the
+> name's second line and was cut there ("Profoto Head Extension (Test Equipment 3 Note … Test...").
+> ⚠️ This REVERSES the 1 Oct ticket's "note in parentheses right after the name"; the studio's own complaint about
+> that format is what overrides it.
+> **PDF:** the name alone (up to two lines), then **"Note: …"** in italic on a line of its own, as many first
+> characters as the 206pt column holds and "..." after, then the detail line (#barcode / vendor gear). **Digital
+> checklist:** the same `LineNote` the job card uses — one line, the whole note in the tooltip, a tap opens it.
+> `itemLabel` (the name+note gluer) is gone from `lib/packing.js`; the scan messages and the packing events name
+> the item plainly, so the activity feed no longer reads "checked out · Profoto B10 (Needs new battery)".
+> +5 assertions (**826**): the name prints alone, the note prints as "Note: …", nothing glues them, and a long note
+> prints one line ending in "..." with its tail nowhere in the bytes.
+> Verified: the user's job rebuilt under the new layout and looked at in the PDF viewer (name / "Note: Test new 2
+> Note" / #0004 per copy; the long Head Extension note cut to one line); the digital checklist shows the note under
+> the name with the tooltip; demo data reseeded (0 line notes).
+> ⚠️ The dev console logged "does not provide an export named 'itemLabel'" — HMR between the edit that removed the
+> export and the edits that stopped importing it; the build (which fails on a missing export) passed after.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

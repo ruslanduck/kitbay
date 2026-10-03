@@ -42,12 +42,12 @@ export function sourceLabel(row) {
   return isRentalHouse(row) && row.vendorName ? `${base} · ${row.vendorName}` : base
 }
 
-// "Profoto B10 (Needs new battery)" — the note sits in parentheses right after
-// the name, on screen and on paper. No separate column.
-export function itemLabel(row) {
-  const note = String(row?.note ?? '').trim()
-  return note ? `${row.itemName} (${note})` : String(row?.itemName ?? '')
-}
+// A row's note is NOT glued to its name any more. It used to read
+// "Profoto B10 (Needs new battery)" on screen and on paper, which the studio read
+// as part of the item's name ("не понимаю откуда берется Note в скобочках") — and
+// a long note pushed the name onto a second line and was cut there. It is its own
+// line under the name now: LineNote on screen, "Note: …" on the printed sheet,
+// each cut to what fits. `row.note` is all either needs.
 
 // What the crew actually ticks off, one row at a time.
 //
@@ -265,7 +265,7 @@ export function resolvePackingScan(rows, packing, code, slot = CHECK_IN) {
   if (!needle) return { ok: false, reason: 'Scan or type a barcode.' }
   const row = rows.find((r) => r.kind === 'unit' && String(r.barcode ?? '') === needle)
   if (!row) return { ok: false, reason: `#${needle} isn't on this job's packing list.` }
-  const name = itemLabel(row)
+  const name = String(row.itemName ?? '')
   const already = signoffOf(packing, row, slot)
   if (already)
     return {
