@@ -16,6 +16,7 @@ import {
   Globe,
   MapPin,
   Clock,
+  StickyNote,
 } from 'lucide-react'
 import { categoryLabel } from '../lib/taxonomy'
 import { useStore } from '../store'
@@ -150,7 +151,11 @@ function PeekHeader({ stack, onBack, onClose }) {
 /* ------------------------------ shared bits ------------------------------- */
 
 // A clickable row that opens another peek — the whole point of the panel.
-function LinkRow({ icon: Icon = Package, title, sub, right, onClick, tint }) {
+// `note`: an equipment line's note, on its own line under the rest — cut to what
+// fits, all of it in the tooltip. Plain text, not LineNote's toggle: the whole
+// row is already a button, and a button can't hold another.
+function LinkRow({ icon: Icon = Package, title, sub, note, right, onClick, tint }) {
+  const noteText = String(note ?? '').trim()
   return (
     <button
       type="button"
@@ -164,6 +169,12 @@ function LinkRow({ icon: Icon = Package, title, sub, right, onClick, tint }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-slate-800">{title}</span>
         {sub && <span className="block truncate text-xs text-slate-400">{sub}</span>}
+        {noteText && (
+          <span title={noteText} className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-slate-500">
+            <StickyNote size={11} className="shrink-0 text-slate-400" />
+            <span className="min-w-0 truncate">{noteText}</span>
+          </span>
+        )}
       </span>
       {right}
     </button>
@@ -401,6 +412,7 @@ function OrderPeek({ id }) {
                       ]
                         .filter(Boolean)
                         .join(' · ')}
+                      note={l.notes}
                       right={
                         <span className="shrink-0 text-xs text-slate-500">×{l.quantity}</span>
                       }

@@ -3623,6 +3623,24 @@
 > `not_after` or another account's session id reads 0, and an inactive account still reads only its own row (for its
 > message). After the push, the same 15 probes on live data and the 31-probe gate suite again — now run as Clay: the
 > demo accounts had been switched off by the user, and the suite's old member (a demo account) correctly read nothing.
+> **FIX — an equipment line's note shows on the job card and the job peek** (frontend only). Asked after the
+> note in parentheses on the packing list was explained: "может и тут надо выводить note, хотя бы первые Х
+> символов". True gap: the note typed under a line in the equipment window reached the packing list and its PDF,
+> and nowhere else — the job card and the peek card a calendar chip opens listed the line without it.
+> `src/components/LineNote.jsx`: under the item's name, one line cut with an ellipsis where the card runs out of
+> room (as many first characters as fit — a fixed count would be wrong at every width), the whole note in the
+> tooltip, and a click or tap opens it in place (a touch screen has no hover). The peek card's row is itself a
+> button, so there it is plain text with the tooltip (`LinkRow`'s new `note` prop) — a button can't hold a button.
+> Estimate lines already spread the order line (`...l`), so `l.notes` was there; nothing in the data changed.
+> ⚠️ **Fixed while measuring, pre-existing:** on a phone the card's equipment rows read "A." / "C." / "S." — the
+> quantity, rate and total kept their fixed widths and squeezed the name to one letter. The row wraps now: the name
+> takes `basis-48` and the numbers are one `ml-auto` group that drops to a second, right-aligned line when they
+> would leave the name less than 12rem. Desktop is unchanged: one row per line (38px, 56px with a note).
+> Verified in local mode: a 121-character note and a short one typed in the equipment window → on the card the
+> long one truncated with the full text in its tooltip, a click → two lines and "Show less", a second click → one;
+> the short one whole; the peek card from the calendar chip shows both the same way; at 375px the names read in
+> full with the note under them and the numbers below, no overflow. Demo data reseeded (0 line notes), 0 console
+> errors.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

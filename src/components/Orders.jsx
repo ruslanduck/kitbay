@@ -52,6 +52,7 @@ import PackingChecklistModal from './PackingChecklistModal'
 import SelectField from './SelectField'
 import CallSheetList from './CallSheetList'
 import NoteField from './NoteField'
+import LineNote from './LineNote'
 import FilterBar, { FILTER_FIELD } from './FilterBar'
 import { buildEstimate, money } from '../lib/estimate'
 import { downloadEstimatePdf } from '../lib/estimatePdf'
@@ -901,10 +902,16 @@ function OrderDetail({
                     {g.lines.map((l, i) => (
                       <li
                         key={`${l.itemId}-${i}`}
-                        className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2"
+                        // Wraps: where the numbers leave the name less than 12rem
+                        // (a phone, an iPad in portrait) they drop to a second line
+                        // as one right-aligned group. Without it they kept their
+                        // fixed widths and squeezed the name to one letter ("A.").
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-slate-200 px-3 py-2"
                       >
                         <Package size={14} className="shrink-0 text-slate-400" />
-                        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                        {/* The name row, then the line's note under it (LineNote). */}
+                        <span className="flex min-w-0 flex-1 basis-48 flex-col">
+                        <span className="flex min-w-0 items-center gap-1.5">
                           {l.itemId ? (
                             <button
                               type="button"
@@ -947,6 +954,9 @@ function OrderDetail({
                               </span>
                             ))}
                         </span>
+                        <LineNote text={l.notes} className="mt-0.5" />
+                        </span>
+                        <span className="ml-auto flex shrink-0 items-center gap-3">
                         {l.barcode && (
                           <span className="shrink-0 font-mono text-[11px] text-slate-400">
                             #{l.barcode}
@@ -966,6 +976,7 @@ function OrderDetail({
                         </span>
                         <span className="w-20 shrink-0 text-right text-sm font-medium text-slate-800">
                           {l.dayRate == null ? '—' : money(l.lineTotal)}
+                        </span>
                         </span>
                       </li>
                     ))}
