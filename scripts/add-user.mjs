@@ -3,20 +3,20 @@
 // Separate from seed-users.mjs, which hardcodes the three demo accounts and
 // their shared password: this is for adding a real person later.
 //
-// The password is NEVER hardcoded, defaulted or printed: the script ASKS for it
-// in the terminal, hidden and twice (scripts/password-prompt.mjs), so it stays
-// with whoever runs this and lands in no repo, shell history or log.
-// NEW_USER_PASSWORD still works for a run without a terminal.
+// The password is NEVER hardcoded, defaulted or printed. Copy it from a password
+// manager and add --clipboard, or leave that off and type it when asked (each
+// character shows as *) — scripts/password-prompt.mjs. It stays with whoever
+// runs this and lands in no repo, shell history or log.
 //
 // Run:
-//   npm run user:add -- --email someone@example.com --name "Their Name"
+//   npm run user:add -- --email someone@example.com --name "Their Name" --clipboard
 //
 // Idempotent, and deliberately NON-destructive: if the account already exists
 // it does NOT reset the password (silently changing someone's credentials is
 // worse than doing nothing) — it only makes sure the profile is right.
 import { createClient } from '@supabase/supabase-js'
 import { APP_URL } from '../src/lib/brand.js'
-import { askNewPassword } from './password-prompt.mjs'
+import { getNewPassword } from './password-prompt.mjs'
 
 const url = process.env.VITE_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -48,18 +48,8 @@ if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
 // password rules are checked by Supabase on top of it.
 const MIN_LENGTH = 12
 
-// NEW_USER_PASSWORD still works for a run without a terminal, but by default the
-// password is ASKED for, hidden and twice: a variable typed into a shell is
-// saved in that shell's history file.
-async function newPassword(label) {
-  const fromEnv = process.env.NEW_USER_PASSWORD
-  if (fromEnv) {
-    if (fromEnv.length < MIN_LENGTH)
-      throw new Error(`NEW_USER_PASSWORD is ${fromEnv.length} characters — use at least ${MIN_LENGTH}.`)
-    return fromEnv
-  }
-  return askNewPassword(label, MIN_LENGTH)
-}
+// --clipboard, NEW_USER_PASSWORD, or asked for — see scripts/password-prompt.mjs.
+const newPassword = (label) => getNewPassword(label, MIN_LENGTH)
 
 const db = createClient(url, key, { auth: { persistSession: false } })
 

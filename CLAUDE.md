@@ -3599,7 +3599,11 @@
 > twice, at least 12 characters (Supabase's own password rules apply on top and its refusal is printed). The prompt
 > lives in `scripts/password-prompt.mjs` (raw mode, char codes only: Enter, Backspace, Ctrl+C, a paste from a
 > password manager) and `user:add` uses it too: a variable typed into a shell lands in that shell's history file.
-> `NEW_USER_PASSWORD` still works for a run with no terminal. Claude does not type or receive passwords — it can
+> **`--clipboard`** takes the password from the clipboard instead (copied from a password manager — nothing typed,
+> the clipboard cleared after); added when the in-app terminal panel left the user unable to tell whether a hidden
+> prompt was taking keys. The prompt itself now echoes `*` per character and skips escape sequences (an arrow key
+> would otherwise put "[A" into a password nobody can see). Both tested with synthetic keystrokes, never the real
+> clipboard. `NEW_USER_PASSWORD` still works for a run with no terminal. Claude does not type or receive passwords — it can
 > START the command in the user's terminal panel; the user types the password there.
 > Verified without changing anything: an unknown email is refused with the `user:add` hint; Clay's account is
 > found and, with no terminal attached, the script stops before asking.

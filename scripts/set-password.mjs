@@ -1,16 +1,17 @@
 // Give an EXISTING account a new password — to replace one that leaked, or to
 // hand a person a proper password of their own.
 //
-// The password is typed into this terminal, hidden, twice. It is never an
-// argument, never an environment variable and never printed, so nothing of it
-// reaches the shell's history, a log, the repo or a chat. add-user.mjs
-// deliberately never touches an existing account's password; this is the
-// explicit way to do it.
+// The password is never an argument and never printed, so nothing of it reaches
+// the shell's history, a log, the repo or a chat. Copy it from a password
+// manager and add --clipboard (nothing to type, the clipboard is cleared after),
+// or leave that off and type it twice when asked, each character shown as `*`
+// (scripts/password-prompt.mjs). add-user.mjs deliberately never touches an
+// existing account's password; this is the explicit way to do it.
 //
-// Run:  npm run user:password -- --email someone@example.com
-//   (=  node --env-file=.env.local scripts/set-password.mjs --email someone@example.com)
+// Run:  npm run user:password -- --email someone@example.com --clipboard
+//   (=  node --env-file=.env.local scripts/set-password.mjs --email someone@example.com --clipboard)
 import { createClient } from '@supabase/supabase-js'
-import { askNewPassword } from './password-prompt.mjs'
+import { getNewPassword } from './password-prompt.mjs'
 import { APP_URL } from '../src/lib/brand.js'
 
 // A floor, not the policy: the project's own password rules (Authentication →
@@ -55,7 +56,7 @@ async function main() {
   const who = profile?.full_name ? `${profile.full_name} <${email}>` : email
   console.log(`Account: ${who}${profile && profile.active === false ? ' — NOT ACTIVE (it still cannot see any data)' : ''}`)
 
-  const password = await askNewPassword(who, MIN_LENGTH)
+  const password = await getNewPassword(who, MIN_LENGTH)
   const { error } = await db.auth.admin.updateUserById(user.id, { password })
   if (error) throw new Error(`Supabase refused it: ${error.message}`)
 
