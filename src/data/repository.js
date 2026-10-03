@@ -16,6 +16,7 @@ import { createUnits } from './inventory'
 import { normalizeCallTimes, toHHMM } from '../lib/callTimes'
 import { normalizeCrew, crewFromLegacy, crewNameFor } from '../lib/crew'
 import { normalizeAssignees } from '../lib/peopleOptions'
+import { CV_BUCKET, CV_PREFIX, cvFileCheck, cvObjectPath } from '../lib/cvFile'
 
 export const DATA_SOURCE = (import.meta.env.VITE_DATA_SOURCE || 'local').toLowerCase()
 export const usingSupabase = DATA_SOURCE === 'supabase' && isSupabaseConfigured
@@ -2004,15 +2005,26 @@ export async function createCompany({ name, companyType, kind = 'client', notes 
   return data.id
 }
 
-// Upload a CV into the public `cvs` bucket and return its public URL.
-export async function uploadCv(file, personName = 'cv') {
-  const safe = `${personName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'pdf'
-  const path = `${safe || 'cv'}-${Math.floor(performance.now())}.${ext}`
-  const { error } = await supabase.storage.from('cvs').upload(path, file, { upsert: true })
+// CVs: the private bucket and the reference format are explained in lib/cvFile.
+// Upload a CV under a random name — never over someone else's file (no upsert)
+// — and return where it is.
+export async function uploadCv(file) {
+  const ok = cvFileCheck(file)
+  if (ok.error) throw new Error(ok.error)
+  const path = `${crypto.randomUUID()}.${ok.ext}`
+  const { error } = await supabase.storage.from(CV_BUCKET).upload(path, file, { contentType: ok.type })
   if (error) throw error
-  const { data } = supabase.storage.from('cvs').getPublicUrl(path)
-  return { url: data.publicUrl, filename: file.name }
+  return { url: CV_PREFIX + path, filename: file.name }
+}
+
+// A link that opens this CV: a one-minute signed URL for a file in our bucket,
+// the address as it is for an outside link.
+export async function cvHref(cvUrl) {
+  const path = cvObjectPath(cvUrl)
+  if (!path) return cvUrl
+  const { data, error } = await supabase.storage.from(CV_BUCKET).createSignedUrl(path, 60)
+  if (error) throw error
+  return data.signedUrl
 }
 
 // Replace an order's equipment lines wholesale (5.3). Same approach as kit slots

@@ -3,11 +3,12 @@ import { Loader2, LogIn } from 'lucide-react'
 import { useStore } from '../store'
 import Logo, { BRAND_NAME } from './Logo'
 
-// Sign-in only: accounts are issued by the studio, not self-registered. The
-// self-serve signup path was removed on request — the store still exposes
-// `signUp` for whoever provisions accounts, but nothing in the UI calls it.
+// Sign-in only: accounts are issued by the studio (`npm run user:add`), not
+// self-registered — and an account it hasn't activated is turned away here
+// with the reason, while the database shows it nothing.
 export default function Login() {
   const signIn = useStore((s) => s.signIn)
+  const notice = useStore((s) => s.authNotice)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -69,8 +70,8 @@ export default function Login() {
             </div>
           </div>
 
-          {error && (
-            <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-600">{error}</p>
+          {(error || notice) && (
+            <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-600">{error || notice}</p>
           )}
 
           <button

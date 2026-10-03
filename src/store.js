@@ -1164,6 +1164,9 @@ export const useStore = create(
       session: null,
       profile: null,
       authReady: !usingSupabase,
+      // Why the last sign-in was turned away (an account the studio hasn't
+      // activated). Shown on the login screen; never persisted.
+      authNotice: null,
 
       // Subscribe to auth changes; load profile + hydrate data when signed in.
       initAuth: () => {
@@ -1186,19 +1189,35 @@ export const useStore = create(
           // Defer supabase calls out of the auth callback (avoids a lock deadlock).
           setTimeout(async () => {
             if (session) {
-              const { data } = await supabase
+              // `active` (20261003120000) decides whether this account reaches
+              // the data at all; the database enforces it in every policy, this
+              // only explains the empty screen. A database without the column
+              // answers 42703, and the profile is read without it.
+              let { data, error } = await supabase
                 .from('profiles')
-                .select('id, full_name, role')
+                .select('id, full_name, role, active')
                 .eq('id', session.user.id)
                 .maybeSingle()
-              if (!data) {
-                // Session without a team profile (e.g. a stale anonymous
-                // session) — reject and fall back to the login screen.
+              if (error?.code === '42703')
+                ({ data } = await supabase
+                  .from('profiles')
+                  .select('id, full_name, role')
+                  .eq('id', session.user.id)
+                  .maybeSingle())
+              if (!data || data.active === false) {
+                // No profile (a stale anonymous session) or one the studio
+                // hasn't switched on yet: back to the login screen, saying why
+                // rather than showing an empty studio.
                 await supabase.auth.signOut()
-                set({ authReady: true })
+                set({
+                  authReady: true,
+                  authNotice: data
+                    ? 'This account is not active yet. Ask the studio to activate it.'
+                    : null,
+                })
                 return
               }
-              set({ profile: data })
+              set({ profile: data, authNotice: null })
               await get().hydrate()
             } else {
               set({ profile: null, inventory: [], bookings: [], kits: [], scenarios: [] })
@@ -1209,21 +1228,13 @@ export const useStore = create(
       },
 
       signIn: async (email, password) => {
+        set({ authNotice: null })
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       },
-      // Register a new team member. Returns the session (null if the project
-      // requires email confirmation — the UI then shows a "check your email"
-      // message). New users get a 'crew' profile via the DB trigger.
-      signUp: async ({ email, password, fullName }) => {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: fullName } },
-        })
-        if (error) throw error
-        return data.session
-      },
+      // No signUp here: accounts are issued by the studio (`npm run user:add`,
+      // which also switches the profile on). A self-registered account gets an
+      // inactive profile and sees nothing — the database enforces that.
       signOut: async () => {
         await supabase.auth.signOut()
       },

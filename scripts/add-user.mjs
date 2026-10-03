@@ -88,7 +88,9 @@ async function main() {
       // sign in. The studio issues accounts directly (self-registration was
       // removed from the login screen on request).
       email_confirm: true,
-      user_metadata: { full_name: fullName, role },
+      // The trigger reads only the name from here: a role in user metadata was
+      // the signer's to choose, so since 20261003120000 it is ignored.
+      user_metadata: { full_name: fullName },
     })
     if (error) throw new Error(`create ${email}: ${error.message}`)
     user = data.user
@@ -96,14 +98,17 @@ async function main() {
     console.log(`created  ${email}`)
   }
 
-  // The trigger already inserted a profile row; this makes the name and role
-  // match what was asked for (and repairs a row from an earlier attempt).
+  // The trigger already inserted a profile row — INACTIVE, so the account sees
+  // nothing (20261003120000). This makes the name and role match what was asked
+  // for, repairs a row from an earlier attempt, and switches the account ON:
+  // being issued by the studio is what activation means. Only the service role
+  // can write `active`; no policy lets an account touch its own profile.
   const { error: pErr } = await db
     .from('profiles')
-    .upsert({ id: user.id, full_name: fullName, role, email })
+    .upsert({ id: user.id, full_name: fullName, role, email, active: true })
   if (pErr) throw new Error(`profile ${email}: ${pErr.message}`)
 
-  console.log(`profile  ${fullName} · ${role}`)
+  console.log(`profile  ${fullName} · ${role} · active`)
   console.log(
     created
       ? `\nDone. They can sign in at ${APP_URL} with the password you set.`

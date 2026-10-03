@@ -35,7 +35,8 @@ import CompanyEditorModal from './CompanyEditorModal'
 import SelectField from './SelectField'
 import NoteField from './NoteField'
 import { usingSupabase } from '../data/repository'
-import { uploadCv } from '../data/repository'
+import { uploadCv, cvHref } from '../data/repository'
+import { cvObjectPath } from '../lib/cvFile'
 
 // People & Company databases (Build order #4, 4.1 + 4.2).
 //
@@ -611,6 +612,44 @@ function CompanyList({ companies, people, selectedId, query, onSelect }) {
 
 // A person's card: contact info, the company hyperlink (4.1), profile links (4.2)
 // and the jobs they worked.
+// A CV in our private bucket opens through a signed link minted on the click —
+// it lasts a minute, so it is never stored or shown. An outside link opens as it
+// is. The tab is opened FIRST, inside the click: a window.open that waits for a
+// network call is a popup the browser blocks.
+function CvLink({ cvUrl, children }) {
+  const [failed, setFailed] = useState(null)
+  const chip =
+    'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-600'
+  if (!cvObjectPath(cvUrl))
+    return (
+      <a href={cvUrl} target="_blank" rel="noreferrer noopener" className={chip}>
+        {children}
+      </a>
+    )
+  const open = async () => {
+    setFailed(null)
+    const tab = window.open('', '_blank')
+    try {
+      const href = await cvHref(cvUrl)
+      if (tab) {
+        tab.opener = null
+        tab.location.href = href
+      } else window.open(href, '_blank', 'noopener')
+    } catch (e) {
+      tab?.close()
+      setFailed(e?.message ?? String(e))
+    }
+  }
+  return (
+    <>
+      <button type="button" onClick={open} className={chip}>
+        {children}
+      </button>
+      {failed && <span className="self-center text-xs text-rose-600">Couldn't open the CV: {failed}</span>}
+    </>
+  )
+}
+
 function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpenJob }) {
   const updatePerson = useStore((s) => s.updatePerson)
   const hasProfile = person.website || person.instagram || person.cvFilename
@@ -734,16 +773,11 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
               )}
               {person.cvFilename &&
                 (person.cvUrl ? (
-                  <a
-                    href={person.cvUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-600"
-                  >
+                  <CvLink cvUrl={person.cvUrl}>
                     <FileText size={13} />
                     {person.cvFilename}
                     <ExternalLink size={11} className="text-slate-400" />
-                  </a>
+                  </CvLink>
                 ) : (
                   <span
                     title="Filed as a name only — no uploaded file in this demo mode"

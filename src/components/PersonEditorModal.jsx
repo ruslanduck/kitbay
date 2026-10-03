@@ -89,16 +89,18 @@ export default function PersonEditorModal({
   async function attachCv(file) {
     if (!file) return
     setError(null)
-    // Supabase mode uploads and returns a public URL; local mode has nowhere to
-    // put the bytes, so the card shows the filename without a link.
+    // Supabase mode uploads into the private bucket and returns where the file
+    // is; local mode has nowhere to put the bytes, so the card shows the
+    // filename without a link.
     if (!onUploadCv) return set({ cvFilename: file.name, cvUrl: '' })
     setUploading(true)
     try {
-      const res = await onUploadCv(file, form.name || 'cv')
+      const res = await onUploadCv(file)
       set({ cvUrl: res?.url ?? '', cvFilename: res?.filename ?? file.name })
     } catch (e) {
+      // The CV on file stays as it was: filing the name of a file that was
+      // refused (wrong type, over 10 MB) would read as a CV that exists.
       setError(`Upload failed: ${e.message ?? e}`)
-      set({ cvFilename: file.name, cvUrl: '' })
     } finally {
       setUploading(false)
     }

@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Env files hold secrets. The ONE committed file is .env.production: it carries
+# only the public project URL and the anon key (role "anon", checked).
+.env
+.env.*
+!.env.production
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

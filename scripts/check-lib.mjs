@@ -1875,4 +1875,31 @@ ok(
   eq(activity.describeEvent({ type: activity.EVENT.TAXONOMY_ADDED, data: { what: 'category' } }).title, 'Added a category', 'the article follows the word')
 }
 
+// ---------------------------------------------------------------------------
+// CV files (security audit, 3 Oct): the bucket is private, a CV is opened through
+// a signed link, and what may be stored is decided by an allow-list — never by
+// the name of the file someone picked.
+{
+  const cv = await load('src/lib/cvFile.js')
+  const file = (name, type, size = 1000) => ({ name, type, size })
+  eq(cv.cvFileCheck(file('CV.pdf', 'application/pdf')), { type: 'application/pdf', ext: 'pdf' }, 'a PDF is stored as .pdf')
+  eq(cv.cvFileCheck(file('Resume.DOCX', '')).ext, 'docx', 'no type from the browser (Windows without Word): the extension names it')
+  eq(cv.cvFileCheck(file('photo.jpeg', 'image/jpeg')).ext, 'jpg', 'the stored extension comes from the allow-list, not the name')
+  eq(cv.cvFileCheck(file('cv.pdf.html', 'text/html')).error, 'A CV has to be a PDF, a Word document or an image.', 'an HTML page named like a PDF is refused')
+  ok(cv.cvFileCheck(file('evil.svg', 'image/svg+xml')).error, 'an SVG (it can carry script) is refused')
+  ok(cv.cvFileCheck(file('x.exe', '')).error, 'an unknown file with no type is refused')
+  eq(cv.cvFileCheck(file('big.pdf', 'application/pdf', 10 * 1024 * 1024 + 1)).error, 'A CV can be at most 10 MB.', 'over 10 MB is refused')
+  ok(!cv.cvFileCheck(file('edge.pdf', 'application/pdf', 10 * 1024 * 1024)).error, 'exactly 10 MB is allowed (the bucket limit)')
+  eq(cv.cvObjectPath('storage:cvs/3f2a.pdf'), '3f2a.pdf', 'a reference written now names its object')
+  eq(
+    cv.cvObjectPath('https://abc.supabase.co/storage/v1/object/public/cvs/ruslan-1900353.pdf'),
+    'ruslan-1900353.pdf',
+    'a row from the public-bucket days still finds its file',
+  )
+  eq(cv.cvObjectPath('https://abc.supabase.co/storage/v1/object/public/cvs/a%20b.pdf?x=1'), 'a b.pdf', 'escaped and with a query')
+  eq(cv.cvObjectPath('https://drive.google.com/file/d/xyz'), null, 'an outside link is not ours to sign')
+  eq(cv.cvObjectPath('https://abc.supabase.co/storage/v1/object/public/avatars/a.png'), null, 'nor a file in another bucket')
+  eq([cv.cvObjectPath(''), cv.cvObjectPath(null), cv.cvObjectPath('storage:cvs/')], [null, null, null], 'nothing names nothing')
+}
+
 console.log(`OK — ${n} assertions passed`)

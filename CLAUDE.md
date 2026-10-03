@@ -22,7 +22,7 @@
 >   one, but it CAN legitimately differ (CI runs its own `npm ci`, so the bundle isn't byte-identical) — when
 >   it does, don't assume the deploy failed: fetch the served bundle and grep it for a string unique to the new
 >   code (e.g. `curl -s .../assets/index-<hash>.js | grep -c "Coming soon"`). Content is the real check.
-> - **Seed:** `npm run seed:supabase` (wipes+reseeds). Demo logins: ann/marcus/sofia @anntaylor.demo, pw `StudioDemo!2026`.
+> - **Seed:** `npm run seed:supabase` (wipes+reseeds). Demo logins: ann/marcus/sofia @anntaylor.demo — the password is `DEMO_USER_PASSWORD` in `.env.local`, never in the repo (it was, until the 3 Oct security audit: rotate it).
 >
 > **Progress:** Build order #1 (V2 foundation) DONE. **Build order #2 (inventory) COMPLETE:** 2.1 types,
 > 2.2 fields, 2.3 categories, 2.4 CRUD, 2.5 search + filters, 2.6 repair log (per-unit send/return +
