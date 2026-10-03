@@ -112,6 +112,14 @@ const STORAGE_KEY = 'kitbay'
 // Local demo mode has no auth, so activity is attributed to the machine's user.
 const LOCAL_ACTOR = 'Demo user'
 
+// Why the login screen took someone back (store.authNotice).
+const AUTH_NOT_ACTIVE = 'This account is not active yet. Ask the studio to activate it.'
+const AUTH_SESSION_ENDED = 'Your session has ended. Sign in again.'
+const AUTH_UNREACHABLE = 'Could not load your account. Sign in again.'
+// initAuth can run twice (React's dev double-invoke); the tab-visibility check is
+// wired once.
+let watchingVisibility = false
+
 // The flat archivable types: which collection holds them, how to name one in the
 // feed, and the repository calls. Anything with side effects (orders release
 // gear, items take their units) has its own action instead.
@@ -1199,21 +1207,21 @@ export const useStore = create(
                 .eq('id', session.user.id)
                 .maybeSingle()
               if (error?.code === '42703')
-                ({ data } = await supabase
+                ({ data, error } = await supabase
                   .from('profiles')
                   .select('id, full_name, role')
                   .eq('id', session.user.id)
                   .maybeSingle())
               if (!data || data.active === false) {
-                // No profile (a stale anonymous session) or one the studio
-                // hasn't switched on yet: back to the login screen, saying why
-                // rather than showing an empty studio.
+                // An account the studio hasn't switched on, or nothing to read
+                // at all — the session behind this token has ENDED (password
+                // changed, signed out elsewhere: the database stops answering at
+                // once, 20261003140000) or it never had a profile. Back to the
+                // login screen, saying why rather than showing an empty studio.
                 await supabase.auth.signOut()
                 set({
                   authReady: true,
-                  authNotice: data
-                    ? 'This account is not active yet. Ask the studio to activate it.'
-                    : null,
+                  authNotice: data ? AUTH_NOT_ACTIVE : error ? AUTH_UNREACHABLE : AUTH_SESSION_ENDED,
                 })
                 return
               }
@@ -1224,6 +1232,31 @@ export const useStore = create(
             }
             set({ authReady: true })
           }, 0)
+        })
+
+        // The same check when the tab comes back into view. A session ended
+        // somewhere else — the password was changed, an admin switched the
+        // account off — would otherwise leave this tab on an empty studio until
+        // its token runs out (up to an hour), because the database already
+        // answers it nothing. Throttled, once per window; and only a DEFINITE
+        // answer signs anyone out — a failed request (offline, a server blip)
+        // is not a reason to.
+        if (watchingVisibility || typeof document === 'undefined') return
+        watchingVisibility = true
+        let checkedAt = 0
+        document.addEventListener('visibilitychange', async () => {
+          if (document.visibilityState !== 'visible') return
+          const { session, profile } = get()
+          if (!session || !profile || Date.now() - checkedAt < 30_000) return
+          checkedAt = Date.now()
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, active')
+            .eq('id', session.user.id)
+            .maybeSingle()
+          if (error || (data && data.active !== false)) return
+          await supabase.auth.signOut()
+          set({ authNotice: data ? AUTH_NOT_ACTIVE : AUTH_SESSION_ENDED })
         })
       },
 

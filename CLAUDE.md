@@ -3607,6 +3607,22 @@
 > START the command in the user's terminal panel; the user types the password there.
 > Verified without changing anything: an unknown email is refused with the `user:add` hint; Clay's account is
 > found and, with no terminal attached, the script stops before asking.
+> **SECURITY — an ENDED session loses the data at once, not when its token runs out**
+> (`20261003140000_live_sessions.sql`, applied and verified on prod). Reported right after Clay's password was
+> reset with `user:password`: a tab signed in as him reloaded and carried on. Supabase HAD ended his sessions (0 rows
+> in `auth.sessions` straight after — an admin password change logs the account out everywhere), but an access
+> token is a signed JWT that PostgREST accepts without asking whether its session still exists, so the old tab
+> could read AND write for up to an hour. `public.session_alive()` — the token's `session_id` must name a live row
+> in `auth.sessions` for the same user, not past `not_after` — is now part of `is_team_member()`, so all 65 policies
+> and the CV bucket follow without being touched, and of the own-profile read. ⚠️ FAIL-SAFE on purpose: a user token
+> with no `session_id` claim passes as before, so the worst case is a revocation that waits for expiry, never a
+> studio locked out. The app signs a dead session out with "Your session has ended. Sign in again." — on load, and
+> when a tab comes back into view (throttled; a FAILED request never signs anyone out, only a definite answer).
+> Probed on prod before and after, in a rolled-back transaction: today an ended session's token read 28 jobs and
+> could write; with the migration it reads 0 and writes nothing, while a live session works, a session past
+> `not_after` or another account's session id reads 0, and an inactive account still reads only its own row (for its
+> message). After the push, the same 15 probes on live data and the 31-probe gate suite again — now run as Clay: the
+> demo accounts had been switched off by the user, and the suite's old member (a demo account) correctly read nothing.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),
