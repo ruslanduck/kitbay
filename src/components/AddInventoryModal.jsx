@@ -186,7 +186,7 @@ export default function AddInventoryModal({
   }
 
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
 
   return (
@@ -260,7 +260,7 @@ export default function AddInventoryModal({
                 className={field}
               />
               {newSub ? (
-                <div className="mt-2 rounded-lg border border-violet-200 bg-violet-50/60 p-2">
+                <div className="mt-2 rounded-lg border border-primary-200 bg-primary-50/60 p-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <SelectField
                       value={newSub.categoryId}
@@ -282,7 +282,7 @@ export default function AddInventoryModal({
                         }
                       }}
                       placeholder="New subcategory"
-                      className="min-w-0 flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-violet-400"
+                      className="min-w-0 flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-primary-400"
                     />
                     <button
                       type="button"

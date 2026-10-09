@@ -3,7 +3,7 @@
 export default function PlaceholderPanel({ icon: Icon, title, subtitle, stats = [] }) {
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center text-center">
-      <div className="mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-violet-100 text-violet-600">
+      <div className="mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-primary-100 text-primary-600">
         {Icon && <Icon size={30} />}
       </div>
       <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h2>

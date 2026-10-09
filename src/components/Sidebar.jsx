@@ -78,11 +78,11 @@ export default function Sidebar() {
                   item.disabled
                     ? 'cursor-not-allowed text-slate-300'
                     : active
-                      ? 'bg-violet-50 text-violet-700'
+                      ? 'bg-primary-50 text-primary-700'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                 ].join(' ')}
               >
-                <Icon size={18} className={active ? 'text-violet-600' : ''} />
+                <Icon size={18} className={active ? 'text-primary-600' : ''} />
                 <span>{item.label}</span>
                 {item.disabled && (
                   <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">

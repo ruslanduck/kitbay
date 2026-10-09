@@ -78,7 +78,7 @@ function DayInput({ value, onCommit, label }) {
           commit()
         }
       }}
-      className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs outline-none transition focus:border-violet-400 aria-invalid:border-rose-400"
+      className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs outline-none transition focus:border-primary-400 aria-invalid:border-rose-400"
     />
   )
 }
@@ -309,11 +309,11 @@ export default function DateRangeField({ from, to, onChange, className }) {
                         isStart || isEnd
                           ? 'bg-brand font-semibold text-white'
                           : inRange
-                            ? 'bg-violet-100 text-violet-800'
+                            ? 'bg-primary-100 text-primary-800'
                             : inMonth
-                              ? 'text-slate-700 hover:bg-violet-50'
+                              ? 'text-slate-700 hover:bg-primary-50'
                               : 'text-slate-300 hover:bg-slate-50',
-                        !isStart && !isEnd && isToday ? 'ring-1 ring-inset ring-violet-300' : '',
+                        !isStart && !isEnd && isToday ? 'ring-1 ring-inset ring-primary-300' : '',
                       ].join(' ')}
                     >
                       {d.getDate()}
@@ -331,7 +331,7 @@ export default function DateRangeField({ from, to, onChange, className }) {
                   stretching.current = true
                   emit(iso, iso)
                 }}
-                className="rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+                className="rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
               >
                 Today
               </button>

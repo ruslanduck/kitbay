@@ -28,7 +28,7 @@ const COL = {
   rate: M + 390,
   total: PAGE.w - M,
 }
-const INK = { text: [15, 23, 42], muted: [100, 116, 139], rule: [203, 213, 225], accent: [124, 58, 237] }
+const INK = { text: [23, 23, 23], muted: [105, 105, 105], rule: [212, 212, 212], accent: [0, 91, 165] }
 
 // jsPDF's built-in Helvetica is WinAnsi-encoded. A character outside it (an arrow,
 // an em dash) either vanishes or — worse — flips the whole string into a 16-bit

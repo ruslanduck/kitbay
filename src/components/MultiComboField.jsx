@@ -183,7 +183,7 @@ export default function MultiComboField({
           }
         }}
         className={[
-          'relative flex w-full cursor-text flex-wrap items-center gap-1.5 border border-slate-300 bg-surface pr-7 text-sm transition focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100',
+          'relative flex w-full cursor-text flex-wrap items-center gap-1.5 border border-slate-300 bg-surface pr-7 text-sm transition focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100',
           sz.box,
           className,
         ]
@@ -195,7 +195,7 @@ export default function MultiComboField({
             <span
               key={fold(name)}
               className={[
-                'inline-flex max-w-full items-center gap-0.5 rounded-full bg-violet-50 pl-2.5 pr-1 text-xs font-medium text-violet-700 ring-1 ring-violet-200',
+                'inline-flex max-w-full items-center gap-0.5 rounded-full bg-primary-50 pl-2.5 pr-1 text-xs font-medium text-primary-700 ring-1 ring-primary-200',
                 sz.chip,
               ].join(' ')}
             >
@@ -205,7 +205,7 @@ export default function MultiComboField({
                 onClick={() => remove(name)}
                 title={`Remove ${name}`}
                 aria-label={`Remove ${name}`}
-                className="shrink-0 rounded-full p-0.5 text-violet-400 transition hover:bg-violet-100 hover:text-violet-700"
+                className="shrink-0 rounded-full p-0.5 text-primary-400 transition hover:bg-primary-100 hover:text-primary-700"
               >
                 <X size={12} />
               </button>
@@ -297,14 +297,14 @@ export default function MultiComboField({
                   onClick={() => pickRow(r)}
                   className={[
                     'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition',
-                    r.isNew ? 'text-violet-600' : selected ? 'font-medium text-violet-700' : 'text-slate-700',
-                    i === active ? 'bg-violet-50' : '',
+                    r.isNew ? 'text-primary-600' : selected ? 'font-medium text-primary-700' : 'text-slate-700',
+                    i === active ? 'bg-primary-50' : '',
                   ].join(' ')}
                 >
                   {r.isNew ? (
                     <Plus size={14} className="shrink-0" />
                   ) : (
-                    <Check size={14} className={['shrink-0', selected ? 'text-violet-600' : 'invisible'].join(' ')} />
+                    <Check size={14} className={['shrink-0', selected ? 'text-primary-600' : 'invisible'].join(' ')} />
                   )}
                   <span className="min-w-0 flex-1 truncate">{r.isNew ? `Add “${r.name}”` : r.name}</span>
                   {r.hint && <span className="shrink-0 text-xs font-normal text-slate-400">{r.hint}</span>}

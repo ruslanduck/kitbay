@@ -174,7 +174,7 @@ export default function SelectField({
         className={[
           className,
           'flex items-center gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50',
-          open ? 'border-violet-400 ring-2 ring-violet-100' : '',
+          open ? 'border-primary-400 ring-2 ring-primary-100' : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -234,19 +234,19 @@ export default function SelectField({
                     o.disabled
                       ? 'cursor-not-allowed text-slate-300'
                       : selected
-                        ? 'font-medium text-violet-700'
+                        ? 'font-medium text-primary-700'
                         : 'text-slate-700',
-                    !o.disabled && i === active ? 'bg-violet-50' : '',
+                    !o.disabled && i === active ? 'bg-primary-50' : '',
                   ].join(' ')}
                 >
                   <Check
                     size={14}
-                    className={['shrink-0', selected ? 'text-violet-600' : 'invisible'].join(' ')}
+                    className={['shrink-0', selected ? 'text-primary-600' : 'invisible'].join(' ')}
                   />
                   {Icon && (
                     <Icon
                       size={14}
-                      className={['shrink-0', selected ? 'text-violet-600' : 'text-slate-400'].join(' ')}
+                      className={['shrink-0', selected ? 'text-primary-600' : 'text-slate-400'].join(' ')}
                     />
                   )}
                   {/* `flex-auto`, NOT `flex-1`: a flex item with a basis of 0

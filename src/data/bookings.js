@@ -33,10 +33,10 @@ export const BOOKING_TEMPLATES = [
   { title: '20260629_AT_MAIN_SepBOM_Missy_OMSet2', studioId: '5', dayOffset: 1, photographer: 'Diego Alvarez', model: 'Abigael Boivin', color: '#10b981' },
   { title: '20260625_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '2', dayOffset: 2, call: '08:00', photographer: 'Priya Nair', model: 'Amanda Googe', color: '#f59e0b' },
   { title: '20260630_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '2', dayOffset: 3, photographer: 'Ann Taylor', model: 'Jade Huber', color: '#3b82f6' },
-  { title: '20260630_AT_MAIN_SepBOM_Missy_OMSet2', studioId: 'L', dayOffset: 3, days: 2, calls: [{ roles: ['Crew'], time: '06:45', note: 'Load-in through the freight door' }, { roles: ['Photographer', 'Assistant'], time: '08:00' }], wrap: '20:00', photographer: 'Liam Chen', model: 'Lala Olsson', color: '#8b5cf6' },
+  { title: '20260630_AT_MAIN_SepBOM_Missy_OMSet2', studioId: 'L', dayOffset: 3, days: 2, calls: [{ roles: ['Crew'], time: '06:45', note: 'Load-in through the freight door' }, { roles: ['Photographer', 'Assistant'], time: '08:00' }], wrap: '20:00', photographer: 'Liam Chen', model: 'Lala Olsson', color: '#84cc16' },
   { title: '20260706_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '4', dayOffset: 4, photographer: 'Noah Kim', model: 'Mia Speicher', color: '#14b8a6' },
   { title: '20260701_AT_MAIN_SepBOM_Missy_OMSet1', studioId: '1', dayOffset: 5, photographer: 'Sofia Ventura', model: 'Hailey Halter', color: '#f43f5e' },
   { title: '20260701_AT_MAIN_SepBOM_Missy_OMSet2', studioId: '5', dayOffset: 5, photographer: 'Diego Alvarez', model: 'Aira Ferreira', color: '#06b6d4' },
-  { title: '20260715_AT_MAIN_SepMM_Missy_OMSet1', studioId: '3', dayOffset: 6, photographer: 'Priya Nair', model: 'Amanda Googe', color: '#6366f1' },
+  { title: '20260715_AT_MAIN_SepMM_Missy_OMSet1', studioId: '3', dayOffset: 6, photographer: 'Priya Nair', model: 'Amanda Googe', color: '#0ea5e9' },
   { title: '20260716_AT_MAIN_SepMM_Missy_OMSet1', studioId: 'L', dayOffset: 6, wrap: '16:00', photographer: 'Ann Taylor', model: 'Lala Olsson', color: '#f97316' },
 ]

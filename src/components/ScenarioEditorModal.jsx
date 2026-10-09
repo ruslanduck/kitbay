@@ -147,7 +147,7 @@ export default function ScenarioEditorModal({
 
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
   return (
     <Modal
@@ -210,7 +210,7 @@ export default function ScenarioEditorModal({
                     <span
                       className={[
                         'inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                        isKit ? 'bg-violet-100 text-violet-700' : 'bg-slate-200 text-slate-600',
+                        isKit ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-600',
                       ].join(' ')}
                     >
                       {isKit ? <Layers size={9} /> : <Package size={9} />}
@@ -232,7 +232,7 @@ export default function ScenarioEditorModal({
                           onChange={(ev) =>
                             setEntry(i, { quantity: Math.max(1, Number(ev.target.value) || 1) })
                           }
-                          className="w-14 rounded-md border border-slate-300 px-1.5 py-1 text-center text-xs text-slate-700 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                          className="w-14 rounded-md border border-slate-300 px-1.5 py-1 text-center text-xs text-slate-700 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                         />
                       </label>
                     )}
@@ -293,7 +293,7 @@ export default function ScenarioEditorModal({
                     value={pickerSearch}
                     onChange={(ev) => setPickerSearch(ev.target.value)}
                     placeholder={picker === 'kit' ? 'Search kits…' : 'Search inventory…'}
-                    className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                    className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                   />
                 </div>
                 {pickerResults.length > 0 ? (
@@ -342,7 +342,7 @@ export default function ScenarioEditorModal({
                     setPicker('kit')
                     setPickerSearch('')
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-primary-300 hover:text-primary-600"
                 >
                   <Layers size={15} />
                   Add kit
@@ -353,7 +353,7 @@ export default function ScenarioEditorModal({
                     setPicker('item')
                     setPickerSearch('')
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-primary-300 hover:text-primary-600"
                 >
                   <Plus size={15} />
                   Add inventory

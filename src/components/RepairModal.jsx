@@ -13,7 +13,7 @@ function daysSince(iso) {
 }
 
 const field =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 const label = 'mb-1.5 block text-sm font-medium text-slate-700'
 
 // Per-unit repair log: send a unit out for repair (vendor + issue), mark it
@@ -152,7 +152,7 @@ export default function RepairModal({ open, onClose, unit, itemName, canManage, 
           canManage && (
             <form onSubmit={handleSend} className="mb-5 rounded-xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-700">
-                <Wrench size={15} className="text-violet-500" />
+                <Wrench size={15} className="text-primary-500" />
                 Send this item out for repair
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

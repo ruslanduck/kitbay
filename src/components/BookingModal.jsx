@@ -29,7 +29,7 @@ import KitStagingModal from './KitStagingModal'
 import SelectField from './SelectField'
 
 const fieldClass =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-700'
 
 function blankForm(prefill) {
@@ -357,7 +357,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                 <div className="relative">
                   <ClipboardList
                     size={16}
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-500"
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary-500"
                   />
                   <SelectField
                     value=""
@@ -375,10 +375,10 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                 </div>
 
                 {applied && (
-                  <div className="mt-2 rounded-lg border border-violet-200 bg-violet-50/60 px-3 py-2">
+                  <div className="mt-2 rounded-lg border border-primary-200 bg-primary-50/60 px-3 py-2">
                     <div className="flex items-start gap-2">
-                      <Check size={14} className="mt-0.5 shrink-0 text-violet-600" />
-                      <p className="min-w-0 flex-1 text-xs text-violet-900">
+                      <Check size={14} className="mt-0.5 shrink-0 text-primary-600" />
+                      <p className="min-w-0 flex-1 text-xs text-primary-900">
                         <span className="font-semibold">{applied.name}</span> applied —{' '}
                         {applied.applied.units} item
                         {applied.applied.units === 1 ? '' : 's'} reserved
@@ -389,7 +389,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                       <button
                         type="button"
                         onClick={() => setApplied(null)}
-                        className="shrink-0 rounded p-0.5 text-violet-400 transition hover:text-violet-700"
+                        className="shrink-0 rounded p-0.5 text-primary-400 transition hover:text-primary-700"
                       >
                         <X size={14} />
                       </button>
@@ -427,9 +427,9 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
                 {stagedByKit.map(([kitName, units]) => (
                   <div
                     key={kitName}
-                    className="rounded-lg border border-violet-200 bg-violet-50/50 p-2"
+                    className="rounded-lg border border-primary-200 bg-primary-50/50 p-2"
                   >
-                    <div className="mb-1 flex items-center gap-1.5 px-1 text-xs font-semibold text-violet-700">
+                    <div className="mb-1 flex items-center gap-1.5 px-1 text-xs font-semibold text-primary-700">
                       <Layers size={13} />
                       {kitName}
                     </div>
@@ -582,7 +582,7 @@ export default function BookingModal({ open, onClose, booking, prefill }) {
               <div className="relative mt-2">
                 <Layers
                   size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-500"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary-500"
                 />
                 <SelectField
                   value=""

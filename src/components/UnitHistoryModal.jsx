@@ -94,9 +94,9 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
                     onClick={() => onOpenSet?.(r.setId)}
                     disabled={!onOpenSet}
                     title={onOpenSet ? 'Open this shoot' : undefined}
-                    className="flex min-w-0 items-center gap-2 text-left enabled:hover:text-violet-700"
+                    className="flex min-w-0 items-center gap-2 text-left enabled:hover:text-primary-700"
                   >
-                    <CalendarRange size={16} className="shrink-0 text-violet-500" />
+                    <CalendarRange size={16} className="shrink-0 text-primary-500" />
                     <span
                       className={[
                         'truncate font-medium text-slate-900',
@@ -126,7 +126,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
                       .map((c, i) => (
                         <span
                           key={i}
-                          className={c.kind === 'out' ? 'text-violet-600' : 'text-emerald-600'}
+                          className={c.kind === 'out' ? 'text-primary-600' : 'text-emerald-600'}
                         >
                           <span className="font-medium">{c.kind === 'out' ? 'Out' : 'Back'}</span>{' '}
                           {whenLabel(c.at)}
@@ -147,7 +147,7 @@ export default function UnitHistoryModal({ open, onClose, unit, itemName, onOpen
                         onClick={() => onOpenPerson?.(p.name)}
                         disabled={!onOpenPerson}
                         title={onOpenPerson ? `Open ${p.name}` : undefined}
-                        className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-700 transition enabled:hover:bg-violet-100"
+                        className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-xs text-primary-700 transition enabled:hover:bg-primary-100"
                       >
                         <span className="font-medium capitalize">{p.role}:</span>
                         {p.name}

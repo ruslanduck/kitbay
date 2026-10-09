@@ -35,15 +35,15 @@ export const ORDER_STATUS = {
     label: 'Closed',
     pill: 'bg-slate-100 text-slate-600 ring-slate-200',
     dot: 'bg-slate-400',
-    calendar: '#64748b',
-    print: { fill: [241, 245, 249], ink: [69, 85, 108], ring: [226, 232, 240], dot: [144, 161, 185] },
+    calendar: '#737373',
+    print: { fill: [245, 245, 245], ink: [82, 82, 82], ring: [229, 229, 229], dot: [161, 161, 161] },
   },
   draft: {
     label: 'Draft',
     pill: 'bg-slate-100 text-slate-500 ring-slate-200',
     dot: 'bg-slate-300',
-    calendar: '#94a3b8',
-    print: { fill: [241, 245, 249], ink: [98, 116, 142], ring: [226, 232, 240], dot: [202, 213, 226] },
+    calendar: '#a1a1a1',
+    print: { fill: [245, 245, 245], ink: [105, 105, 105], ring: [229, 229, 229], dot: [212, 212, 212] },
   },
   canceled: {
     label: 'Canceled',
@@ -79,4 +79,4 @@ export const orderStatusColor = (status) => orderStatusMeta(status).calendar
 
 // A shoot with no job attached has no status to colour it by (only legacy
 // order-less bookings). Neutral rather than borrowed from a status it isn't in.
-export const NO_STATUS_COLOR = '#94a3b8'
+export const NO_STATUS_COLOR = '#a1a1a1'

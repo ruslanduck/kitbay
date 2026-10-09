@@ -5,7 +5,7 @@ import { BRAND_NAME } from '../lib/brand'
 // PDF builders can print it too) and is re-exported here, so UI code can grab
 // the mark and the name from one import.
 //
-// The mark is a PLACEHOLDER: a violet rounded square with an icon, standing in
+// The mark is a PLACEHOLDER: a brand-blue rounded square with an icon, standing in
 // until the real Kitbay logo arrives. Swapping it is a one-file change — replace
 // the icon below with an <img src="/logo.svg" /> or an inline SVG and every
 // screen that shows the brand (sidebar, mobile top bar, login) follows.

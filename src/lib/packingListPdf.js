@@ -31,19 +31,19 @@ import { assigneeLabel } from './peopleOptions.js'
 const PAGE = { w: 595.28, h: 841.89 } // A4 portrait, points
 const M = 48
 const INK = {
-  text: [15, 23, 42],
-  muted: [100, 116, 139],
-  rule: [203, 213, 225],
-  box: [148, 163, 184],
-  accent: [124, 58, 237],
+  text: [23, 23, 23],
+  muted: [105, 105, 105],
+  rule: [212, 212, 212],
+  box: [161, 161, 161],
+  accent: [0, 91, 165],
   // The rental-house highlight: Tailwind amber-100 / amber-800 — the same pair
   // the digital list paints, so the yellow on paper is the yellow on screen.
   rentalFill: [254, 243, 199],
   rentalInk: [146, 64, 14],
   rentalRing: [252, 211, 77],
-  // A recorded check: violet-50 for out, emerald-50 for in, as on screen.
-  outFill: [245, 243, 255],
-  outInk: [76, 29, 149],
+  // A recorded check: primary-50 for out, emerald-50 for in, as on screen.
+  outFill: [239, 246, 255],
+  outInk: [0, 49, 94],
   inFill: [236, 253, 245],
   inInk: [6, 78, 59],
 }

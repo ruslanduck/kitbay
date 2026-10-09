@@ -60,7 +60,7 @@ export default function CallSheetList({
                       <button
                         type="button"
                         onClick={open}
-                        className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
+                        className="text-primary-600 underline decoration-primary-300 underline-offset-2 hover:text-primary-800"
                       >
                         {p.name}
                       </button>

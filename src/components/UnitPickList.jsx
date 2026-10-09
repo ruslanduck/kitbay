@@ -69,7 +69,7 @@ export default function UnitPickList({
         <div className="relative px-3 pb-1.5 pt-1">
           <ScanLine
             size={14}
-            className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-violet-500"
+            className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-primary-500"
           />
           <input
             autoFocus
@@ -88,7 +88,7 @@ export default function UnitPickList({
               }
             }}
             placeholder="Scan, paste or type a barcode…"
-            className="w-full rounded-md border border-slate-300 py-1.5 pl-7 pr-2 text-xs outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+            className="w-full rounded-md border border-slate-300 py-1.5 pl-7 pr-2 text-xs outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
           />
         </div>
       )}
@@ -105,7 +105,7 @@ export default function UnitPickList({
               <button
                 type="button"
                 onClick={() => onPick(u)}
-                className="flex w-full items-center gap-3 px-3 py-1.5 text-left transition hover:bg-violet-50"
+                className="flex w-full items-center gap-3 px-3 py-1.5 text-left transition hover:bg-primary-50"
               >
                 <span className="w-16 shrink-0 font-mono text-xs font-medium text-slate-700">
                   #{u.barcode}

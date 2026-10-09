@@ -116,7 +116,7 @@ function PeekHeader({ stack, onBack, onClose }) {
             type="button"
             onClick={onBack}
             title="Back one card"
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-violet-600 transition hover:bg-violet-50"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-primary-600 transition hover:bg-primary-50"
           >
             <ArrowLeft size={15} />
             Back
@@ -162,7 +162,7 @@ function LinkRow({ icon: Icon = Package, title, sub, note, right, onClick, tint 
       onClick={onClick}
       className={[
         'flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition',
-        tint || 'border-slate-200 hover:border-violet-300 hover:bg-violet-50/40',
+        tint || 'border-slate-200 hover:border-primary-300 hover:bg-primary-50/40',
       ].join(' ')}
     >
       <Icon size={14} className="shrink-0 text-slate-400" />
@@ -249,7 +249,7 @@ function PeekTitle({ icon: Icon, title, badges, onOpenFull, openLabel = 'Open fu
     <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          {Icon && <Icon size={17} className="shrink-0 text-violet-500" />}
+          {Icon && <Icon size={17} className="shrink-0 text-primary-500" />}
           <h3 className="truncate text-base font-semibold text-slate-900">{title}</h3>
         </div>
         {badges && <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">{badges}</div>}
@@ -259,7 +259,7 @@ function PeekTitle({ icon: Icon, title, badges, onOpenFull, openLabel = 'Open fu
           type="button"
           onClick={onOpenFull}
           title="Leave the cards and open this on its own screen"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-600"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-primary-300 hover:text-primary-600"
         >
           <ExternalLink size={13} />
           {openLabel}
@@ -344,7 +344,7 @@ function OrderPeek({ id }) {
                       <button
                         type="button"
                         onClick={personLink(a.name)}
-                        className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
+                        className="text-primary-600 underline decoration-primary-300 underline-offset-2 hover:text-primary-800"
                       >
                         {a.name}
                       </button>
@@ -364,7 +364,7 @@ function OrderPeek({ id }) {
               <button
                 type="button"
                 onClick={() => peek({ type: 'company', id: company })}
-                className="text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
+                className="text-primary-600 underline decoration-primary-300 underline-offset-2 hover:text-primary-800"
               >
                 {order.companyName}
               </button>
@@ -511,7 +511,7 @@ function ItemPeek({ id, unitId }) {
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
               {categoryLabel(item, taxonomy)}
             </span>
-            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+            <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
               {kindLabel(item.kind)}
             </span>
             {isBarcoded ? (
@@ -571,13 +571,13 @@ function ItemPeek({ id, unitId }) {
                       {u.status === 'available' ? 'Available' : u.location}
                       {/* The packing list's word: out of the building now. */}
                       {isOutNow(unitState(lifecycle, item.id, u.barcode)) && (
-                        <span className="ml-1.5 font-medium text-violet-600">· Out</span>
+                        <span className="ml-1.5 font-medium text-primary-600">· Out</span>
                       )}
                     </span>
                   }
                   tint={
                     highlight
-                      ? 'border-violet-300 bg-violet-50/60 hover:bg-violet-50'
+                      ? 'border-primary-300 bg-primary-50/60 hover:bg-primary-50'
                       : undefined
                   }
                   onClick={() =>
@@ -661,7 +661,7 @@ function PersonPeek({ id }) {
         badges={
           <>
             {person.category && (
-              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+              <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
                 {person.category}
               </span>
             )}
@@ -669,7 +669,7 @@ function PersonPeek({ id }) {
               <button
                 type="button"
                 onClick={() => peek({ type: 'company', id: person.companyId })}
-                className="inline-flex items-center gap-1 text-xs font-medium text-violet-600 underline decoration-violet-300 underline-offset-2 hover:text-violet-800"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 underline decoration-primary-300 underline-offset-2 hover:text-primary-800"
               >
                 <Building2 size={12} />
                 {person.companyName}
@@ -693,7 +693,7 @@ function PersonPeek({ id }) {
           <div className="space-y-1.5">
             {person.email && (
               <Field icon={Mail} label="Email">
-                <a href={`mailto:${person.email}`} className="text-violet-600 hover:underline">
+                <a href={`mailto:${person.email}`} className="text-primary-600 hover:underline">
                   {person.email}
                 </a>
               </Field>
@@ -770,7 +770,7 @@ function CompanyPeek({ id }) {
         badges={
           <>
             {company.companyType && (
-              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+              <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
                 {company.companyType}
               </span>
             )}
@@ -793,7 +793,7 @@ function CompanyPeek({ id }) {
                   href={/^https?:\/\//i.test(company.website) ? company.website : `https://${company.website}`}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-violet-600 hover:underline"
+                  className="text-primary-600 hover:underline"
                 >
                   {company.website.replace(/^https?:\/\//i, '')}
                 </a>
@@ -801,7 +801,7 @@ function CompanyPeek({ id }) {
             )}
             {company.email && (
               <Field icon={Mail} label="Email">
-                <a href={`mailto:${company.email}`} className="text-violet-600 hover:underline">
+                <a href={`mailto:${company.email}`} className="text-primary-600 hover:underline">
                   {company.email}
                 </a>
               </Field>

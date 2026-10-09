@@ -94,11 +94,11 @@ export default function TopBar() {
                 item.disabled
                   ? 'cursor-not-allowed text-slate-300'
                   : active
-                    ? 'bg-violet-50 text-violet-700'
+                    ? 'bg-primary-50 text-primary-700'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
               ].join(' ')}
             >
-              <Icon size={16} className={active ? 'text-violet-600' : ''} />
+              <Icon size={16} className={active ? 'text-primary-600' : ''} />
               {item.label}
               {item.disabled && (
                 <span className="rounded bg-slate-100 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
@@ -125,7 +125,7 @@ export default function TopBar() {
                 menuOpen ? 'bg-slate-100' : 'hover:bg-slate-100',
               ].join(' ')}
             >
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700">
                 {initials(profile.full_name)}
               </span>
               <span className="hidden text-left leading-tight sm:block">
@@ -151,7 +151,7 @@ export default function TopBar() {
                 >
                   <RefreshCw
                     size={15}
-                    className={refreshing ? 'animate-spin text-violet-500' : 'text-slate-400'}
+                    className={refreshing ? 'animate-spin text-primary-500' : 'text-slate-400'}
                   />
                   Refresh data
                 </button>

@@ -463,11 +463,11 @@ export default function KitStagingModal({
     <Modal open={open} onClose={onCancel} size="lg" title="Stage kit">
       <div className="min-h-0 flex-1 overflow-auto px-5 py-4">
         {kit && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-violet-50 px-4 py-3">
-            <Layers size={16} className="shrink-0 text-violet-600" />
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-primary-50 px-4 py-3">
+            <Layers size={16} className="shrink-0 text-primary-600" />
             <div className="min-w-0">
-              <div className="truncate font-semibold text-violet-900">{kit.name}</div>
-              <div className="text-xs text-violet-700/80">
+              <div className="truncate font-semibold text-primary-900">{kit.name}</div>
+              <div className="text-xs text-primary-700/80">
                 Filling slots here doesn’t change the kit itself.
               </div>
             </div>
@@ -485,7 +485,7 @@ export default function KitStagingModal({
           <div className="relative">
             <ScanLine
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-500"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary-500"
             />
             <input
               autoFocus
@@ -517,12 +517,12 @@ export default function KitStagingModal({
                   ? `Scan into: ${fills.find((f) => f.key === activeKey)?.itemName ?? 'slot'}…`
                   : 'Scan, paste or type a barcode…'
               }
-              className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-24 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+              className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-24 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
             />
             <button
               type="submit"
               disabled={!scanValue.trim()}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md px-2.5 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50 disabled:opacity-40"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md px-2.5 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50 disabled:opacity-40"
             >
               Assign
             </button>
@@ -544,9 +544,9 @@ export default function KitStagingModal({
 
         {/* Unknown-barcode → register offer */}
         {pendingScan && (
-          <div className="mb-3 flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-xs ring-1 ring-violet-200">
-            <ScanLine size={14} className="shrink-0 text-violet-600" />
-            <span className="min-w-0 text-violet-900">
+          <div className="mb-3 flex items-center gap-2 rounded-lg bg-primary-50 px-3 py-2 text-xs ring-1 ring-primary-200">
+            <ScanLine size={14} className="shrink-0 text-primary-600" />
+            <span className="min-w-0 text-primary-900">
               No item has <span className="font-mono font-semibold">#{pendingScan.code}</span>.
               Register it onto an available {pendingScan.itemName}?
             </span>
@@ -627,7 +627,7 @@ export default function KitStagingModal({
                     : conflict
                       ? 'border-rose-300 bg-rose-50/40'
                       : 'border-amber-300 bg-amber-50/40',
-                  active ? 'ring-2 ring-violet-300' : '',
+                  active ? 'ring-2 ring-primary-300' : '',
                 ].join(' ')}
               >
                 <div
@@ -652,7 +652,7 @@ export default function KitStagingModal({
                           Added
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+                        <span className="inline-flex items-center gap-1 rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-700">
                           <ScanLine size={9} /> {f.overridden ? 'Fixed → sub' : 'Generic'}
                         </span>
                       )}
@@ -697,7 +697,7 @@ export default function KitStagingModal({
                           overrideFixed(f.key)
                         }}
                         title="Substitute another item for this pull only"
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
                       >
                         <RefreshCw size={13} />
                         Replace
@@ -740,7 +740,7 @@ export default function KitStagingModal({
                             setEditing(null)
                           }}
                           title="Replace this item"
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
                         >
                           <RefreshCw size={13} />
                           Replace
@@ -874,7 +874,7 @@ export default function KitStagingModal({
                           setEditing(null)
                         }
                       }}
-                      className="w-32 rounded-md border border-slate-300 px-2 py-1 font-mono outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                      className="w-32 rounded-md border border-slate-300 px-2 py-1 font-mono outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                     />
                     <button
                       type="button"
@@ -942,7 +942,7 @@ export default function KitStagingModal({
                 value={pickerSearch}
                 onChange={(e) => setPickerSearch(e.target.value)}
                 placeholder="Search inventory…"
-                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
               />
             </div>
             {pickerResults.length > 0 ? (
@@ -986,7 +986,7 @@ export default function KitStagingModal({
               setPicker({})
               setPickerSearch('')
             }}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-primary-300 hover:text-primary-600"
           >
             <Plus size={15} />
             Add item

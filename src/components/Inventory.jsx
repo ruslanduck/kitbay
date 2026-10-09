@@ -125,7 +125,7 @@ function VendorPicker({ unit, vendors, disabled, onChange }) {
       ariaLabel="Which company we rent this item from"
       options={[{ value: '', label: 'no vendor' }, ...vendors.map((c) => ({ value: c.id, label: c.name }))]}
       className={[
-        'w-[11rem] rounded-md border px-1.5 py-1 text-xs outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100',
+        'w-[11rem] rounded-md border px-1.5 py-1 text-xs outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100',
         current ? 'border-slate-300 text-slate-700' : 'border-amber-300 text-amber-700',
       ].join(' ')}
     />
@@ -138,7 +138,7 @@ function OwnershipBadge({ ownership, onToggle, disabled }) {
     'inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1'
   const tone = owned
     ? 'bg-slate-100 text-slate-600 ring-slate-200'
-    : 'bg-indigo-50 text-indigo-700 ring-indigo-200'
+    : 'bg-amber-50 text-amber-800 ring-amber-200'
   const label = owned ? 'Owned' : 'Sub-rental'
 
   if (disabled) {
@@ -153,7 +153,7 @@ function OwnershipBadge({ ownership, onToggle, disabled }) {
         base,
         tone,
         'transition hover:ring-2',
-        owned ? 'hover:ring-slate-300' : 'hover:ring-indigo-300',
+        owned ? 'hover:ring-slate-300' : 'hover:ring-amber-300',
       ].join(' ')}
     >
       {label}
@@ -174,7 +174,7 @@ function ItemRow({ item, active, onSelect, spans, outCount = 0 }) {
       onClick={onSelect}
       className={[
         'flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition',
-        active ? 'bg-violet-50 ring-1 ring-violet-200' : 'hover:bg-slate-50',
+        active ? 'bg-primary-50 ring-1 ring-primary-200' : 'hover:bg-slate-50',
       ].join(' ')}
     >
       <span
@@ -189,7 +189,7 @@ function ItemRow({ item, active, onSelect, spans, outCount = 0 }) {
         <span
           className={[
             'block truncate text-sm font-medium',
-            active ? 'text-violet-900' : 'text-slate-800',
+            active ? 'text-primary-900' : 'text-slate-800',
           ].join(' ')}
         >
           <MatchText text={item.name} spans={spans} />
@@ -198,7 +198,7 @@ function ItemRow({ item, active, onSelect, spans, outCount = 0 }) {
           {/* Pieces checked out on a job and not back yet — the register's
               view of the packing list, visible before any filter. */}
           {outCount > 0 && (
-            <span className="font-medium text-violet-600">
+            <span className="font-medium text-primary-600">
               {outCount} out{subtitle ? ' · ' : ''}
             </span>
           )}
@@ -766,7 +766,7 @@ export default function Inventory() {
                       FILTER_FIELD,
                       'text-left transition',
                       outNow
-                        ? 'border-violet-400 bg-violet-50 font-medium text-violet-700'
+                        ? 'border-primary-400 bg-primary-50 font-medium text-primary-700'
                         : 'text-slate-600 hover:bg-slate-50',
                     ].join(' ')}
                   >
@@ -808,7 +808,7 @@ export default function Inventory() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-violet-600 transition hover:bg-violet-50"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 transition hover:bg-primary-50"
                   >
                     <X size={14} />
                     Clear filters
@@ -831,7 +831,7 @@ export default function Inventory() {
                           <button
                             type="button"
                             onClick={() => setPicked(new Set(filtered.map((i) => i.id)))}
-                            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-violet-600 transition hover:bg-surface"
+                            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-primary-600 transition hover:bg-surface"
                           >
                             All {filtered.length}
                           </button>
@@ -886,7 +886,7 @@ export default function Inventory() {
                       <button
                         type="button"
                         onClick={() => setSelecting(true)}
-                        className="text-[11px] font-medium text-violet-600 transition hover:underline"
+                        className="text-[11px] font-medium text-primary-600 transition hover:underline"
                       >
                         Select inventory to file under a subcategory…
                       </button>
@@ -923,7 +923,7 @@ export default function Inventory() {
                                     })
                                   }}
                                   aria-label={`Select ${item.name}`}
-                                  className="ml-1 h-4 w-4 shrink-0 accent-violet-600"
+                                  className="ml-1 h-4 w-4 shrink-0 accent-primary-600"
                                 />
                               )}
                               <div className="min-w-0 flex-1">
@@ -963,7 +963,7 @@ export default function Inventory() {
                 <button
                   type="button"
                   onClick={() => setShowDetailMobile(false)}
-                  className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-violet-600 lg:hidden"
+                  className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-primary-600 lg:hidden"
                 >
                   <ChevronLeft size={16} />
                   Back to lists
@@ -1010,7 +1010,7 @@ export default function Inventory() {
                 <button
                   type="button"
                   onClick={() => setShowDetailMobile(false)}
-                  className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-violet-600 lg:hidden"
+                  className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-primary-600 lg:hidden"
                 >
                   <ChevronLeft size={16} />
                   Back to kits
@@ -1043,7 +1043,7 @@ export default function Inventory() {
               <button
                 type="button"
                 onClick={() => setShowDetailMobile(false)}
-                className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-violet-600 lg:hidden"
+                className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-primary-600 lg:hidden"
               >
                 <ChevronLeft size={16} />
                 Back to inventory
@@ -1232,7 +1232,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <Boxes size={18} className="shrink-0 text-violet-500" />
+            <Boxes size={18} className="shrink-0 text-primary-500" />
             <h3 className="truncate text-lg font-semibold text-slate-900">
               {item.name}
             </h3>
@@ -1241,7 +1241,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
               {categoryLabel(item, taxonomy)}
             </span>
-            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+            <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
               {kindLabel(item.kind)}
             </span>
             {isBarcoded ? (
@@ -1252,7 +1252,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                 <span className="text-emerald-600">{available} available</span>
                 <span className="text-orange-600">{reserved} reserved</span>
                 {outNowCount > 0 && (
-                  <span className="font-medium text-violet-600">{outNowCount} out now</span>
+                  <span className="font-medium text-primary-600">{outNowCount} out now</span>
                 )}
                 {inRepair > 0 && (
                   <span className="text-amber-600">{inRepair} in repair</span>
@@ -1376,7 +1376,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                         title={ev.jobName ? `${out ? 'Checked out on' : 'Checked in on'} ${ev.jobName}` : undefined}
                         className={[
                           'mt-1 whitespace-nowrap text-[11px] font-medium',
-                          out ? 'text-violet-600' : 'text-emerald-600',
+                          out ? 'text-primary-600' : 'text-emerald-600',
                         ].join(' ')}
                       >
                         {out ? 'Out since ' : 'Back '}
@@ -1434,7 +1434,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                     type="button"
                     onClick={() => onShowHistory(unit)}
                     title="Every shoot this item went out on"
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
                   >
                     <History size={14} />
                     Shoots
@@ -1491,7 +1491,7 @@ function UnitDetail({ item, query, lifecycle, canEdit, onEdit, canToggleOwnershi
                           type="button"
                           onClick={() => onEditUnit(unit)}
                           title="Correct this item's barcode / serial"
-                          className="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-violet-600"
+                          className="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-primary-600"
                         >
                           <Pencil size={13} />
                         </button>
@@ -1630,7 +1630,7 @@ function NonBarcodedBody({ item, onShowWorkHistory }) {
         <button
           type="button"
           onClick={onShowWorkHistory}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
         >
           <Activity size={14} />
           Full history
@@ -1698,7 +1698,7 @@ function KitList({ kits, selectedId, query, spans, onSelect }) {
               onClick={() => onSelect(kit.id)}
               className={[
                 'flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition',
-                active ? 'bg-violet-50 ring-1 ring-violet-200' : 'hover:bg-slate-50',
+                active ? 'bg-primary-50 ring-1 ring-primary-200' : 'hover:bg-slate-50',
               ].join(' ')}
             >
               <span
@@ -1713,7 +1713,7 @@ function KitList({ kits, selectedId, query, spans, onSelect }) {
                 <span
                   className={[
                     'block truncate text-sm font-medium',
-                    active ? 'text-violet-900' : 'text-slate-800',
+                    active ? 'text-primary-900' : 'text-slate-800',
                   ].join(' ')}
                 >
                   <MatchText text={kit.name} spans={spans?.get(kit.id)} />
@@ -1737,11 +1737,11 @@ function KitDetail({ kit, inventory, canManage, onEdit, onSelectItem }) {
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <Layers size={18} className="shrink-0 text-violet-500" />
+            <Layers size={18} className="shrink-0 text-primary-500" />
             <h3 className="truncate text-lg font-semibold text-slate-900">{kit.name}</h3>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+            <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
               Kit
             </span>
             <span>
@@ -1753,7 +1753,7 @@ function KitDetail({ kit, inventory, canManage, onEdit, onSelectItem }) {
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-600"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-primary-300 hover:text-primary-600"
           >
             <Pencil size={14} />
             Edit
@@ -1795,7 +1795,7 @@ function KitDetail({ kit, inventory, canManage, onEdit, onSelectItem }) {
                         <Lock size={9} /> Fixed
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+                      <span className="inline-flex items-center gap-1 rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-700">
                         <ScanLine size={9} /> Generic
                       </span>
                     )}
@@ -1809,7 +1809,7 @@ function KitDetail({ kit, inventory, canManage, onEdit, onSelectItem }) {
                     type="button"
                     onClick={() => item && onSelectItem(item.id)}
                     disabled={!item}
-                    className="mt-0.5 block max-w-full truncate text-left text-sm font-medium text-slate-800 transition hover:text-violet-700 disabled:cursor-default disabled:hover:text-slate-800"
+                    className="mt-0.5 block max-w-full truncate text-left text-sm font-medium text-slate-800 transition hover:text-primary-700 disabled:cursor-default disabled:hover:text-slate-800"
                   >
                     {slot.itemName || 'Unknown inventory'}
                   </button>
@@ -1869,7 +1869,7 @@ function ScenarioListPane({ lists, selectedId, query, spans, onSelect }) {
               onClick={() => onSelect(list.id)}
               className={[
                 'flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition',
-                active ? 'bg-violet-50 ring-1 ring-violet-200' : 'hover:bg-slate-50',
+                active ? 'bg-primary-50 ring-1 ring-primary-200' : 'hover:bg-slate-50',
               ].join(' ')}
             >
               <span
@@ -1884,7 +1884,7 @@ function ScenarioListPane({ lists, selectedId, query, spans, onSelect }) {
                 <span
                   className={[
                     'block truncate text-sm font-medium',
-                    active ? 'text-violet-900' : 'text-slate-800',
+                    active ? 'text-primary-900' : 'text-slate-800',
                   ].join(' ')}
                 >
                   <MatchText text={list.name} spans={spans?.get(list.id)} />
@@ -1909,11 +1909,11 @@ function ScenarioDetail({ list, inventory, kits, canManage, onEdit, onSelectItem
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <ClipboardList size={18} className="shrink-0 text-violet-500" />
+            <ClipboardList size={18} className="shrink-0 text-primary-500" />
             <h3 className="truncate text-lg font-semibold text-slate-900">{list.name}</h3>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+            <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
               Scenario list
             </span>
             <span>
@@ -1927,7 +1927,7 @@ function ScenarioDetail({ list, inventory, kits, canManage, onEdit, onSelectItem
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-600"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-primary-300 hover:text-primary-600"
           >
             <Pencil size={14} />
             Edit
@@ -1969,7 +1969,7 @@ function ScenarioDetail({ list, inventory, kits, canManage, onEdit, onSelectItem
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     {isKit ? (
-                      <span className="inline-flex items-center gap-1 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+                      <span className="inline-flex items-center gap-1 rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-700">
                         <Layers size={9} /> Kit
                       </span>
                     ) : (
@@ -1987,7 +1987,7 @@ function ScenarioDetail({ list, inventory, kits, canManage, onEdit, onSelectItem
                     type="button"
                     onClick={() => (isKit ? kit && onSelectKit(kit.id) : item && onSelectItem(item.id))}
                     disabled={isKit ? !kit : !item}
-                    className="mt-0.5 block max-w-full truncate text-left text-sm font-medium text-slate-800 transition hover:text-violet-700 disabled:cursor-default disabled:hover:text-slate-800"
+                    className="mt-0.5 block max-w-full truncate text-left text-sm font-medium text-slate-800 transition hover:text-primary-700 disabled:cursor-default disabled:hover:text-slate-800"
                   >
                     {isKit
                       ? kit?.name || entry.kitName || 'Unknown kit'

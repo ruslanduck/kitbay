@@ -54,7 +54,7 @@ import { useTreeDrag } from '../lib/useTreeDrag'
 // and every move can be put back with Undo.
 
 const FIELD =
-  'w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+  'w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 // A click inside a control is the control's, not the row's.
@@ -249,12 +249,12 @@ export default function TaxonomyModal({ open, onClose }) {
   }
   const carried = drag?.payload?.kind === 'item' ? new Set(drag.payload.ids) : null
   const carriedSub = drag?.payload?.kind === 'sub' ? drag.payload.id : null
-  // The place under the pointer lights up: violet where it would land, rose
+  // The place under the pointer lights up: primary blue where it would land, rose
   // where it is refused. Where it already is, nothing lights — nothing happens.
   const over = (kind, id = null) => {
     const t = drag?.target
     if (!t || t.kind !== kind || (t.id ?? null) !== id) return ''
-    if (drag.verdict?.ok) return 'bg-violet-50 ring-2 ring-violet-300'
+    if (drag.verdict?.ok) return 'bg-primary-50 ring-2 ring-primary-300'
     if (drag.verdict?.reason) return 'bg-rose-50 ring-2 ring-rose-300'
     return ''
   }
@@ -327,7 +327,7 @@ export default function TaxonomyModal({ open, onClose }) {
               onClick={() =>
                 setCollapsed(allCollapsed ? new Set() : new Set(tree.map((c) => c.id)))
               }
-              className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-violet-600 transition hover:bg-violet-50"
+              className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-primary-600 transition hover:bg-primary-50"
             >
               {allCollapsed ? 'Expand all' : 'Collapse all'}
             </button>
@@ -441,7 +441,7 @@ export default function TaxonomyModal({ open, onClose }) {
                       >
                         <ChevronRight size={14} className={catOpen ? 'rotate-90 transition' : 'transition'} />
                       </button>
-                      <FolderIcon size={15} className="shrink-0 text-violet-500" />
+                      <FolderIcon size={15} className="shrink-0 text-primary-500" />
                       <span className="text-sm font-semibold text-slate-800">{cat.name}</span>
                       <span className="text-[11px] text-slate-400">
                         {plural(cat.subs.length, 'subcategory', 'subcategories')} ·{' '}
@@ -457,7 +457,7 @@ export default function TaxonomyModal({ open, onClose }) {
                               setAddName('')
                               if (!catOpen) toggleIn(setCollapsed, cat.id)
                             }}
-                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-violet-600 transition hover:bg-violet-50"
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-primary-600 transition hover:bg-primary-50"
                           >
                             <Plus size={12} />
                             Subcategory
@@ -712,7 +712,7 @@ export default function TaxonomyModal({ open, onClose }) {
             <button
               type="button"
               onClick={undo}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 font-medium text-violet-600 transition hover:bg-violet-50"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 font-medium text-primary-600 transition hover:bg-primary-50"
             >
               <Undo2 size={12} />
               Undo
@@ -739,14 +739,14 @@ export default function TaxonomyModal({ open, onClose }) {
             <div className="max-w-[16rem] rounded-lg border border-slate-200 bg-surface px-2.5 py-1.5 shadow-xl">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
                 {drag.payload.kind === 'sub' ? (
-                  <Folder size={12} className="shrink-0 text-violet-500" />
+                  <Folder size={12} className="shrink-0 text-primary-500" />
                 ) : (
                   <Package size={12} className="shrink-0 text-slate-400" />
                 )}
                 <span className="truncate">{dragLabel(drag.payload, inventory, taxonomy)}</span>
               </div>
               {drag.verdict?.ok && (
-                <div className="mt-0.5 truncate text-[11px] font-medium text-violet-700">
+                <div className="mt-0.5 truncate text-[11px] font-medium text-primary-700">
                   → {drag.verdict.move.to}
                 </div>
               )}
@@ -771,7 +771,7 @@ function ItemRow({ item, mayEdit, selected, dimmed, onToggle, onRowDown, onHandl
       }}
       className={[
         'flex items-center gap-1.5 rounded-md px-1 py-0.5 transition',
-        selected ? 'bg-violet-50' : 'hover:bg-slate-50',
+        selected ? 'bg-primary-50' : 'hover:bg-slate-50',
         dimmed ? 'opacity-40' : '',
         mayEdit ? 'cursor-pointer' : '',
       ].join(' ')}
@@ -783,7 +783,7 @@ function ItemRow({ item, mayEdit, selected, dimmed, onToggle, onRowDown, onHandl
           checked={selected}
           onChange={onToggle}
           aria-label={`Select ${item.name}`}
-          className="h-3.5 w-3.5 shrink-0 accent-violet-600"
+          className="h-3.5 w-3.5 shrink-0 accent-primary-600"
         />
       )}
       <Package size={12} className="shrink-0 text-slate-300" />

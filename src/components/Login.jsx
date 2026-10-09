@@ -29,7 +29,7 @@ export default function Login() {
   }
 
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-slate-50 px-4">

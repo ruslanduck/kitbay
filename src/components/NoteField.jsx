@@ -226,7 +226,7 @@ export default function NoteField({
           // sits on whatever card it is in; hover and focus do the rest, in CSS
           // rather than through a React flag (`bg-surface` and a base
           // `bg-transparent` would both apply, and stylesheet order would pick).
-          className="w-full resize-none overflow-hidden rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:bg-slate-100 focus:border-violet-400 focus:bg-surface focus:ring-2 focus:ring-violet-100"
+          className="w-full resize-none overflow-hidden rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:bg-slate-100 focus:border-primary-400 focus:bg-surface focus:ring-2 focus:ring-primary-100"
         />
         {dirty && (
           <button

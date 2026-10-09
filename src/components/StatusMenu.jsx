@@ -88,12 +88,12 @@ export default function StatusMenu({ at, status, onPick, onClose, title = 'Job s
             }}
             className={[
               'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition',
-              active ? 'bg-violet-50 font-medium text-violet-800' : 'text-slate-700 hover:bg-slate-50',
+              active ? 'bg-primary-50 font-medium text-primary-800' : 'text-slate-700 hover:bg-slate-50',
             ].join(' ')}
           >
             <span className={['h-2 w-2 shrink-0 rounded-full', meta.dot].join(' ')} />
             <span className="min-w-0 flex-1 truncate">{meta.label}</span>
-            {active && <Check size={14} className="shrink-0 text-violet-500" />}
+            {active && <Check size={14} className="shrink-0 text-primary-500" />}
           </button>
         )
       })}

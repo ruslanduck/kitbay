@@ -70,7 +70,7 @@ export default function App() {
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-violet-600 transition hover:bg-violet-50"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-primary-600 transition hover:bg-primary-50"
             >
               <ArrowLeft size={16} />
               Back to {back.label}

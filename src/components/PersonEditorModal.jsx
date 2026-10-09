@@ -129,7 +129,7 @@ export default function PersonEditorModal({
 
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
   return (
     <Modal open={open} onClose={onClose} size="lg" title={isEdit ? 'Edit person' : 'New person'}>
@@ -183,7 +183,7 @@ export default function PersonEditorModal({
           <div>
             <label className={label}>Company</label>
             {newCompany ? (
-              <div className="space-y-2 rounded-lg border border-violet-200 bg-violet-50/50 p-3">
+              <div className="space-y-2 rounded-lg border border-primary-200 bg-primary-50/50 p-3">
                 <div className="flex items-center gap-2">
                   <input
                     autoFocus
@@ -209,7 +209,7 @@ export default function PersonEditorModal({
                   options={companyTypes.map((t) => ({ value: t.name, label: t.name }))}
                   className={field}
                 />
-                <p className="text-[11px] text-violet-700/80">
+                <p className="text-[11px] text-primary-700/80">
                   Created and linked when you save.
                 </p>
               </div>
@@ -230,7 +230,7 @@ export default function PersonEditorModal({
                 <button
                   type="button"
                   onClick={() => setNewCompany({ name: '', companyType: '' })}
-                  className="shrink-0 whitespace-nowrap rounded-lg border border-dashed border-slate-300 px-2.5 py-2 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
+                  className="shrink-0 whitespace-nowrap rounded-lg border border-dashed border-slate-300 px-2.5 py-2 text-xs font-medium text-slate-500 transition hover:border-primary-300 hover:text-primary-600"
                 >
                   + New
                 </button>
@@ -313,7 +313,7 @@ export default function PersonEditorModal({
                     type="button"
                     disabled={uploading}
                     onClick={() => fileRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:border-primary-300 hover:text-primary-600 disabled:opacity-50"
                   >
                     {uploading ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
                     {uploading ? 'Uploading…' : 'Attach CV'}

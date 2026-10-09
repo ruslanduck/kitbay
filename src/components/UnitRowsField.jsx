@@ -13,7 +13,7 @@ import { MAX_UNIT_ROWS, barcodePreviews } from '../lib/unitRows'
 // drops one of them. That is the trap this codebase has now hit seven times.
 
 const FIELD =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 const LABEL = 'mb-1.5 block text-sm font-medium text-slate-700'
 const GRID = 'grid grid-cols-[1.5rem_1fr_1fr_1.5rem] items-center gap-2'
 
@@ -108,7 +108,7 @@ export default function UnitRowsField({
           <button
             type="button"
             onClick={() => onChange((cur) => [...cur, blankUnitRow()])}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-50"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary-700 transition hover:bg-primary-50"
           >
             <Plus size={13} />
             Add another item

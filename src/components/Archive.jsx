@@ -64,7 +64,7 @@ function Row({ icon: Icon, title, meta, at, by, canRestore, onRestore, onOpen, b
           type="button"
           onClick={onOpen}
           title="Open the card"
-          className="shrink-0 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-violet-700"
+          className="shrink-0 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-primary-700"
         >
           <ExternalLink size={14} />
         </button>

@@ -89,7 +89,7 @@ export default function ActivityList({ events, loading, limit = 6, dense = false
           >
             <span
               title={ev.actorName || 'Not recorded'}
-              className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-violet-100 text-[10px] font-semibold text-violet-700"
+              className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary-100 text-[10px] font-semibold text-primary-700"
             >
               {initialsOf(ev.actorName)}
             </span>
@@ -113,7 +113,7 @@ export default function ActivityList({ events, loading, limit = 6, dense = false
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
         >
           <History size={13} />
           {expanded ? 'Show less' : `Show all ${rows.length}`}

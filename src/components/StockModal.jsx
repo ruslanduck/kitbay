@@ -39,7 +39,7 @@ export default function StockModal({ open, item, onClose, onSubmit }) {
 
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
   return (
     <Modal open={open} onClose={onClose} size="md" title="Stock">

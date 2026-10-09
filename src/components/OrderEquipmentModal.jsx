@@ -753,13 +753,13 @@ export default function OrderEquipmentModal({
                   value: l.id,
                   label: `${l.name} (${l.entries.length} lines)`,
                 }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
               />
               {applied && (
-                <div className="mt-2 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-900 ring-1 ring-violet-200">
+                <div className="mt-2 rounded-lg bg-primary-50 px-3 py-2 text-xs text-primary-900 ring-1 ring-primary-200">
                   <strong>{applied.name}</strong> applied.
                   {(applied.warnings?.length > 0 || applied.notes?.length > 0) && (
-                    <ul className="mt-1 space-y-0.5 text-violet-700/90">
+                    <ul className="mt-1 space-y-0.5 text-primary-700/90">
                       {[...(applied.warnings ?? []), ...(applied.notes ?? [])].map((w, i) => (
                         <li key={i}>• {w}</li>
                       ))}
@@ -827,13 +827,13 @@ export default function OrderEquipmentModal({
 
           {/* Kit groups — composition editable after adding (5.3) */}
           {kitGroups.map((g) => (
-            <div key={g.kitId} className="rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+            <div key={g.kitId} className="rounded-xl border border-primary-200 bg-primary-50/40 p-3">
               <div className="mb-2 flex items-center gap-2">
-                <Layers size={15} className="shrink-0 text-violet-600" />
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-violet-900">
+                <Layers size={15} className="shrink-0 text-primary-600" />
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-primary-900">
                   {g.name}
                 </span>
-                <span className="shrink-0 text-xs text-violet-700/80">{g.units.length} pcs</span>
+                <span className="shrink-0 text-xs text-primary-700/80">{g.units.length} pcs</span>
                 <button
                   type="button"
                   onClick={() => removeKit(g.kitId)}
@@ -864,7 +864,7 @@ export default function OrderEquipmentModal({
                       type="button"
                       onClick={() => replaceStaged(u.unitId)}
                       title="Swap for another free item"
-                      className="shrink-0 rounded-md p-1 text-slate-400 transition hover:bg-violet-50 hover:text-violet-600"
+                      className="shrink-0 rounded-md p-1 text-slate-400 transition hover:bg-primary-50 hover:text-primary-600"
                     >
                       <RefreshCw size={13} />
                     </button>
@@ -963,7 +963,7 @@ export default function OrderEquipmentModal({
                           ]}
                           ariaLabel="Source"
                           className={[
-                            'whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium outline-none transition focus:ring-2 focus:ring-violet-100',
+                            'whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium outline-none transition focus:ring-2 focus:ring-primary-100',
                             isSub ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-300 text-slate-700',
                           ].join(' ')}
                         />
@@ -983,7 +983,7 @@ export default function OrderEquipmentModal({
                               { value: NEW_VENDOR, label: '+ New vendor…' },
                             ]}
                             className={[
-                              'w-40 rounded-md border px-2 py-1 text-xs outline-none transition focus:ring-2 focus:ring-violet-100',
+                              'w-40 rounded-md border px-2 py-1 text-xs outline-none transition focus:ring-2 focus:ring-primary-100',
                               l.vendorId ? 'border-slate-300 text-slate-700' : 'border-amber-400 text-amber-700',
                             ].join(' ')}
                           />
@@ -1010,9 +1010,9 @@ export default function OrderEquipmentModal({
                                 : "Rate per day for this line — leave empty to use the inventory rate"
                             }
                             className={[
-                              'w-16 rounded-md border px-1.5 py-1 text-right text-xs outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100',
+                              'w-16 rounded-md border px-1.5 py-1 text-right text-xs outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100',
                               l.rateOverridden
-                                ? 'border-violet-300 font-medium text-violet-700'
+                                ? 'border-primary-300 font-medium text-primary-700'
                                 : 'border-slate-300 text-slate-700 placeholder:text-slate-300',
                             ].join(' ')}
                           />
@@ -1042,7 +1042,7 @@ export default function OrderEquipmentModal({
                           onChange={(e) => updateLine(i, { notes: e.target.value })}
                           placeholder="Note for the packing list"
                           aria-label={`Packing note for ${item?.name ?? 'this line'}`}
-                          className="min-w-0 flex-1 rounded-md border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                          className="min-w-0 flex-1 rounded-md border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                         />
                       </div>
 
@@ -1057,14 +1057,14 @@ export default function OrderEquipmentModal({
                           {(l.units ?? []).map((u) => (
                             <span
                               key={u.unitId}
-                              className="inline-flex items-center gap-1 rounded bg-violet-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-violet-700 ring-1 ring-violet-200"
+                              className="inline-flex items-center gap-1 rounded bg-primary-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-primary-700 ring-1 ring-primary-200"
                             >
                               #{u.barcode ?? '—'}
                               <button
                                 type="button"
                                 onClick={() => unpinUnit(i, u.unitId)}
                                 title="Back to any free item"
-                                className="rounded text-violet-400 transition hover:text-rose-500"
+                                className="rounded text-primary-400 transition hover:text-rose-500"
                               >
                                 <X size={11} />
                               </button>
@@ -1081,7 +1081,7 @@ export default function OrderEquipmentModal({
                           <button
                             type="button"
                             onClick={() => setCopyPicker(copyPicker === i ? null : i)}
-                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-violet-600 transition hover:bg-violet-50"
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-primary-600 transition hover:bg-primary-50"
                           >
                             <ScanLine size={11} />
                             {copyPicker === i ? 'Close' : 'Choose / scan an item'}
@@ -1127,7 +1127,7 @@ export default function OrderEquipmentModal({
                   value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
                   placeholder="Search inventory…"
-                  className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                  className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                 />
               </div>
               {pickerResults.length > 0 ? (
@@ -1169,7 +1169,7 @@ export default function OrderEquipmentModal({
                 <button
                   type="button"
                   onClick={() => setNewItemOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
                 >
                   <Plus size={12} />
                   {pickerSearch.trim() ? `New inventory “${pickerSearch.trim()}”` : 'New inventory'}
@@ -1191,7 +1191,7 @@ export default function OrderEquipmentModal({
                   setPicker(true)
                   setPickerSearch('')
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-primary-300 hover:text-primary-600"
               >
                 <Plus size={15} />
                 Add inventory
@@ -1221,7 +1221,7 @@ export default function OrderEquipmentModal({
                     }
                   }}
                   placeholder="Scan a barcode…"
-                  className="w-44 rounded-lg border border-dashed border-slate-300 py-2 pl-8 pr-2 text-sm outline-none transition focus:border-violet-400 focus:border-solid focus:ring-2 focus:ring-violet-100"
+                  className="w-44 rounded-lg border border-dashed border-slate-300 py-2 pl-8 pr-2 text-sm outline-none transition focus:border-primary-400 focus:border-solid focus:ring-2 focus:ring-primary-100"
                 />
               </label>
               {kits.length > 0 && (
@@ -1233,7 +1233,7 @@ export default function OrderEquipmentModal({
                   }}
                   placeholder="Add a kit…"
                   options={liveKits.map((k) => ({ value: k.id, label: k.name }))}
-                  className="w-48 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 outline-none transition hover:border-violet-300 hover:text-violet-600"
+                  className="w-48 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 outline-none transition hover:border-primary-300 hover:text-primary-600"
                 />
               )}
             </div>

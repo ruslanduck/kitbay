@@ -56,9 +56,9 @@ export default function CrewField({
 
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
   const small =
-    'w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
   const wrapEarly = wrapBeforeFirstCrewCall(rows, wrapTime, callTime)
 
   return (
@@ -127,7 +127,7 @@ export default function CrewField({
                             'rounded-md border px-2 py-1 text-sm outline-none transition focus:ring-2',
                             badTime
                               ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
-                              : 'border-slate-300 focus:border-violet-400 focus:ring-violet-100',
+                              : 'border-slate-300 focus:border-primary-400 focus:ring-primary-100',
                           ].join(' ')}
                         />
                       </div>
@@ -208,7 +208,7 @@ export default function CrewField({
         <button
           type="button"
           onClick={add}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
         >
           <Plus size={13} />
           Add call time

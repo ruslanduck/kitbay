@@ -147,7 +147,7 @@ export default function KitEditorModal({
 
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
   return (
     <Modal open={open} onClose={onClose} size="lg" title={isEdit ? 'Edit kit' : 'New kit'}>
@@ -242,7 +242,7 @@ export default function KitEditorModal({
                         value={s.label}
                         onChange={(e) => setSlot(i, { label: e.target.value })}
                         placeholder="Slot label, e.g. Monitor"
-                        className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                        className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                       />
 
                       {/* Slot type — a dropdown per slot, like the item picker
@@ -262,7 +262,7 @@ export default function KitEditorModal({
                           { value: 'fixed', label: 'Fixed', icon: Lock },
                         ]}
                         ariaLabel="Slot type"
-                        className="whitespace-nowrap rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 outline-none transition focus:ring-2 focus:ring-violet-100"
+                        className="whitespace-nowrap rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 outline-none transition focus:ring-2 focus:ring-primary-100"
                       />
 
                       {isFixed ? (
@@ -275,7 +275,7 @@ export default function KitEditorModal({
                               value: u.id,
                               label: `#${u.barcode}${u.status !== 'available' ? ' (out)' : ''}`,
                             }))}
-                            className="w-40 rounded-md border border-slate-300 px-2 py-1 font-mono text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                            className="w-40 rounded-md border border-slate-300 px-2 py-1 font-mono text-xs outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                           />
                         ) : (
                           <span className="text-[11px] font-medium text-amber-600">
@@ -314,7 +314,7 @@ export default function KitEditorModal({
                     value={pickerSearch}
                     onChange={(e) => setPickerSearch(e.target.value)}
                     placeholder="Search barcoded inventory…"
-                    className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                    className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                   />
                 </div>
                 {pickerResults.length > 0 ? (
@@ -358,7 +358,7 @@ export default function KitEditorModal({
                   setPicker(true)
                   setPickerSearch('')
                 }}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-600"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-primary-300 hover:text-primary-600"
               >
                 <Plus size={15} />
                 Add slot

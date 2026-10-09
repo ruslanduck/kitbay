@@ -13,7 +13,7 @@ import { useStore } from '../store'
 const todayISO = () => format(new Date(), 'yyyy-MM-dd')
 
 const field =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 const label = 'mb-1.5 block text-sm font-medium text-slate-700'
 
 // Aggregate stat tile.
@@ -43,7 +43,7 @@ function UsageRow({ e }) {
   return (
     <li className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
       <div className="flex min-w-0 items-center gap-2">
-        <CalendarRange size={15} className="shrink-0 text-violet-500" />
+        <CalendarRange size={15} className="shrink-0 text-primary-500" />
         <span className="truncate text-sm font-medium text-slate-800">
           {e.jobTitle || 'Usage'}
         </span>
@@ -123,7 +123,7 @@ export default function WorkHistoryModal({ open, onClose, item, canLog, onLog })
             <button
               type="button"
               onClick={() => setShowLog(true)}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
             >
               <Plus size={14} />
               Log usage

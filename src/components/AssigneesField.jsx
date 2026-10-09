@@ -31,7 +31,7 @@ export default function AssigneesField({ value = [], onChange }) {
   const remove = (name) => onChange((cur) => cur.filter((a) => fold(a.name) !== fold(name)))
 
   const small =
-    'w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
   return (
     <div className="space-y-2">

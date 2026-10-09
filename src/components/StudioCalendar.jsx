@@ -70,13 +70,13 @@ function luminance(hex) {
 function readableText(hex) {
   const L = luminance(hex)
   const onWhite = 1.05 / (L + 0.05)
-  const onDark = (L + 0.05) / (0.0181 + 0.05) // ~ #0f172a
-  return onWhite >= onDark ? '#ffffff' : '#0f172a'
+  const onDark = (L + 0.05) / (0.008 + 0.05) // ~ #171717
+  return onWhite >= onDark ? '#ffffff' : '#171717'
 }
 
 // Solid, high-visibility booking chip derived from a hex color.
 function chipStyle(color) {
-  const c = color || '#64748b'
+  const c = color || '#737373'
   return { backgroundColor: c, color: readableText(c) }
 }
 
@@ -660,7 +660,7 @@ export default function StudioCalendar() {
 // the week grid open the day they name instead, which is the other half of it.
 // Which jobs the grid shows — a DROPDOWN, the app's own (SelectField). It was a
 // second segmented control beside Day / Week / Month, and two identical rows of
-// violet buttons read as one control with two halves: which one is the view and
+// primary buttons read as one control with two halves: which one is the view and
 // which one is the filter? A filter now looks like a filter. While it narrows
 // the grid the trigger is tinted, so a filtered week is never mistaken for an
 // empty one.
@@ -678,7 +678,7 @@ function TypeFilter({ value, onChange }) {
       className={[
         'min-w-[8.5rem] whitespace-nowrap rounded-lg border px-3 py-2 text-sm font-medium transition',
         filtered
-          ? 'border-violet-300 bg-violet-50 text-violet-700'
+          ? 'border-primary-300 bg-primary-50 text-primary-700'
           : 'border-slate-300 bg-surface text-slate-700 hover:bg-slate-100',
       ].join(' ')}
     />
@@ -725,7 +725,7 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
       onClick={() => onOpen(b)}
       {...press}
       title="Open this job"
-      className="cursor-pointer rounded-xl border border-slate-200 bg-surface p-3 shadow-sm transition hover:border-violet-300 hover:shadow"
+      className="cursor-pointer rounded-xl border border-slate-200 bg-surface p-3 shadow-sm transition hover:border-primary-300 hover:shadow"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -739,7 +739,7 @@ function DaySetCard({ b, onOpen, onStatus, canManage }) {
             )}
             {/* The TYPE is what tells a style-out from a shoot at a glance. */}
             {b.jobType && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 font-medium text-violet-700">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 font-medium text-primary-700">
                 <Tag size={11} />
                 {b.jobType}
               </span>
@@ -916,7 +916,7 @@ function DayView({ iso, studios, byDay, hidden = null, onOpenCreate, onOpenEdit,
                     <button
                       type="button"
                       onClick={() => onOpenCreate(studioId, iso)}
-                      className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+                      className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
                     >
                       <Plus size={12} />
                       Book it
@@ -992,7 +992,7 @@ function WeekView({
             onClick={() => onOpenDay?.(day.iso)}
             title={`Everything on ${formatDate(day.iso)} — crew, call times and gear`}
             className={[
-              'sticky top-0 z-20 border-b border-r border-slate-200 px-2 py-2 text-center transition hover:bg-violet-50',
+              'sticky top-0 z-20 border-b border-r border-slate-200 px-2 py-2 text-center transition hover:bg-primary-50',
               day.today ? 'bg-amber-50' : day.weekend ? 'bg-rose-50' : 'bg-surface',
             ].join(' ')}
           >
@@ -1167,7 +1167,7 @@ function MonthCell({
       onClick={() => onJumpToWeek(day)}
       title="Jump to this week"
       className={[
-        'group flex min-h-0 cursor-pointer flex-col gap-1 border-b border-r border-slate-200 p-1.5 transition hover:bg-violet-50/40',
+        'group flex min-h-0 cursor-pointer flex-col gap-1 border-b border-r border-slate-200 p-1.5 transition hover:bg-primary-50/40',
         bg,
       ].join(' ')}
     >
@@ -1186,7 +1186,7 @@ function MonthCell({
             today
               ? 'bg-amber-500 text-white hover:bg-amber-600'
               : inMonth
-                ? 'text-slate-700 hover:bg-violet-100 hover:text-violet-700'
+                ? 'text-slate-700 hover:bg-primary-100 hover:text-primary-700'
                 : 'text-slate-300 hover:bg-slate-100',
           ].join(' ')}
         >

@@ -400,7 +400,7 @@ export default function Orders() {
                       setFrom(b)
                       setTo(a)
                     }}
-                    className="rounded px-1.5 py-0.5 font-semibold text-violet-700 underline transition hover:bg-violet-50"
+                    className="rounded px-1.5 py-0.5 font-semibold text-primary-700 underline transition hover:bg-primary-50"
                   >
                     Swap them
                   </button>
@@ -443,14 +443,14 @@ export default function Orders() {
                         }}
                         className={[
                           'w-full rounded-lg px-2.5 py-2.5 text-left transition',
-                          active ? 'bg-violet-50 ring-1 ring-violet-200' : 'hover:bg-slate-50',
+                          active ? 'bg-primary-50 ring-1 ring-primary-200' : 'hover:bg-slate-50',
                         ].join(' ')}
                       >
                         <div className="flex items-center gap-2">
                           <span
                             className={[
                               'min-w-0 flex-1 truncate text-sm font-medium',
-                              active ? 'text-violet-900' : 'text-slate-800',
+                              active ? 'text-primary-900' : 'text-slate-800',
                             ].join(' ')}
                           >
                             <Highlight text={o.jobName ?? o.setTitle ?? 'Untitled job'} query={query} />
@@ -480,7 +480,7 @@ export default function Orders() {
                           {/* Brand and shoot type: the two things the studio
                               filters by, so they belong on the row you scan. */}
                           {o.brand && (
-                            <span className="shrink-0 rounded bg-violet-50 px-1.5 text-[10px] font-medium text-violet-700">
+                            <span className="shrink-0 rounded bg-primary-50 px-1.5 text-[10px] font-medium text-primary-700">
                               <Highlight text={o.brand} query={query} />
                             </span>
                           )}
@@ -519,7 +519,7 @@ export default function Orders() {
               <button
                 type="button"
                 onClick={() => setShowDetailMobile(false)}
-                className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-violet-600 lg:hidden"
+                className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-primary-600 lg:hidden"
               >
                 <ChevronLeft size={16} />
                 Back to jobs
@@ -655,7 +655,7 @@ function PeekLink({ onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="text-left text-violet-600 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-800"
+      className="text-left text-primary-600 underline decoration-primary-300 underline-offset-2 transition hover:text-primary-800"
     >
       {children}
     </button>
@@ -744,7 +744,7 @@ function OrderDetail({
               <button
                 type="button"
                 onClick={onEditEquipment}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-600"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-primary-300 hover:text-primary-600"
               >
                 <Boxes size={14} />
                 Edit equipment
@@ -753,7 +753,7 @@ function OrderDetail({
             <button
               type="button"
               onClick={onEdit}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-600"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-primary-300 hover:text-primary-600"
             >
               <Pencil size={14} />
               Edit
@@ -888,7 +888,7 @@ function OrderDetail({
                       className={[
                         'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
                         g.type === 'kit'
-                          ? 'bg-violet-100 text-violet-700'
+                          ? 'bg-primary-100 text-primary-700'
                           : 'bg-slate-200 text-slate-600',
                       ].join(' ')}
                     >
@@ -917,7 +917,7 @@ function OrderDetail({
                               type="button"
                               onClick={() => peek({ type: 'item', id: l.itemId, unitId: l.unitId })}
                               title="Open this inventory — items, history, where they are"
-                              className="min-w-0 truncate text-left text-sm font-medium text-slate-800 hover:text-violet-700 hover:underline focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-400"
+                              className="min-w-0 truncate text-left text-sm font-medium text-slate-800 hover:text-primary-700 hover:underline focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-primary-400"
                             >
                               {l.itemName}
                             </button>
@@ -967,7 +967,7 @@ function OrderDetail({
                           {l.dayRate == null ? 'no rate' : `${money(l.dayRate)}/day`}
                           {l.rateOverridden && (
                             <span
-                              className="ml-1 text-violet-500"
+                              className="ml-1 text-primary-500"
                               title="Priced on this line, not from the inventory rate"
                             >
                               set here

@@ -56,7 +56,7 @@ const HEAD = 'px-0.5 text-[10px] font-semibold uppercase tracking-wider text-sla
 const tone = (selected, quiet = false) =>
   selected
     ? 'bg-brand font-semibold text-white'
-    : [quiet ? 'text-slate-500' : 'text-slate-700', 'hover:bg-violet-50 hover:text-violet-700'].join(' ')
+    : [quiet ? 'text-slate-500' : 'text-slate-700', 'hover:bg-primary-50 hover:text-primary-700'].join(' ')
 
 function Group({ label, children }) {
   return (

@@ -651,8 +651,8 @@ function withCrewPeople(people, crew, companies, bookings, extra = []) {
 
 // Default chip colors cycled through for newly created bookings.
 const BOOKING_COLORS = [
-  '#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6',
-  '#14b8a6', '#f43f5e', '#06b6d4', '#6366f1', '#f97316',
+  '#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#84cc16',
+  '#14b8a6', '#f43f5e', '#06b6d4', '#0ea5e9', '#f97316',
 ]
 
 // Map each reserved unit id -> the location label of the (first) active

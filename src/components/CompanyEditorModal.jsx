@@ -123,7 +123,7 @@ export default function CompanyEditorModal({
 
   const label = 'mb-1.5 block text-sm font-medium text-slate-700'
   const field =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
   // A company may already carry a type that was removed from the option list.
   const orphanType =
@@ -159,7 +159,7 @@ export default function CompanyEditorModal({
               <button
                 type="button"
                 onClick={() => setManagingTypes((v) => !v)}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
               >
                 <Settings2 size={12} />
                 {managingTypes ? 'Done' : 'Manage'}
@@ -199,7 +199,7 @@ export default function CompanyEditorModal({
                                 saveRename()
                               } else if (e.key === 'Escape') setRenaming(null)
                             }}
-                            className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-violet-400"
+                            className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-primary-400"
                           />
                           <button
                             type="button"
@@ -223,7 +223,7 @@ export default function CompanyEditorModal({
                             type="button"
                             onClick={() => setRenaming({ id: t.id, value: t.name })}
                             title="Rename"
-                            className="rounded p-1 text-slate-400 transition hover:bg-surface hover:text-violet-600"
+                            className="rounded p-1 text-slate-400 transition hover:bg-surface hover:text-primary-600"
                           >
                             <Pencil size={12} />
                           </button>
@@ -252,7 +252,7 @@ export default function CompanyEditorModal({
                       }
                     }}
                     placeholder="New type, e.g. Catering"
-                    className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-violet-400"
+                    className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs outline-none focus:border-primary-400"
                   />
                   <button
                     type="button"

@@ -115,7 +115,7 @@ export default function PackingChecklistModal({
             </div>
             <div className="flex shrink-0 gap-4 text-center text-xs">
               <div>
-                <div className="text-base font-semibold text-violet-700">
+                <div className="text-base font-semibold text-primary-700">
                   {prog.out}/{prog.total}
                 </div>
                 <div className="text-slate-400">checked out</div>
@@ -185,7 +185,7 @@ export default function PackingChecklistModal({
                     placeholder={`Scan a barcode or QR to ${scanDir === CHECK_IN ? 'check in' : 'check out'}…`}
                     aria-label="Scan a barcode or QR"
                     autoComplete="off"
-                    className="w-full rounded-md border border-slate-300 py-1.5 pl-8 pr-2 font-mono text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                    className="w-full rounded-md border border-slate-300 py-1.5 pl-8 pr-2 font-mono text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                   />
                 </div>
                 <button
@@ -225,7 +225,7 @@ export default function PackingChecklistModal({
                       className={[
                         'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
                         g.type === 'kit'
-                          ? 'bg-violet-100 text-violet-700'
+                          ? 'bg-primary-100 text-primary-700'
                           : 'bg-slate-200 text-slate-600',
                       ].join(' ')}
                     >
@@ -247,7 +247,7 @@ export default function PackingChecklistModal({
                             back
                               ? 'border-emerald-200 bg-emerald-50/40'
                               : out
-                                ? 'border-violet-200 bg-violet-50/30'
+                                ? 'border-primary-200 bg-primary-50/30'
                                 : 'border-slate-200',
                           ].join(' ')}
                         >
@@ -306,7 +306,7 @@ export default function PackingChecklistModal({
                                 signoff={out}
                                 icon={LogOut}
                                 label="Check out"
-                                tone="violet"
+                                tone="primary"
                                 onSign={() => sign(l, CHECK_OUT)}
                                 onClear={() => clear(l, CHECK_OUT)}
                               />
@@ -357,14 +357,14 @@ function SignCell({ signoff, icon: Icon, label, tone, onSign, onClear }) {
   const tint =
     tone === 'emerald'
       ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-      : 'border-violet-300 bg-violet-50 text-violet-900'
+      : 'border-primary-300 bg-primary-50 text-primary-900'
   if (!signed)
     return (
       <button
         type="button"
         onClick={onSign}
         aria-label={label}
-        className="inline-flex h-10 w-full sm:w-[8.5rem] items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 text-xs font-medium text-slate-500 transition hover:border-violet-400 hover:bg-violet-50 hover:text-violet-700"
+        className="inline-flex h-10 w-full sm:w-[8.5rem] items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 text-xs font-medium text-slate-500 transition hover:border-primary-400 hover:bg-primary-50 hover:text-primary-700"
       >
         <Icon size={13} />
         {label}

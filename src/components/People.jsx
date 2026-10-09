@@ -286,7 +286,7 @@ export default function People() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={tab === 'people' ? 'Search name, company, email…' : 'Search companies…'}
-                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
               />
               {search !== '' && (
                 <button
@@ -306,14 +306,14 @@ export default function People() {
                   value={category}
                   onChange={(e) => pickCategory(e.target.value)}
                   options={[{ value: 'All', label: 'All categories' }, ...categories]}
-                  className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                  className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                 />
                 {subcategories.length > 0 && (
                   <SelectField
                     value={subcategory}
                     onChange={(e) => setSubcategory(e.target.value)}
                     options={[{ value: 'All', label: 'All subcategories' }, ...subcategories]}
-                    className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                    className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
                   />
                 )}
                 {peopleFiltered && (
@@ -328,7 +328,7 @@ export default function People() {
                         setCategory('All')
                         setSubcategory('All')
                       }}
-                      className="font-medium text-violet-600 transition hover:underline"
+                      className="font-medium text-primary-600 transition hover:underline"
                     >
                       Clear all
                     </button>
@@ -378,7 +378,7 @@ export default function People() {
                 <button
                   type="button"
                   onClick={() => setShowDetailMobile(false)}
-                  className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-violet-600 lg:hidden"
+                  className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-primary-600 lg:hidden"
                 >
                   <ChevronLeft size={16} />
                   Back to people
@@ -402,7 +402,7 @@ export default function People() {
               <button
                 type="button"
                 onClick={() => setShowDetailMobile(false)}
-                className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-violet-600 lg:hidden"
+                className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-3 py-2 text-sm font-medium text-primary-600 lg:hidden"
               >
                 <ChevronLeft size={16} />
                 Back to companies
@@ -501,7 +501,7 @@ function PersonList({ people, selectedId, query, onSelect, onOpenCompany }) {
             <div
               className={[
                 'flex items-center gap-3 rounded-lg px-2.5 py-2.5 transition',
-                active ? 'bg-violet-50 ring-1 ring-violet-200' : 'hover:bg-slate-50',
+                active ? 'bg-primary-50 ring-1 ring-primary-200' : 'hover:bg-slate-50',
               ].join(' ')}
             >
               <button
@@ -521,7 +521,7 @@ function PersonList({ people, selectedId, query, onSelect, onOpenCompany }) {
                   <span
                     className={[
                       'block truncate text-sm font-medium',
-                      active ? 'text-violet-900' : 'text-slate-800',
+                      active ? 'text-primary-900' : 'text-slate-800',
                     ].join(' ')}
                   >
                     <Highlight text={p.name} query={query} />
@@ -539,7 +539,7 @@ function PersonList({ people, selectedId, query, onSelect, onOpenCompany }) {
                   type="button"
                   onClick={() => onOpenCompany(p.companyId)}
                   title={`Open ${p.companyName}`}
-                  className="-ml-2 min-w-0 max-w-[45%] shrink truncate text-left text-xs text-violet-600 underline decoration-violet-200 underline-offset-2 transition hover:text-violet-800"
+                  className="-ml-2 min-w-0 max-w-[45%] shrink truncate text-left text-xs text-primary-600 underline decoration-primary-200 underline-offset-2 transition hover:text-primary-800"
                 >
                   {p.companyName}
                 </button>
@@ -576,7 +576,7 @@ function CompanyList({ companies, people, selectedId, query, onSelect }) {
               onClick={() => onSelect(c.id)}
               className={[
                 'flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition',
-                active ? 'bg-violet-50 ring-1 ring-violet-200' : 'hover:bg-slate-50',
+                active ? 'bg-primary-50 ring-1 ring-primary-200' : 'hover:bg-slate-50',
               ].join(' ')}
             >
               <span
@@ -591,7 +591,7 @@ function CompanyList({ companies, people, selectedId, query, onSelect }) {
                 <span
                   className={[
                     'block truncate text-sm font-medium',
-                    active ? 'text-violet-900' : 'text-slate-800',
+                    active ? 'text-primary-900' : 'text-slate-800',
                   ].join(' ')}
                 >
                   <Highlight text={c.name} query={query} />
@@ -619,7 +619,7 @@ function CompanyList({ companies, people, selectedId, query, onSelect }) {
 function CvLink({ cvUrl, children }) {
   const [failed, setFailed] = useState(null)
   const chip =
-    'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-600'
+    'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-primary-300 hover:text-primary-600'
   if (!cvObjectPath(cvUrl))
     return (
       <a href={cvUrl} target="_blank" rel="noreferrer noopener" className={chip}>
@@ -667,14 +667,14 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
     <>
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
         <div className="flex min-w-0 gap-3">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
             {initials(person.name)}
           </span>
           <div className="min-w-0">
             <h3 className="truncate text-lg font-semibold text-slate-900">{person.name}</h3>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
               {person.category && (
-                <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+                <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
                   {person.category}
                 </span>
               )}
@@ -687,7 +687,7 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
                 <button
                   type="button"
                   onClick={() => onOpenCompany(person.companyId)}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-violet-600 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-800"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 underline decoration-primary-300 underline-offset-2 transition hover:text-primary-800"
                 >
                   <Building2 size={12} />
                   {person.companyName}
@@ -700,7 +700,7 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-600"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-primary-300 hover:text-primary-600"
           >
             <Pencil size={14} />
             Edit
@@ -719,7 +719,7 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
               {person.email && (
                 <a
                   href={`mailto:${person.email}`}
-                  className="flex items-center gap-2 text-sm text-slate-700 transition hover:text-violet-700"
+                  className="flex items-center gap-2 text-sm text-slate-700 transition hover:text-primary-700"
                 >
                   <Mail size={14} className="shrink-0 text-slate-400" />
                   {person.email}
@@ -728,7 +728,7 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
               {person.phone && (
                 <a
                   href={`tel:${person.phone.replace(/\s/g, '')}`}
-                  className="flex items-center gap-2 text-sm text-slate-700 transition hover:text-violet-700"
+                  className="flex items-center gap-2 text-sm text-slate-700 transition hover:text-primary-700"
                 >
                   <Phone size={14} className="shrink-0 text-slate-400" />
                   {person.phone}
@@ -752,7 +752,7 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
                   href={webUrl(person.website)}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-primary-300 hover:text-primary-600"
                 >
                   <Globe size={13} />
                   Website
@@ -764,7 +764,7 @@ function PersonDetail({ person, orders, canManage, onEdit, onOpenCompany, onOpen
                   href={igUrl(person.instagram)}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-primary-300 hover:text-primary-600"
                 >
                   <AtSign size={13} />
                   {person.instagram}
@@ -880,12 +880,12 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <Building2 size={18} className="shrink-0 text-violet-500" />
+            <Building2 size={18} className="shrink-0 text-primary-500" />
             <h3 className="truncate text-lg font-semibold text-slate-900">{company.name}</h3>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
             {company.companyType && (
-              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">
+              <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600">
                 {company.companyType}
               </span>
             )}
@@ -903,7 +903,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-600"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-primary-300 hover:text-primary-600"
           >
             <Pencil size={14} />
             Edit
@@ -951,7 +951,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
                   href={webUrl(company.website)}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="flex items-center gap-2 text-violet-600 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-800"
+                  className="flex items-center gap-2 text-primary-600 underline decoration-primary-300 underline-offset-2 transition hover:text-primary-800"
                 >
                   <Globe size={14} className="shrink-0" />
                   {company.website.replace(/^https?:\/\//i, '')}
@@ -961,7 +961,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
               {company.email && (
                 <a
                   href={`mailto:${company.email}`}
-                  className="flex items-center gap-2 text-slate-700 transition hover:text-violet-700"
+                  className="flex items-center gap-2 text-slate-700 transition hover:text-primary-700"
                 >
                   <Mail size={14} className="shrink-0 text-slate-400" />
                   {company.email}
@@ -970,7 +970,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
               {company.phone && (
                 <a
                   href={`tel:${company.phone.replace(/\s/g, '')}`}
-                  className="flex items-center gap-2 text-slate-700 transition hover:text-violet-700"
+                  className="flex items-center gap-2 text-slate-700 transition hover:text-primary-700"
                 >
                   <Phone size={14} className="shrink-0 text-slate-400" />
                   {company.phone}
@@ -995,13 +995,13 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
                   <button
                     type="button"
                     onClick={() => onOpenPerson(p.id)}
-                    className="flex w-full items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-left transition hover:border-violet-300 hover:bg-violet-50/40"
+                    className="flex w-full items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-left transition hover:border-primary-300 hover:bg-primary-50/40"
                   >
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">
                       {initials(p.name)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-violet-700 underline decoration-violet-200 underline-offset-2">
+                      <span className="block truncate text-sm font-medium text-primary-700 underline decoration-primary-200 underline-offset-2">
                         {p.name}
                       </span>
                       {(p.subcategory || p.category) && (
@@ -1049,7 +1049,7 @@ function CompanyDetail({ company, people, orders, inventory, canManage, onEdit, 
                     type="button"
                     onClick={() => peek({ type: 'item', id: g.itemId })}
                     title="Open this inventory — items, history, where they are"
-                    className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-800 hover:text-violet-700 hover:underline focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-violet-400"
+                    className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-800 hover:text-primary-700 hover:underline focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-primary-400"
                   >
                     {g.name}
                   </button>
@@ -1095,14 +1095,14 @@ function OrderList({ orders, showCompany = false, onOpen }) {
               type="button"
               onClick={() => onOpen?.(o)}
               title="Open this job"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-left transition hover:border-violet-300 hover:bg-violet-50/40"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-left transition hover:border-primary-300 hover:bg-primary-50/40"
             >
             <div className="flex items-center gap-2">
               <span
                 title={inbound ? 'They rented gear to us' : 'Raised against this company'}
                 className={[
                   'inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                  inbound ? 'bg-violet-100 text-violet-700' : 'bg-slate-200 text-slate-600',
+                  inbound ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-600',
                 ].join(' ')}
               >
                 {inbound ? <ArrowDownLeft size={9} /> : <ArrowUpRight size={9} />}
@@ -1158,7 +1158,7 @@ function JobList({ jobs, showWho = false, emptyText, orderForSet, onOpenJob }) {
               type="button"
               onClick={() => onOpenJob?.(j, order)}
               title={order ? 'Open this job' : 'Show this shoot on the calendar'}
-              className="flex w-full items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-left transition hover:border-violet-300 hover:bg-violet-50/40"
+              className="flex w-full items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-left transition hover:border-primary-300 hover:bg-primary-50/40"
             >
               <Briefcase size={14} className="shrink-0 text-slate-400" />
               <div className="min-w-0 flex-1">

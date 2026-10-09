@@ -176,8 +176,8 @@ export default function ItemAvailability({ item }) {
               className={[
                 'rounded-lg border px-1 py-1 text-left transition',
                 d.iso === selected
-                  ? 'border-violet-400 ring-2 ring-violet-100'
-                  : 'border-slate-200 hover:border-violet-300',
+                  ? 'border-primary-400 ring-2 ring-primary-100'
+                  : 'border-slate-200 hover:border-primary-300',
                 !d.inMonth && 'opacity-40',
                 // A day with sets is tinted by how tight it is: some out (amber),
                 // nothing left (rose). An untouched weekday stays white; a quiet
@@ -191,7 +191,7 @@ export default function ItemAvailability({ item }) {
                 className={[
                   'text-[11px] font-semibold leading-none',
                   d.today
-                    ? 'text-violet-600'
+                    ? 'text-primary-600'
                     : weekend && booked === 0
                       ? 'text-slate-400'
                       : 'text-slate-600',
@@ -236,7 +236,7 @@ export default function ItemAvailability({ item }) {
                   setMonthAnchor(nextElsewhere)
                   setSelected(nextElsewhere)
                 }}
-                className="font-medium text-violet-600 underline-offset-2 hover:underline"
+                className="font-medium text-primary-600 underline-offset-2 hover:underline"
               >
                 {format(parseISO(nextElsewhere), 'MMM d, yyyy')}
               </button>
@@ -281,7 +281,7 @@ export default function ItemAvailability({ item }) {
                   <button
                     type="button"
                     onClick={() => peek({ type: 'job', id: r.setId })}
-                    className="min-w-0 truncate font-medium text-violet-600 underline-offset-2 hover:underline"
+                    className="min-w-0 truncate font-medium text-primary-600 underline-offset-2 hover:underline"
                     title={r.setTitle || 'Open the shoot'}
                   >
                     {r.setTitle || 'Shoot'}

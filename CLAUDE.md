@@ -3661,6 +3661,35 @@
 > the name with the tooltip; demo data reseeded (0 line notes).
 > ⚠️ The dev console logged "does not provide an export named 'itemLabel'" — HMR between the edit that removed the
 > export and the edits that stopped importing it; the build (which fails on a missing export) passed after.
+> **REBRAND — primary is the brand blue #005BA5, and the greys carry no hue** (frontend only, no migration).
+> Requested: take the colour of a supplied logo (ARRI's — explicitly NOT ours, only its colour) and make it the
+> system's primary instead of violet, because violet is Dalim Studio's colour; the dark theme's dark-violet
+> grounds become black / grey / white, the light theme white / grey. The colour was MEASURED from the image's
+> pixels (#005BA5 on 75k of them), not eyeballed.
+> **The utilities name a ROLE now: `violet-*` → `primary-*`** (260 lines across 46 files, a word-boundary rename of
+> `violet-<step>` only). `--color-primary-*` lives in `@theme`; primary-600 IS #005BA5 (6.91 on white — better than
+> violet-600's 5.89), the tint end borrows Tailwind blue's chroma so a `bg-primary-50` reads pale blue, and
+> `--color-brand`/`-strong` (the solid buttons) are primary-600/700. The next change of brand colour is that block.
+> **Slate is redefined as Tailwind's NEUTRAL** (chroma 0) in both themes — the utilities keep the name `slate-*`
+> (~1250 uses; renaming is noise). One deviation: light slate-500 is 52%, not neutral's 55.6%, because the small
+> grey chips (`bg-slate-100 text-slate-500`, e.g. "OMSet1") measured 4.35 with it, under the old slate's ~4.6.
+> Dark: page neutral-950, card neutral-900, the role-by-role ramp kept; the dark PRIMARY tints are deliberately
+> LOW chroma (a selected row is dark grey with a trace of blue, not a coloured panel) so the theme stays black /
+> grey / white with blue as its one accent. Scrim and chip are neutral too.
+> Followed through: both PDFs' inks are neutral greys and their accent / check-out cell the brand blue; the
+> Closed/Draft status `print` and `calendar` colours are neutral (the test that derives `print` from the pill
+> classes now reads the app's own `@theme` block first, and jsPDF writes a grey with the `g` operator, not `rg`,
+> which the fill-operator helper had to learn); the Inventory "Sub-rental" badge went indigo → amber (the rental
+> colour the packing list already uses — indigo was the last violet-ish family); the stored seed colours lost
+> their violet/indigo hexes; and the favicon, still Vite's violet bolt, is a brand-blue square with the app's mark.
+> ⚠️ Tailwind scans every non-ignored file, and this file QUOTES old classes (`bg-violet-600`), so the bundle kept
+> shipping violet utilities nobody used — `@source not "../CLAUDE.md"` in `index.css` stops it (0 "violet" in the
+> built CSS). +4 assertions (**830**): primary-600 and brand are #005BA5, every slate step has chroma 0, and no
+> `violet|purple|indigo|fuchsia-<n>` class exists anywhere in `src`.
+> Verified in local mode by measurement, all four views in both themes with transitions frozen: dark has 0 text
+> failures below AA except the "—" placeholders (2.29, known); light's failures are exactly the pre-existing muted
+> `slate-400` labels (2.58 vs 2.63 before) and the weekend/today header tints — none involves the blue. Looked at:
+> Jobs, Inventory and the Calendar in both themes. 0 console errors; build, lint, audit:tdz, audit:jsx clean.
 > Ship each section end-to-end (migration → verify on Supabase → commit → push → confirm prod).
 > Note: migrations 2.6 `repairs` (`20260725120000`), 2.7 `item_usage` (`20260725130000`), 3.1 `kit_slots`
 > (`20260726120000`), 3.3 slot types (`20260727120000`), 3.5 scenario lists (`20260728120000`),

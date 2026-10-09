@@ -195,13 +195,13 @@ export default function ComboField({
                   onClick={() => pick(o)}
                   className={[
                     'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition',
-                    selected ? 'font-medium text-violet-700' : 'text-slate-700',
-                    i === active ? 'bg-violet-50' : '',
+                    selected ? 'font-medium text-primary-700' : 'text-slate-700',
+                    i === active ? 'bg-primary-50' : '',
                   ].join(' ')}
                 >
                   <Check
                     size={14}
-                    className={['shrink-0', selected ? 'text-violet-600' : 'invisible'].join(' ')}
+                    className={['shrink-0', selected ? 'text-primary-600' : 'invisible'].join(' ')}
                   />
                   <span className="min-w-0 flex-1 truncate">{o.label}</span>
                 </button>

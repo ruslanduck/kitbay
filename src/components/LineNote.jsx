@@ -24,7 +24,7 @@ export default function LineNote({ text, className = '' }) {
       title={open ? 'Show less' : note}
       aria-expanded={open}
       className={[
-        'flex min-w-0 max-w-full items-start gap-1 rounded text-left text-xs text-slate-500 transition hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400',
+        'flex min-w-0 max-w-full items-start gap-1 rounded text-left text-xs text-slate-500 transition hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400',
         className,
       ].join(' ')}
     >

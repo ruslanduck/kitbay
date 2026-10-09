@@ -289,7 +289,8 @@ eq(packing.PACKED_SLOT, packing.CHECK_OUT, 'and "packed" IS checked out — a ti
     const d = new jsPDF({ unit: 'pt' })
     d.setFillColor(rgb[0], rgb[1], rgb[2])
     d.rect(0, 0, 1, 1, 'F')
-    return bytes(d).match(/[\d.]+ [\d.]+ [\d.]+ rg/)[0]
+    // A grey (r = g = b) is written with the grayscale operator `g`, not `rg`.
+    return bytes(d).match(/[\d.]+ [\d.]+ [\d.]+ rg|(?:^|\s)[\d.]+ g(?=\s)/m)[0].trim()
   }
   const sheet = bytes(packingPdf.buildPackingListPdf(e9, { inventory: inv, booking: bk, packing: signed }))
   for (const head of ['EQUIPMENT ITEM', 'VENDOR SOURCE', 'CHECK-OUT', 'CHECK-IN'])
@@ -1526,10 +1527,13 @@ ok(
 {
   const { jsPDF } = await import('jspdf')
   const { readFileSync } = await import('node:fs')
-  // The print colours ARE the pill classes' Tailwind values. Derived here from
-  // Tailwind's own theme (oklch -> sRGB), so a class that changes without the
-  // PDF fails instead of drifting.
-  const theme = readFileSync('node_modules/tailwindcss/theme.css', 'utf8')
+  // The print colours ARE the pill classes' values. Derived here from the app's
+  // own @theme block (slate is redefined there as a neutral grey) and then
+  // Tailwind's theme (oklch -> sRGB), so a class that changes without the PDF
+  // fails instead of drifting.
+  const appCss = readFileSync('src/index.css', 'utf8')
+  const appTheme = appCss.slice(appCss.indexOf('@theme {'), appCss.indexOf('}', appCss.indexOf('@theme {')))
+  const theme = appTheme + readFileSync('node_modules/tailwindcss/theme.css', 'utf8')
   const toRgb = (L, C, H) => {
     const h = (H * Math.PI) / 180
     const a = C * Math.cos(h)
@@ -1568,7 +1572,8 @@ ok(
     const d = new jsPDF({ unit: 'pt' })
     d.setFillColor(rgb[0], rgb[1], rgb[2])
     d.rect(0, 0, 1, 1, 'F')
-    return bytes(d).match(/[\d.]+ [\d.]+ [\d.]+ rg/)[0]
+    // A grey (r = g = b) is written with the grayscale operator `g`, not `rg`.
+    return bytes(d).match(/[\d.]+ [\d.]+ [\d.]+ rg|(?:^|\s)[\d.]+ g(?=\s)/m)[0].trim()
   }
   for (const status of ['hold', 'confirmed', 'fulfilled', 'canceled']) {
     const meta = orderStatus.orderStatusMeta(status)
@@ -1946,6 +1951,40 @@ ok(
     ['Content-Security-Policy', 'Permissions-Policy', 'Referrer-Policy', 'X-Content-Type-Options', 'X-Frame-Options'],
     'the five security headers are served',
   )
+}
+
+// --- the brand colour --------------------------------------------------------
+// Primary is the brand blue #005BA5, not violet (another studio's colour), and
+// the greys carry no hue. Utilities name a ROLE (`primary-*`), never a hue, so a
+// stray `violet-*` class would bring the old colour back unnoticed.
+{
+  const { readdirSync, readFileSync } = await import('node:fs')
+  const css = readFileSync('src/index.css', 'utf8')
+  const themeBlock = css.slice(css.indexOf('@theme {'), css.indexOf('}', css.indexOf('@theme {')))
+  const oklch = (name) => themeBlock.match(new RegExp(`--color-${name}:\\s*oklch\\(([\\d.]+)%\\s+([\\d.]+)\\s+([\\d.]+)\\)`))
+  const toHex = (m) => {
+    const [L, C, H] = [Number(m[1]) / 100, Number(m[2]), (Number(m[3]) * Math.PI) / 180]
+    const a = C * Math.cos(H)
+    const b = C * Math.sin(H)
+    const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    const mm = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
+    return '#' + [
+      4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * s,
+    ].map((v) => {
+      const c = Math.min(1, Math.max(0, v))
+      return Math.round((c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055) * 255).toString(16).padStart(2, '0')
+    }).join('')
+  }
+  eq(toHex(oklch('primary-600')), '#005ba5', 'primary-600 is the brand blue')
+  eq(toHex(oklch('brand')), '#005ba5', 'the solid buttons are the brand blue')
+  ok(['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'].every((k) => oklch(`slate-${k}`)?.[2] === '0'), 'every grey is neutral — no blue or violet cast')
+  const files = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? files(`${dir}/${d.name}`) : /\.(jsx?|css)$/.test(d.name) ? [`${dir}/${d.name}`] : [])
+  const stray = files('src').filter((f) => /\b(violet|purple|indigo|fuchsia)-\d/.test(readFileSync(f, 'utf8')))
+  eq(stray, [], 'no violet, purple, indigo or fuchsia class anywhere in the app')
 }
 
 console.log(`OK — ${n} assertions passed`)

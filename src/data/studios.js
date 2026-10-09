@@ -27,10 +27,10 @@ export const STUDIO_COLORS = {
   2: '#ec4899', // pink
   3: '#10b981', // emerald
   4: '#f59e0b', // amber
-  5: '#8b5cf6', // violet
+  5: '#84cc16', // lime
   L: '#06b6d4', // cyan
 }
 
 export function studioColor(id) {
-  return STUDIO_COLORS[id] ?? '#64748b'
+  return STUDIO_COLORS[id] ?? '#737373'
 }

@@ -255,9 +255,9 @@ export default function DateField({ value, onChange, className }) {
                       isSel
                         ? 'bg-brand font-semibold text-white'
                         : inMonth
-                          ? 'text-slate-700 hover:bg-violet-50'
+                          ? 'text-slate-700 hover:bg-primary-50'
                           : 'text-slate-300 hover:bg-slate-50',
-                      !isSel && isToday ? 'ring-1 ring-inset ring-violet-300' : '',
+                      !isSel && isToday ? 'ring-1 ring-inset ring-primary-300' : '',
                     ].join(' ')}
                   >
                     {d.getDate()}
@@ -270,7 +270,7 @@ export default function DateField({ value, onChange, className }) {
               <button
                 type="button"
                 onClick={() => pick(new Date())}
-                className="rounded-md px-2 py-1 text-xs font-medium text-violet-600 transition hover:bg-violet-50"
+                className="rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50"
               >
                 Today
               </button>

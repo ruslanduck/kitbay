@@ -16,7 +16,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react'
 // `FILTER_FIELD` is exported so the controls a caller passes in are sized like
 // each other — that mismatch was half of what made the two panes look unrelated.
 export const FILTER_FIELD =
-  'min-w-0 rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100'
+  'min-w-0 rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-700 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
 
 export default function FilterBar({
   search,
@@ -46,7 +46,7 @@ export default function FilterBar({
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder={searchPlaceholder}
-          className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+          className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
         />
         {search !== '' && (
           <button
@@ -69,7 +69,7 @@ export default function FilterBar({
               className={[
                 'inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition',
                 activeCount > 0
-                  ? 'border-violet-300 bg-violet-50 text-violet-700'
+                  ? 'border-primary-300 bg-primary-50 text-primary-700'
                   : 'border-slate-300 text-slate-600 hover:bg-slate-50',
               ].join(' ')}
             >
@@ -105,7 +105,7 @@ export default function FilterBar({
             <button
               type="button"
               onClick={onClear}
-              className="font-medium text-violet-600 transition hover:underline"
+              className="font-medium text-primary-600 transition hover:underline"
             >
               Clear all
             </button>
